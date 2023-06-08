@@ -16,6 +16,11 @@ class StableBrowser {
           return await this.page.locator(selector.css);
         }
         if (selector.role) {
+          if (selector.role === "link") {
+            return await this.page
+              .getByRole(selector.role[0], selector.role[1])
+              .first();
+          }
           return await this.page.getByRole(selector.role[0], selector.role[1]);
         }
         if (selector.text) {
