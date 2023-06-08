@@ -6,4 +6,4 @@ class Environment {
     this.baseUrl = url;
   }
 }
-export default Environment;
+export { Environment };

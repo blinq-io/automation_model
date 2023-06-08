@@ -6,4 +6,4 @@ class TestContext {
     this.environment = null;
   }
 }
-export default TestContext;
+export { TestContext };

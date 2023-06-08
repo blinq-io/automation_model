@@ -61,4 +61,4 @@ class AutoPage {
     await this.stable.waitForPageLoad();
   }
 }
-export default AutoPage;
+export { AutoPage };

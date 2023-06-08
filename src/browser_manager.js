@@ -74,7 +74,7 @@ class Browser {
 }
 const browserManager = new BrowserManager();
 
-export default browserManager;
+export { browserManager };
 
 // let browser = await browserManager.createBrowser();
 // browser.page.goto("https://www.cnn.com");

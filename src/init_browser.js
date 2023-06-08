@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import Environment from "./environment.js";
-import browserManager from "./browser_manager.js";
-import TestContext from "./test_context.js";
+import { Environment } from "./environment.js";
+import { browserManager } from "./browser_manager.js";
+import { TestContext } from "./test_context.js";
 import { StableBrowser } from "./stable_browser.js";
 
 let environment = null;
