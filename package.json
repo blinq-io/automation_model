@@ -1,7 +1,7 @@
 {
   "name": "automation_model",
-  "version": "1.0.2",
-  "description": "",
+  "version": "1.0.3",
+  "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "bin/index.js",
   "type": "module",
   "directories": {
