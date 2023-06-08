@@ -10,26 +10,18 @@ class StableBrowser {
     });
   }
   async _locate(selector) {
-    if (selector.startsWith("{")) {
+    if (typeof selector === "object") {
       try {
-        const locatorObject = JSON.parse(selector);
-        let type = locatorObject.type;
-        if (!type) {
-          type = "css";
+        if (selector.css) {
+          return await this.page.locator(selector.css);
         }
-        switch (type) {
-          case "css":
-            return await this.page.locator(locatorObject.locator);
-          case "role":
-            return await this.page.getByRole(
-              locatorObject.role,
-              locatorObject.options
-            );
-          case "text":
-            return await this.page.getByText(locatorObject.text);
-          default:
-            throw new Error(`Unknown locator type ${type}`);
+        if (selector.role) {
+          return await this.page.getByRole(selector.role[0], selector.role[1]);
         }
+        if (selector.text) {
+          return await this.page.getByText(selector.text);
+        }
+        throw new Error(`Unknown locator type ${type}`);
       } catch (e) {
         console.log("invalid locator object, will try to parse as text");
       }
