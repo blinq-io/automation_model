@@ -10,33 +10,33 @@ class StableBrowser {
     });
   }
   async _locate(selector, scope) {
-    if (typeof selector === "object") {
-      try {
-        if (Array.isArray(selector)) {
-          let currentScope = scope;
+    try {
+      if (Array.isArray(selector)) {
+        let currentScope = scope;
 
-          for (let i = 0; i < selector.length; i++) {
-            currentScope = await this._locate(
-              selector[i],
-              currentScope
-            ).first();
-          }
+        for (let i = 0; i < selector.length; i++) {
+          currentScope = (
+            await this._locate(selector[i], currentScope)
+          ).first();
         }
+        return currentScope;
+      }
+      if (typeof selector === "object") {
         if (selector.css) {
-          return await scope.locator(selector.css).first();
+          return (await scope.locator(selector.css)).first();
         }
         if (selector.role) {
-          return await scope
-            .getByRole(selector.role[0], selector.role[1])
-            .first();
+          return (
+            await scope.getByRole(selector.role[0], selector.role[1])
+          ).first();
         }
         if (selector.text) {
-          return await scope.getByText(selector.text).first();
+          return await scope.getByText(selector.text);
         }
-        throw new Error(`Unknown locator type ${type}`);
-      } catch (e) {
-        console.log("invalid locator object, will try to parse as text");
       }
+      throw new Error(`Unknown locator type ${type}`);
+    } catch (e) {
+      console.log("invalid locator object, will try to parse as text");
     }
 
     if (selector.startsWith("TEXT=")) {
