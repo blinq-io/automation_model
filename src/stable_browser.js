@@ -9,22 +9,29 @@ class StableBrowser {
       timeout: 60000,
     });
   }
-  async _locate(selector) {
+  async _locate(selector, scope) {
     if (typeof selector === "object") {
       try {
+        if (Array.isArray(selector)) {
+          let currentScope = scope;
+
+          for (let i = 0; i < selector.length; i++) {
+            currentScope = await this._locate(
+              selector[i],
+              currentScope
+            ).first();
+          }
+        }
         if (selector.css) {
-          return await this.page.locator(selector.css);
+          return await scope.locator(selector.css).first();
         }
         if (selector.role) {
-          if (selector.role === "link") {
-            return await this.page
-              .getByRole(selector.role[0], selector.role[1])
-              .first();
-          }
-          return await this.page.getByRole(selector.role[0], selector.role[1]);
+          return await scope
+            .getByRole(selector.role[0], selector.role[1])
+            .first();
         }
         if (selector.text) {
-          return await this.page.getByText(selector.text);
+          return await scope.getByText(selector.text).first();
         }
         throw new Error(`Unknown locator type ${type}`);
       } catch (e) {
@@ -33,17 +40,19 @@ class StableBrowser {
     }
 
     if (selector.startsWith("TEXT=")) {
-      return await this.page.getByText(selector.substring("TEXT=".length));
+      return await this.page
+        .getByText(selector.substring("TEXT=".length))
+        .first();
     } else {
-      return await this.page.locator(selector);
+      return await this.page.locator(selector).first();
     }
   }
 
   async click(selector) {
-    (await this._locate(selector)).click();
+    (await this._locate(selector, this.page)).click();
   }
   async fill(selector, value) {
-    let element = await this._locate(selector);
+    let element = await this._locate(selector, this.page);
     await element.fill(value);
     await element.dispatchEvent("change");
   }
