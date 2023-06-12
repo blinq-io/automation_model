@@ -9,29 +9,36 @@ class StableBrowser {
       timeout: 60000,
     });
   }
+  async _fixLocator(locator) {
+    let count = await locator.count();
+    if (count > 1) {
+      return locator.nth(0);
+    }
+    return locator;
+  }
   async _locate(selector, scope) {
     try {
       if (Array.isArray(selector)) {
         let currentScope = scope;
 
         for (let i = 0; i < selector.length; i++) {
-          currentScope = (
+          currentScope = await this._fixLocator(
             await this._locate(selector[i], currentScope)
-          ).first();
+          );
         }
         return currentScope;
       }
       if (typeof selector === "object") {
         if (selector.css) {
-          return (await scope.locator(selector.css)).first();
+          return await this._fixLocator(scope.locator(selector.css));
         }
         if (selector.role) {
-          return (
-            await scope.getByRole(selector.role[0], selector.role[1])
-          ).first();
+          return await this._fixLocator(
+            scope.getByRole(selector.role[0], selector.role[1])
+          );
         }
         if (selector.text) {
-          return await scope.getByText(selector.text);
+          return await this._fixLocator(scope.getByText(selector.text));
         }
       }
       throw new Error(`Unknown locator type ${type}`);
@@ -40,16 +47,14 @@ class StableBrowser {
     }
 
     if (selector.startsWith("TEXT=")) {
-      return await this.page
-        .getByText(selector.substring("TEXT=".length))
-        .first();
+      return await this.page.getByText(selector.substring("TEXT=".length));
     } else {
-      return await this.page.locator(selector).first();
+      return await this.page.locator(selector);
     }
   }
 
   async click(selector) {
-    (await this._locate(selector, this.page)).click();
+    await (await this._locate(selector, this.page)).click();
   }
   async fill(selector, value) {
     let element = await this._locate(selector, this.page);
