@@ -1,4 +1,4 @@
-import { expect } from "@jest/globals";
+import { expect } from "@playwright/test";
 class StableBrowser {
   constructor(browser, page) {
     this.browser = browser;
