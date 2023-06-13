@@ -1,3 +1,4 @@
+import { expect } from "@jest/globals";
 class StableBrowser {
   constructor(browser, page) {
     this.browser = browser;
@@ -60,6 +61,10 @@ class StableBrowser {
     let element = await this._locate(selector, this.page);
     await element.fill(value);
     await element.dispatchEvent("change");
+  }
+  async verifyTextFoundInPage(text) {
+    const element = await page.getByText(text);
+    await expect(element !== undefined).toBeTruthy();
   }
   async clickInTableRow(textInRow, actionLocator) {
     const row = await page.evaluate(() => {
