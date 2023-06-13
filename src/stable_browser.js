@@ -62,9 +62,10 @@ class StableBrowser {
     await element.fill(value);
     await element.dispatchEvent("change");
   }
-  async verifyTextFoundInPage(text) {
-    const element = await page.getByText(text);
-    await expect(element !== undefined).toBeTruthy();
+  async verifyElementExistInPage(selector) {
+    const element = await this._locate(selector, this.page);
+    await expect(element).toHaveCount(1);
+    //await expect(element !== undefined).toBeTruthy();
   }
   async waitForPageLoad() {
     try {

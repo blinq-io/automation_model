@@ -7,11 +7,11 @@ import { StableBrowser } from "./stable_browser.js";
 let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (environment = null) {
+const getContext = async function (environment = null, headless = false) {
   if (environment === null) {
     environment = initEnvoronment();
   }
-  let browser = await browserManager.getBrowser();
+  let browser = await browserManager.getBrowser(headless);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;

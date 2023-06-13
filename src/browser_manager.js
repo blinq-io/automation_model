@@ -9,7 +9,11 @@ class BrowserManager {
     this.browsers = [];
   }
   async closeBrowser(browser) {
-    if (browser !== null) {
+    if (!browser && this.browsers.length > 0) {
+      browser = this.browsers[0];
+    }
+
+    if (browser) {
       await browser.close();
       for (let i = 0; i < this.browsers.length; i++) {
         if (
@@ -24,15 +28,15 @@ class BrowserManager {
     }
   }
 
-  async createBrowser() {
+  async createBrowser(headless = false) {
     const browser = new Browser();
-    await browser.init();
+    await browser.init(headless);
     this.browsers.push(browser);
     return browser;
   }
-  async getBrowser() {
+  async getBrowser(headless = false) {
     if (this.browsers.length === 0) {
-      return await this.createBrowser();
+      return await this.createBrowser(headless);
     }
     return this.browsers[0];
   }
@@ -44,23 +48,14 @@ class Browser {
     this.page = null;
   }
 
-  async init() {
-    //let port = 9222;
+  async init(headless = false) {
     this.browser = await chromium.launch({
-      headless: false,
+      headless: headless,
       timeout: 0,
-      //args: ["--remote-debugging-port=" + port],
     });
-    // const cdpBrowser = await chromium.connectOverCDP({
-    //   endpointURL: `http://127.0.0.1:${port}/`,
-    // });
-    // //let context = await browser.newContext();
-    // const context = cdpBrowser.contexts()[0];
-    // let page = await context.newPage();
-    // page.goto("https://www.cnn.com");
+
     this.context = await this.browser.newContext();
     this.page = await this.context.newPage();
-    //console.log("browser", this.browser);
   }
 
   async close() {

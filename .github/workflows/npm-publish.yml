@@ -5,30 +5,31 @@ name: Javascript client CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-javascript-client:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js 16.x
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16.x
-        cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
-    - run: npm install
-      working-directory: ${{ github.workspace }}
-    - run: npm run build
-      working-directory: ${{ github.workspace }}
-    - name: publish server to npm
-      uses: JS-DevTools/npm-publish@v1
-      with:
-        token: ${{ secrets.NPM_PASSWORD }}
-        package: ${{ github.workspace }}/build/package.json
-        check-version: true
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+      - run: npm install
+        working-directory: ${{ github.workspace }}
+      - run: npm run build
+        working-directory: ${{ github.workspace }}
+      - run: npm test
+        working-directory: ${{ github.workspace }}
+      - name: publish server to npm
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_PASSWORD }}
+          package: ${{ github.workspace }}/build/package.json
+          check-version: true

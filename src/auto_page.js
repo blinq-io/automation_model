@@ -26,9 +26,9 @@ class AutoPage {
   /**
    * init context
    */
-  static async init(navigate = true) {
+  static async init(navigate = true, headless = false) {
     const instance = new this();
-    instance.context = await getContext();
+    instance.context = await getContext(null, headless);
     instance.page = instance.context.page;
     instance.browser = instance.context.browser;
     instance.stable = instance.context.stable;
