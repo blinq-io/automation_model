@@ -1,8 +1,9 @@
 import { expect } from "@playwright/test";
 class StableBrowser {
-  constructor(browser, page) {
+  constructor(browser, page, logger = console) {
     this.browser = browser;
     this.page = page;
+    this.logger = logger;
   }
 
   async goto(url) {
@@ -10,10 +11,16 @@ class StableBrowser {
       timeout: 60000,
     });
   }
-  async _fixLocator(locator) {
+  async _checkUnique(locator) {
     let count = await locator.count();
     if (count > 1) {
-      return locator.nth(0);
+      logger.error("Found more than one element for locator", JSON.stringify(locator));
+      for (let i = 0; i < count; i++) {
+        let loc = locator.nth(i);
+        if ((await loc.isVisible()) && (await loc.isEnabled())) {
+          return loc;
+        }
+      }
     }
     return locator;
   }
@@ -23,23 +30,19 @@ class StableBrowser {
         let currentScope = scope;
 
         for (let i = 0; i < selector.length; i++) {
-          currentScope = await this._fixLocator(
-            await this._locate(selector[i], currentScope)
-          );
+          currentScope = await this._locate(selector[i], currentScope);
         }
         return currentScope;
       }
       if (typeof selector === "object") {
         if (selector.css) {
-          return await this._fixLocator(scope.locator(selector.css));
+          return await this._checkUnique(scope.locator(selector.css));
         }
         if (selector.role) {
-          return await this._fixLocator(
-            scope.getByRole(selector.role[0], selector.role[1])
-          );
+          return await this._checkUnique(scope.getByRole(selector.role[0], selector.role[1]));
         }
         if (selector.text) {
-          return await this._fixLocator(scope.getByText(selector.text));
+          return await this._checkUnique(scope.getByText(selector.text));
         }
       }
       throw new Error(`Unknown locator type ${type}`);
