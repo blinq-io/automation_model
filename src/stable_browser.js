@@ -17,7 +17,7 @@ class StableBrowser {
   async _checkUnique(locator) {
     let count = await locator.count();
     if (count > 1) {
-      logger.error("Found more than one element for locator", JSON.stringify(locator));
+      this.logger.error("Found more than one element for locator" + JSON.stringify(locator.toString()));
       for (let i = 0; i < count; i++) {
         let loc = locator.nth(i);
         if ((await loc.isVisible()) && (await loc.isEnabled())) {
@@ -47,16 +47,14 @@ class StableBrowser {
         if (selector.text) {
           return await this._checkUnique(scope.getByText(selector.text));
         }
+      } else if (typeof selector === "string" && selector.startsWith("TEXT=")) {
+        return await this.page.getByText(selector.substring("TEXT=".length));
+      } else {
+        return await this.page.locator(selector);
       }
       throw new Error(`Unknown locator type ${type}`);
     } catch (e) {
       console.log("invalid locator object, will try to parse as text");
-    }
-
-    if (selector.startsWith("TEXT=")) {
-      return await this.page.getByText(selector.substring("TEXT=".length));
-    } else {
-      return await this.page.locator(selector);
     }
   }
 
