@@ -7,7 +7,7 @@ import { StableBrowser } from "./stable_browser.js";
 let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (environment = null, headless = false) {
+const getContext = async function (environment = null, headless = false, logger = null) {
   if (environment === null) {
     environment = initEnvoronment();
   }
@@ -17,7 +17,7 @@ const getContext = async function (environment = null, headless = false) {
   context.playContext = browser.context;
   context.page = browser.page;
   context.environment = environment;
-  context.stable = new StableBrowser(context.browser, context.page);
+  context.stable = new StableBrowser(context.browser, context.page, logger);
   await _initCookies(context);
   return context;
 };

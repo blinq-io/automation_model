@@ -1,9 +1,12 @@
 import { expect } from "@playwright/test";
 class StableBrowser {
-  constructor(browser, page, logger = console) {
+  constructor(browser, page, logger) {
     this.browser = browser;
     this.page = page;
     this.logger = logger;
+    if (!this.logger) {
+      this.logger = console;
+    }
   }
 
   async goto(url) {
