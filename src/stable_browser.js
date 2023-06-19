@@ -66,7 +66,7 @@ class StableBrowser {
   async click(selector) {
     for (let i = 0; i < selector.length; i++) {
       try {
-        await (await this._locate(selector[i], this.page)).click();
+        await (await this._locate(selector[i], this.page)).click({ timeout: 10000 });
         return;
       } catch (e) {
         if (i === selector.length - 1) {
@@ -80,7 +80,7 @@ class StableBrowser {
     for (let i = 0; i < selector.length; i++) {
       try {
         let element = await this._locate(selector[i], this.page);
-        await element.fill(value);
+        await element.fill(value, { timeout: 10000 });
         await element.dispatchEvent("change");
         return;
       } catch (e) {
@@ -95,7 +95,7 @@ class StableBrowser {
     for (let i = 0; i < selector.length; i++) {
       try {
         const element = await this._locate(selector[0], this.page);
-        await expect(element).toHaveCount(1);
+        await expect(element).toHaveCount(1, { timeout: 10000 });
         return;
       } catch (e) {
         if (i === selector.length - 1) {
