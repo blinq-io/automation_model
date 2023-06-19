@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "bin/index.js",
   "type": "module",
@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@playwright/test": "^1.35.0",
-    "playwright": "^1.33.0"
+    "playwright": "^1.33.0",
+    "regex-parser": "^2.2.11"
   }
 }

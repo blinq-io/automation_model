@@ -1,3 +1,4 @@
+import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
 class StableBrowser {
   constructor(browser, page, logger) {
@@ -42,6 +43,10 @@ class StableBrowser {
           return await this._checkUnique(scope.locator(selector.css));
         }
         if (selector.role) {
+          if (selector.role[1].nameReg) {
+            selector.role[1].name = reg_parser(selector.role[1].nameReg);
+            delete selector.role[1].nameReg;
+          }
           return await this._checkUnique(scope.getByRole(selector.role[0], selector.role[1]));
         }
         if (selector.text) {
