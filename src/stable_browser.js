@@ -64,16 +64,47 @@ class StableBrowser {
   }
 
   async click(selector) {
-    await (await this._locate(selector, this.page)).click();
+    for (let i = 0; i < selector.length; i++) {
+      try {
+        await (await this._locate(selector[i], this.page)).click();
+        return;
+      } catch (e) {
+        if (i === selector.length - 1) {
+          throw e;
+        }
+        console.log("click failed, will try next selector");
+      }
+    }
   }
   async fill(selector, value) {
-    let element = await this._locate(selector, this.page);
-    await element.fill(value);
-    await element.dispatchEvent("change");
+    for (let i = 0; i < selector.length; i++) {
+      try {
+        let element = await this._locate(selector[i], this.page);
+        await element.fill(value);
+        await element.dispatchEvent("change");
+        return;
+      } catch (e) {
+        if (i === selector.length - 1) {
+          throw e;
+        }
+        console.log("click failed, will try next selector");
+      }
+    }
   }
   async verifyElementExistInPage(selector) {
-    const element = await this._locate(selector, this.page);
-    await expect(element).toHaveCount(1);
+    for (let i = 0; i < selector.length; i++) {
+      try {
+        const element = await this._locate(selector[0], this.page);
+        await expect(element).toHaveCount(1);
+        return;
+      } catch (e) {
+        if (i === selector.length - 1) {
+          throw e;
+        }
+        console.log("click failed, will try next selector");
+      }
+    }
+
     //await expect(element !== undefined).toBeTruthy();
   }
   async waitForPageLoad() {
