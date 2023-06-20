@@ -81,15 +81,14 @@ class StableBrowser {
       info.log.push("try selector " + i);
       try {
         let element = await this._locate(selector[i], this.page, info);
-        if (options.screenshot) {
-          await element.screenshot({ path: options.screenshotPath });
-        }
+        await this._screenShot(options);
         await element.click({ timeout: 10000 });
         return info;
       } catch (e) {
         if (i === selector.length - 1) {
           this.logger.error("click failed " + JSON.stringify(info));
           Object.assign(e, { info: info });
+          await this._screenShot(options);
           throw e;
         }
         this.logger.info("click failed, will try next selector");
@@ -106,9 +105,7 @@ class StableBrowser {
       info.log.push("try selector " + i);
       try {
         let element = await this._locate(selector[i], this.page, info);
-        if (options.screenshot) {
-          await element.screenshot({ path: options.screenshotPath });
-        }
+        await this._screenShot(options);
         await element.fill(value, { timeout: 10000 });
         await element.dispatchEvent("change");
         return info;
@@ -116,10 +113,16 @@ class StableBrowser {
         if (i === selector.length - 1) {
           this.logger.error("fill failed " + JSON.stringify(info));
           Object.assign(e, { info: info });
+          await this._screenShot(options);
           throw e;
         }
         this.logger.info("click failed, will try next selector");
       }
+    }
+  }
+  async _screenShot(options = {}) {
+    if (options.screenshot) {
+      await this.page.screenshot({ path: options.screenshotPath });
     }
   }
   async verifyElementExistInPage(selector, options = {}) {
@@ -130,15 +133,14 @@ class StableBrowser {
     for (let i = 0; i < selector.length; i++) {
       try {
         const element = await this._locate(selector[0], this.page, info);
-        if (options.screenshot) {
-          await element.screenshot({ path: options.screenshotPath });
-        }
+        await this._screenShot(options);
         await expect(element).toHaveCount(1, { timeout: 10000 });
         return info;
       } catch (e) {
         if (i === selector.length - 1) {
           this.logger.error("verify failed " + JSON.stringify(info));
           Object.assign(e, { info: info });
+          await this._screenShot(options);
           throw e;
         }
         this.logger.info("click failed, will try next selector");
@@ -158,9 +160,7 @@ class StableBrowser {
       console.log("waitForPageLoad error, ignored");
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    if (options.screenshot) {
-      await element.screenshot({ path: options.screenshotPath });
-    }
+    await this._screenShot(options);
   }
 }
 export { StableBrowser };
