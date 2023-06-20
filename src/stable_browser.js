@@ -72,7 +72,7 @@ class StableBrowser {
     }
   }
 
-  async click(selector) {
+  async click(selector, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "click";
@@ -80,7 +80,11 @@ class StableBrowser {
     for (let i = 0; i < selector.length; i++) {
       info.log.push("try selector " + i);
       try {
-        await (await this._locate(selector[i], this.page, info)).click({ timeout: 10000 });
+        let element = await this._locate(selector[i], this.page, info);
+        if (options.screenshot) {
+          await element.screenshot({ path: options.screenshotPath });
+        }
+        await element.click({ timeout: 10000 });
         return info;
       } catch (e) {
         if (i === selector.length - 1) {
@@ -92,7 +96,7 @@ class StableBrowser {
       }
     }
   }
-  async fill(selector, value) {
+  async fill(selector, value, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "fill";
@@ -102,6 +106,9 @@ class StableBrowser {
       info.log.push("try selector " + i);
       try {
         let element = await this._locate(selector[i], this.page, info);
+        if (options.screenshot) {
+          await element.screenshot({ path: options.screenshotPath });
+        }
         await element.fill(value, { timeout: 10000 });
         await element.dispatchEvent("change");
         return info;
@@ -115,7 +122,7 @@ class StableBrowser {
       }
     }
   }
-  async verifyElementExistInPage(selector) {
+  async verifyElementExistInPage(selector, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "verify";
@@ -123,6 +130,9 @@ class StableBrowser {
     for (let i = 0; i < selector.length; i++) {
       try {
         const element = await this._locate(selector[0], this.page, info);
+        if (options.screenshot) {
+          await element.screenshot({ path: options.screenshotPath });
+        }
         await expect(element).toHaveCount(1, { timeout: 10000 });
         return info;
       } catch (e) {
@@ -137,7 +147,7 @@ class StableBrowser {
 
     //await expect(element !== undefined).toBeTruthy();
   }
-  async waitForPageLoad() {
+  async waitForPageLoad(options = {}) {
     try {
       await Promise.all([
         this.page.waitForLoadState("networkidle"),
@@ -148,6 +158,9 @@ class StableBrowser {
       console.log("waitForPageLoad error, ignored");
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (options.screenshot) {
+      await element.screenshot({ path: options.screenshotPath });
+    }
   }
 }
 export { StableBrowser };
