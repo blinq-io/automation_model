@@ -18,12 +18,21 @@ class LoginPage extends AutoPage {
   }
   login = async function () {
     //await context.page.pause();
-    await this.stable.click(this.elements.sign_in);
-    await this.stable.fill(this.elements.username, "guy");
-    await this.stable.click(this.elements.loginButton);
-    await this.stable.verifyElementExistInPage({
-      text: "Incorrect username or password.",
-    });
+    let info = null;
+    info = await this.stable.click(this.elements.sign_in);
+    console.log("info click sign in", JSON.stringify(info, null, 2));
+    info = await this.stable.fill(this.elements.username, "guy");
+    console.log("info fill username", JSON.stringify(info, null, 2));
+    info = await this.stable.click(this.elements.loginButton);
+    console.log("info click login", JSON.stringify(info, null, 2));
+    info = await this.stable.verifyElementExistInPage([
+      [
+        {
+          text: "Incorrect username or password.",
+        },
+      ],
+    ]);
+    console.log("info verify", JSON.stringify(info, null, 2));
   };
 }
 
