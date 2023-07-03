@@ -51,28 +51,39 @@ class StableBrowser {
       }
     }
   }
-  async _locate(selectors, info) {
+  async _locate(selectors, info, timeout = 10000) {
     let locatorsByPriority = [];
-    let locatorsCount = 0;
-    for (let i = 0; i < selectors.length; i++) {
-      let selectorList = selectors[i];
+    let startTime = performance.now();
+    while (true) {
+      let locatorsCount = 0;
 
-      let foundLocators = [];
-      try {
-        await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
-      } catch (e) {
-        foundLocators = [];
-        await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
-      }
+      for (let i = 0; i < selectors.length; i++) {
+        let selectorList = selectors[i];
 
-      info.log.push("total elements found " + foundLocators.length);
-      if (foundLocators.length === 1) {
-        info.log.push("found unique element");
-        info.box = await foundLocators[0].boundingBox();
-        return foundLocators[0];
+        let foundLocators = [];
+        try {
+          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+        } catch (e) {
+          foundLocators = [];
+          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+        }
+
+        info.log.push("total elements found " + foundLocators.length);
+        if (foundLocators.length === 1) {
+          info.log.push("found unique element");
+          info.box = await foundLocators[0].boundingBox();
+          return foundLocators[0];
+        }
+        locatorsByPriority.push(foundLocators);
+        locatorsCount += foundLocators.length;
       }
-      locatorsByPriority.push(foundLocators);
-      locatorsCount += foundLocators.length;
+      if (locatorsCount > 0) {
+        break;
+      }
+      if (performance.now() - startTime > timeout) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.info("failed to locate unique element, total elements found " + locatorsCount);
     info.log.push("failed to locate unique element, total elements found " + locatorsCount);
