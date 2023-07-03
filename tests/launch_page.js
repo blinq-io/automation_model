@@ -4,9 +4,9 @@ import { closeBrowser } from "../src/init_browser.js";
 const name = "login";
 const path = "/";
 const elements = {
-  sign_in: [{ role: ["link", { name: "Sign in" }] }],
-  username: [{ role: ["textbox", { name: "Username or email address" }] }],
-  loginButton: [{ role: ["button", { name: "Sign in" }] }],
+  sign_in: [[{ role: ["link", { name: "Sign in" }] }]],
+  username: [[{ role: ["textbox", { name: "Username or email address" }] }]],
+  loginButton: [[{ role: ["button", { name: "Sign in" }] }]],
 };
 
 class LoginPage extends AutoPage {

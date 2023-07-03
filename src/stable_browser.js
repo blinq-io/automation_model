@@ -58,7 +58,13 @@ class StableBrowser {
       let selectorList = selectors[i];
 
       let foundLocators = [];
-      await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+      try {
+        await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+      } catch (e) {
+        foundLocators = [];
+        await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+      }
+
       info.log.push("total elements found " + foundLocators.length);
       if (foundLocators.length === 1) {
         info.log.push("found unique element");
