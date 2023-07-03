@@ -54,9 +54,9 @@ class StableBrowser {
   async _locate(selectors, info, timeout = 10000) {
     let locatorsByPriority = [];
     let startTime = performance.now();
+    let locatorsCount = 0;
     while (true) {
-      let locatorsCount = 0;
-
+      locatorsCount = 0;
       for (let i = 0; i < selectors.length; i++) {
         let selectorList = selectors[i];
 
