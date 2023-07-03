@@ -15,61 +15,69 @@ class StableBrowser {
       timeout: 60000,
     });
   }
-  async _checkUnique(locator, info) {
-    info.log.push("check unique");
-    let count = await locator.count();
-    info.log.push("count=" + count);
-    if (count > 1) {
-      this.logger.error("Found more than one element for locator" + JSON.stringify(locator.toString()));
-      for (let i = 0; i < count; i++) {
-        let loc = locator.nth(i);
-        if ((await loc.isVisible()) && (await loc.isEnabled())) {
-          info.box = await loc.boundingBox();
-          return loc;
-        }
+  _getLocator(locator, scope) {
+    if (locator.role) {
+      if (locator.role[1].nameReg) {
+        locator.role[1].name = reg_parser(locator.role[1].nameReg);
+        delete locator.role[1].nameReg;
       }
+      return scope.getByRole(locator.role[0], locator.role[1]);
     }
-    if (count === 1) {
-      info.box = await locator.boundingBox();
+    if (locator.css) {
+      return scope.locator(locator.css);
     }
-    return locator;
+    if (locator.text) {
+      return scope.getByText(locator.text);
+    }
+    throw new Error("unknown locator type");
   }
-  async _locate(selector, scope, info) {
-    try {
-      if (Array.isArray(selector)) {
-        let currentScope = scope;
 
-        for (let i = 0; i < selector.length; i++) {
-          currentScope = await this._locate(selector[i], currentScope, info);
-        }
-        return currentScope;
-      }
-      if (typeof selector === "object") {
-        info.log.push("try selector " + JSON.stringify(selector));
-        if (selector.css) {
-          return await this._checkUnique(scope.locator(selector.css), info);
-        }
-        if (selector.role) {
-          if (selector.role[1].nameReg) {
-            selector.role[1].name = reg_parser(selector.role[1].nameReg);
-            delete selector.role[1].nameReg;
-          }
-          return await this._checkUnique(scope.getByRole(selector.role[0], selector.role[1]), info);
-        }
-        if (selector.text) {
-          return await this._checkUnique(scope.getByText(selector.text), info);
-        }
-      } else if (typeof selector === "string" && selector.startsWith("TEXT=")) {
-        info.log.push("try getByText");
-        return await this.page.getByText(selector.substring("TEXT=".length));
-      } else {
-        info.log.push("try direct css selector");
-        return await this.page.locator(selector);
-      }
-      throw new Error(`Unknown locator type ${type}`);
-    } catch (e) {
-      console.log("invalid locator object, will try to parse as text");
+  async _collectLocatorInformation(locators, index, scope, foundLocators) {
+    if (index === locators.length) {
+      return;
     }
+    const locator = this._getLocator(locators[index], scope);
+    let count = await locator.count();
+    let visibleCount = 0;
+    let visibleLocator = null;
+    for (let j = 0; j < count; j++) {
+      if ((await locator.nth(j).isVisible()) && (await locator.nth(j).isEnabled())) {
+        visibleCount++;
+        if (index === locators.length - 1) {
+          foundLocators.push(locator.nth(j));
+        } else {
+          this._collectLocatorInformation(locators, index + 1, locator.nth(j), foundLocators);
+        }
+      }
+    }
+  }
+  async _locate(selectors, info) {
+    let locatorsByPriority = [];
+    let locatorsCount = 0;
+    for (let i = 0; i < selectors.length; i++) {
+      let selectorList = selectors[i];
+
+      let foundLocators = [];
+      await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+      info.log.push("total elements found " + foundLocators.length);
+      if (foundLocators.length === 1) {
+        info.log.push("found unique element");
+        info.box = await foundLocators[0].boundingBox();
+        return foundLocators[0];
+      }
+      locatorsByPriority.push(foundLocators);
+      locatorsCount += foundLocators.length;
+    }
+    this.logger.info("failed to locate unique element, total elements found " + locatorsCount);
+    info.log.push("failed to locate unique element, total elements found " + locatorsCount);
+    for (let i = 0; i < locatorsByPriority.length; i++) {
+      let locators = locatorsByPriority[i];
+      if (locators.length > 0) {
+        info.box = await locators[0].boundingBox();
+        return locators[0];
+      }
+    }
+    throw new Error("failed to locate first element no elements found");
   }
 
   async click(selector, options = {}) {
@@ -77,22 +85,20 @@ class StableBrowser {
     info.log = [];
     info.operation = "click";
     info.selector = selector;
-    for (let i = 0; i < selector.length; i++) {
-      info.log.push("try selector " + i);
-      try {
-        let element = await this._locate(selector[i], this.page, info);
-        await this._screenShot(options);
-        await element.click({ timeout: 10000 });
-        return info;
-      } catch (e) {
-        if (i === selector.length - 1) {
-          this.logger.error("click failed " + JSON.stringify(info));
-          Object.assign(e, { info: info });
-          await this._screenShot(options);
-          throw e;
-        }
-        this.logger.info("click failed, will try next selector");
-      }
+
+    try {
+      let element = await this._locate(selector, info);
+
+      await this._screenShot(options);
+      await element.click({ timeout: 10000 });
+      return info;
+    } catch (e) {
+      this.logger.error("click failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      await this._screenShot(options);
+      throw e;
+
+      this.logger.info("click failed, will try next selector");
     }
   }
   async fill(selector, value, options = {}) {
@@ -101,23 +107,17 @@ class StableBrowser {
     info.operation = "fill";
     info.selector = selector;
     info.value = value;
-    for (let i = 0; i < selector.length; i++) {
-      info.log.push("try selector " + i);
-      try {
-        let element = await this._locate(selector[i], this.page, info);
-        await this._screenShot(options);
-        await element.fill(value, { timeout: 10000 });
-        await element.dispatchEvent("change");
-        return info;
-      } catch (e) {
-        if (i === selector.length - 1) {
-          this.logger.error("fill failed " + JSON.stringify(info));
-          Object.assign(e, { info: info });
-          await this._screenShot(options);
-          throw e;
-        }
-        this.logger.info("click failed, will try next selector");
-      }
+    try {
+      let element = await this._locate(selector, info);
+      await this._screenShot(options);
+      await element.fill(value, { timeout: 10000 });
+      await element.dispatchEvent("change");
+      return info;
+    } catch (e) {
+      this.logger.error("fill failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      await this._screenShot(options);
+      throw e;
     }
   }
   async _screenShot(options = {}) {
@@ -130,24 +130,17 @@ class StableBrowser {
     info.log = [];
     info.operation = "verify";
     info.selector = selector;
-    for (let i = 0; i < selector.length; i++) {
-      try {
-        const element = await this._locate(selector[0], this.page, info);
-        await this._screenShot(options);
-        await expect(element).toHaveCount(1, { timeout: 10000 });
-        return info;
-      } catch (e) {
-        if (i === selector.length - 1) {
-          this.logger.error("verify failed " + JSON.stringify(info));
-          Object.assign(e, { info: info });
-          await this._screenShot(options);
-          throw e;
-        }
-        this.logger.info("click failed, will try next selector");
-      }
+    try {
+      const element = await this._locate(selector, info);
+      await this._screenShot(options);
+      await expect(element).toHaveCount(1, { timeout: 10000 });
+      return info;
+    } catch (e) {
+      this.logger.error("verify failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      await this._screenShot(options);
+      throw e;
     }
-
-    //await expect(element !== undefined).toBeTruthy();
   }
   async waitForPageLoad(options = {}) {
     try {
