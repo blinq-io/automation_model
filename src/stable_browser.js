@@ -94,7 +94,7 @@ class StableBrowser {
         return locators[0];
       }
     }
-    throw new Error("failed to locate first element no elements found");
+    throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
   async click(selector, options = {}) {
