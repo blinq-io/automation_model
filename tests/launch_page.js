@@ -5,7 +5,7 @@ const name = "login";
 const path = "/";
 const elements = {
   sign_in: [[{ role: ["link", { name: "Sign in" }] }]],
-  username: [[{ role: ["textbox", { name: "login" }] }]],
+  username: [[{ css: 'input[name="login"]' }]],
   loginButton: [[{ role: ["button", { name: "Sign in" }] }]],
 };
 const context = await initContext(path, true, true);
@@ -26,7 +26,7 @@ const login = async function () {
   ]);
   console.log("info verify", JSON.stringify(info, null, 2));
 };
-login();
+await login();
 
 await new Promise((resolve) => setTimeout(resolve, 1000));
 await closeBrowser();
