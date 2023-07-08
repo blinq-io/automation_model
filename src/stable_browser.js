@@ -15,28 +15,37 @@ class StableBrowser {
       timeout: 60000,
     });
   }
-  _getLocator(locator, scope) {
+  _fixUsingParams(text, _params) {
+    if (!_params) {
+      return text;
+    }
+    for (let key in _params) {
+      text = text.replace(new RegExp("{" + key + "}", "g"), _params[key]);
+    }
+    return text;
+  }
+  _getLocator(locator, scope, _params) {
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
         delete locator.role[1].nameReg;
       }
-      return scope.getByRole(locator.role[0], locator.role[1]);
+      return scope.getByRole(locator.role[0], this._fixUsingParams(locator.role[1], _params));
     }
     if (locator.css) {
-      return scope.locator(locator.css);
+      return scope.locator(this._fixUsingParams(locator.css, _params));
     }
     if (locator.text) {
-      return scope.getByText(locator.text);
+      return scope.getByText(this._fixUsingParams(locator.text, _params));
     }
     throw new Error("unknown locator type");
   }
 
-  async _collectLocatorInformation(locators, index, scope, foundLocators) {
+  async _collectLocatorInformation(locators, index, scope, foundLocators, _params) {
     if (index === locators.length) {
       return;
     }
-    const locator = this._getLocator(locators[index], scope);
+    const locator = this._getLocator(locators[index], scope, _params);
     let count = await locator.count();
     let visibleCount = 0;
     let visibleLocator = null;
@@ -51,7 +60,7 @@ class StableBrowser {
       }
     }
   }
-  async _locate(selectors, info, timeout = 10000) {
+  async _locate(selectors, info, _params, timeout = 10000) {
     let locatorsByPriority = [];
     let startTime = performance.now();
     let locatorsCount = 0;
@@ -62,10 +71,10 @@ class StableBrowser {
 
         let foundLocators = [];
         try {
-          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators, _params);
         } catch (e) {
           foundLocators = [];
-          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators);
+          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators, _params);
         }
 
         info.log.push("total elements found " + foundLocators.length);
@@ -97,14 +106,14 @@ class StableBrowser {
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
-  async click(selector, options = {}) {
+  async click(selector, _params = null, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "click";
     info.selector = selector;
 
     try {
-      let element = await this._locate(selector, info);
+      let element = await this._locate(selector, info, _params);
 
       await this._screenShot(options);
       await element.click({ timeout: 10000 });
@@ -118,14 +127,14 @@ class StableBrowser {
       this.logger.info("click failed, will try next selector");
     }
   }
-  async fill(selector, value, options = {}) {
+  async fill(selector, value, _params = null, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "fill";
     info.selector = selector;
     info.value = value;
     try {
-      let element = await this._locate(selector, info);
+      let element = await this._locate(selector, info, _params);
       await this._screenShot(options);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
@@ -142,13 +151,13 @@ class StableBrowser {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
-  async verifyElementExistInPage(selector, options = {}) {
+  async verifyElementExistInPage(selector, _params = null, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "verify";
     info.selector = selector;
     try {
-      const element = await this._locate(selector, info);
+      const element = await this._locate(selector, info, _params);
       await this._screenShot(options);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
