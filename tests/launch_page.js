@@ -4,14 +4,14 @@ import { closeBrowser } from "../src/init_browser.js";
 const name = "login";
 const path = "/";
 const elements = {
-  sign_in: [[{ role: ["link", { name: "Sign in" }] }]],
+  sign_in: [[{ role: ["link", { name: "{signin}" }] }]],
   username: [[{ css: 'input[name="login"]' }]],
   loginButton: [[{ role: ["button", { name: "Sign in" }] }]],
 };
 const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
-  info = await context.stable.click(elements.sign_in);
+  info = await context.stable.click(elements.sign_in, { signin: "Sign in" });
   console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
   console.log("info fill username", JSON.stringify(info, null, 2));
