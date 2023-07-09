@@ -20,7 +20,7 @@ class StableBrowser {
       return text;
     }
     for (let key in _params) {
-      text = text.replace(new RegExp("{" + key + "}", "g"), _params[key]);
+      text = text.replaceAll(new RegExp("{" + key + "}", "g"), _params[key]);
     }
     return text;
   }
@@ -30,7 +30,10 @@ class StableBrowser {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
         delete locator.role[1].nameReg;
       }
-      return scope.getByRole(locator.role[0], this._fixUsingParams(locator.role[1], _params));
+      if (locator.role[1].name) {
+        locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
+      }
+      return scope.getByRole(locator.role[0], locator.role[1]);
     }
     if (locator.css) {
       return scope.locator(this._fixUsingParams(locator.css, _params));
