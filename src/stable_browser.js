@@ -16,7 +16,7 @@ class StableBrowser {
     });
   }
   _fixUsingParams(text, _params) {
-    if (!_params) {
+    if (!_params || typeof text !== "string") {
       return text;
     }
     for (let key in _params) {
