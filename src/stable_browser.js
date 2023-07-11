@@ -136,7 +136,7 @@ class StableBrowser {
     }
   }
 
-  async selectOptions(selector, values, _params = null, options = {}) {
+  async selectOption(selector, values, _params = null, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "selectOptions";
@@ -147,14 +147,14 @@ class StableBrowser {
 
       await this._screenShot(options);
       try {
-        await element.selectOptions(values, { timeout: 5000 });
+        await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
-        info.log.push("selectOptions failed, will try force");
-        await element.selectOptions(values, { timeout: 10000, force: true });
+        info.log.push("selectOption failed, will try force");
+        await element.selectOption(values, { timeout: 10000, force: true });
       }
       return info;
     } catch (e) {
-      this.logger.error("selectOptions failed " + JSON.stringify(info));
+      this.logger.error("selectOption failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
       await this._screenShot(options);
       throw e;
