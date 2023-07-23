@@ -97,7 +97,7 @@ class StableBrowser {
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    this.logger.info("failed to locate unique element, total elements found " + locatorsCount);
+    this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     info.log.push("failed to locate unique element, total elements found " + locatorsCount);
     for (let i = 0; i < locatorsByPriority.length; i++) {
       let locators = locatorsByPriority[i];
