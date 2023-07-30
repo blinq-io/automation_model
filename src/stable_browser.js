@@ -191,7 +191,11 @@ class StableBrowser {
     try {
       let element = await this._locate(selector, info, _params);
       await this._screenShot(options);
-      await element.toContainText(text, { timeout: 10000 });
+      let foundText = await element.textContent();
+      if (!foundText.includes(text)) {
+        throw new Error("element doesn't contain text " + text);
+      }
+      //await expect(element).toContainText(text, { timeout: 10000 });
       //fill(value, { timeout: 10000 });
       //await element.dispatchEvent("change");
       return info;
