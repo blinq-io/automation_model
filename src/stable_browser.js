@@ -182,6 +182,26 @@ class StableBrowser {
       throw e;
     }
   }
+  async containsText(selector, text, _params = null, options = {}) {
+    const info = {};
+    info.log = [];
+    info.operation = "containsText";
+    info.selector = selector;
+    info.value = text;
+    try {
+      let element = await this._locate(selector, info, _params);
+      await this._screenShot(options);
+      await element.toContainText(text, { timeout: 10000 });
+      //fill(value, { timeout: 10000 });
+      //await element.dispatchEvent("change");
+      return info;
+    } catch (e) {
+      this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      await this._screenShot(options);
+      throw e;
+    }
+  }
   async _screenShot(options = {}) {
     if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
