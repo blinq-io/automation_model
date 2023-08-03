@@ -196,6 +196,7 @@ class StableBrowser {
       await this._screenShot(options);
       let foundText = await element.textContent();
       if (!foundText.includes(text)) {
+        info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
       }
       //await expect(element).toContainText(text, { timeout: 10000 });
