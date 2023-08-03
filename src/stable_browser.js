@@ -125,6 +125,7 @@ class StableBrowser {
         info.log.push("click failed, will try force click");
         await element.click({ timeout: 10000, force: true });
       }
+      await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("click failed " + JSON.stringify(info));
@@ -152,6 +153,7 @@ class StableBrowser {
         info.log.push("selectOption failed, will try force");
         await element.selectOption(values, { timeout: 10000, force: true });
       }
+      await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
@@ -174,6 +176,7 @@ class StableBrowser {
       await this._screenShot(options);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
+      await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
