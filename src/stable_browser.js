@@ -216,6 +216,7 @@ class StableBrowser {
     }
   }
   async verifyElementExistInPage(selector, _params = null, options = {}) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
     info.operation = "verify";
