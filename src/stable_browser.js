@@ -234,11 +234,14 @@ class StableBrowser {
     }
   }
   async waitForPageLoad(options = {}) {
+    const waitOptions = {
+      timeout: 10000,
+    };
     try {
       await Promise.all([
-        this.page.waitForLoadState("networkidle"),
-        this.page.waitForLoadState("load"),
-        this.page.waitForLoadState("domcontentloaded"),
+        this.page.waitForLoadState("networkidle", waitOptions),
+        this.page.waitForLoadState("load", waitOptions),
+        this.page.waitForLoadState("domcontentloaded", waitOptions),
       ]);
     } catch (e) {
       console.log("waitForPageLoad error, ignored");
