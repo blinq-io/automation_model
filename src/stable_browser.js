@@ -165,7 +165,7 @@ class StableBrowser {
     }
   }
 
-  async fill(selector, value, _params = null, options = {}) {
+  async fill(selector, value, enter = false, _params = null, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "fill";
@@ -176,6 +176,9 @@ class StableBrowser {
       await this._screenShot(options);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
+      if (enter) {
+        await this.page.keyboard.press("Enter");
+      }
       await this.waitForPageLoad();
       return info;
     } catch (e) {
