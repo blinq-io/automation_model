@@ -2,8 +2,13 @@ import { getContext } from "./init_browser.js";
 
 let context = null;
 const navigate = async (path = "") => {
-  //console.log("navigate", this.context.environment.baseUrl + this.path);
-  await context.stable.goto(new URL(path, context.environment.baseUrl).href);
+  let url = null;
+  if (path === null) {
+    url = context.environment.baseUrl;
+  } else {
+    url = new URL(path, context.environment.baseUrl).href;
+  }
+  await context.stable.goto(url);
   await context.stable.waitForPageLoad();
 };
 
