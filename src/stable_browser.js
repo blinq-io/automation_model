@@ -188,6 +188,61 @@ class StableBrowser {
       throw e;
     }
   }
+  // async _getText(selector, _params = null, options = {}, info = {}) {
+  //   let element = await this._locate(selector, info, _params);
+  //   await this._screenShot(options);
+  //   return await element.textContent();
+  // }
+  async _getText2(selector, _params = null, options = {}, info = {}) {
+    let element = await this._locate(selector, info, _params);
+    await this._screenShot(options);
+    let textFound = await element.evaluate((_node) => {
+      function isInline(element) {
+        var displayStyle = window.getComputedStyle(element, null).getPropertyValue("display");
+        return displayStyle === "inline" || displayStyle === "inline-block";
+      }
+
+      function isElementVisible(element) {
+        if (!element.getBoundingClientRect) {
+          return true;
+        }
+        const rect = element.getBoundingClientRect();
+        if (rect.height === 0 || rect.width === 0) {
+          return false;
+        }
+        const viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
+        return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
+      }
+      function getVisibleText(node) {
+        if (!isElementVisible(node)) {
+          return "";
+        }
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.nodeValue.trim();
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return "";
+        }
+        let block = !isInline(node);
+        let text = "";
+        for (let child of node.childNodes) {
+          text += getVisibleText(child);
+        }
+        if (block) {
+          text += "\n";
+        } else {
+          text = " " + text;
+        }
+        return text;
+      }
+      return getVisibleText(_node).trim();
+    });
+    return textFound
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .join("\n");
+  }
+
   async containsText(selector, text, _params = null, options = {}) {
     const info = {};
     info.log = [];
@@ -195,16 +250,11 @@ class StableBrowser {
     info.selector = selector;
     info.value = text;
     try {
-      let element = await this._locate(selector, info, _params);
-      await this._screenShot(options);
-      let foundText = await element.textContent();
+      let foundText = await this._getText2(selector, _params, options, info);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
       }
-      //await expect(element).toContainText(text, { timeout: 10000 });
-      //fill(value, { timeout: 10000 });
-      //await element.dispatchEvent("change");
       return info;
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
