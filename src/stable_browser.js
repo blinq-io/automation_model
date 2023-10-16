@@ -188,12 +188,11 @@ class StableBrowser {
       throw e;
     }
   }
-  // async _getText(selector, _params = null, options = {}, info = {}) {
-  //   let element = await this._locate(selector, info, _params);
-  //   await this._screenShot(options);
-  //   return await element.textContent();
-  // }
-  async _getText2(selector, _params = null, options = {}, info = {}) {
+
+  async getText(selector, _params = null, options = {}, info = {}) {
+    if (!info.log) {
+      info.log = [];
+    }
     let element = await this._locate(selector, info, _params);
     await this._screenShot(options);
     let textFound = await element.evaluate((_node) => {
@@ -250,7 +249,7 @@ class StableBrowser {
     info.selector = selector;
     info.value = text;
     try {
-      let foundText = await this._getText2(selector, _params, options, info);
+      let foundText = await this.getText(selector, _params, options, info);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
