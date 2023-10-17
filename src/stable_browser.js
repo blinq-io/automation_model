@@ -195,51 +195,52 @@ class StableBrowser {
     }
     let element = await this._locate(selector, info, _params);
     await this._screenShot(options);
-    let textFound = await element.evaluate((_node) => {
-      function isInline(element) {
-        var displayStyle = window.getComputedStyle(element, null).getPropertyValue("display");
-        return displayStyle === "inline" || displayStyle === "inline-block";
-      }
+    return await element.innerText();
+    // let textFound = await element.evaluate((_node) => {
+    //   function isInline(element) {
+    //     var displayStyle = window.getComputedStyle(element, null).getPropertyValue("display");
+    //     return displayStyle === "inline" || displayStyle === "inline-block";
+    //   }
 
-      function isElementVisible(element) {
-        if (!element.getBoundingClientRect) {
-          return true;
-        }
-        const rect = element.getBoundingClientRect();
-        if (rect.height === 0 || rect.width === 0) {
-          return false;
-        }
-        const viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
-        return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
-      }
-      function getVisibleText(node) {
-        if (!isElementVisible(node)) {
-          return "";
-        }
-        if (node.nodeType === Node.TEXT_NODE) {
-          return node.nodeValue.trim();
-        }
-        if (node.nodeType !== Node.ELEMENT_NODE) {
-          return "";
-        }
-        let block = !isInline(node);
-        let text = "";
-        for (let child of node.childNodes) {
-          text += getVisibleText(child);
-        }
-        if (block) {
-          text += "\n";
-        } else {
-          text = " " + text;
-        }
-        return text;
-      }
-      return getVisibleText(_node).trim();
-    });
-    return textFound
-      .split("\n")
-      .filter((line) => line.trim() !== "")
-      .join("\n");
+    //   function isElementVisible(element) {
+    //     if (!element.getBoundingClientRect) {
+    //       return true;
+    //     }
+    //     const rect = element.getBoundingClientRect();
+    //     if (rect.height === 0 || rect.width === 0) {
+    //       return false;
+    //     }
+    //     const viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
+    //     return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
+    //   }
+    //   function getVisibleText(node) {
+    //     if (!isElementVisible(node)) {
+    //       return "";
+    //     }
+    //     if (node.nodeType === Node.TEXT_NODE) {
+    //       return node.nodeValue.trim();
+    //     }
+    //     if (node.nodeType !== Node.ELEMENT_NODE) {
+    //       return "";
+    //     }
+    //     let block = !isInline(node);
+    //     let text = "";
+    //     for (let child of node.childNodes) {
+    //       text += getVisibleText(child);
+    //     }
+    //     if (block) {
+    //       text += "\n";
+    //     } else {
+    //       text = " " + text;
+    //     }
+    //     return text;
+    //   }
+    //   return getVisibleText(_node).trim();
+    // });
+    // return textFound
+    //   .split("\n")
+    //   .filter((line) => line.trim() !== "")
+    //   .join("\n");
   }
 
   async containsText(selector, text, _params = null, options = {}) {
