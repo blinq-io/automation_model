@@ -242,6 +242,30 @@ class StableBrowser {
     //   .filter((line) => line.trim() !== "")
     //   .join("\n");
   }
+  async containsPattern(selector, pattern, text, _params = null, options = {}) {
+    const info = {};
+    info.log = [];
+    info.operation = "containsPattern";
+    info.selector = selector;
+    info.value = text;
+    info.pattern = pattern;
+    try {
+      let foundText = await this.getText(selector, _params, options, info);
+      let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      let pattern = pattern.replace("{text}", escapedText);
+      let regex = new RegExp(pattern);
+      if (!regex.test(foundText)) {
+        info.foundText = foundText;
+        throw new Error("element doesn't contain text " + text);
+      }
+      return info;
+    } catch (e) {
+      this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      await this._screenShot(options);
+      throw e;
+    }
+  }
 
   async containsText(selector, text, _params = null, options = {}) {
     const info = {};
@@ -303,4 +327,5 @@ class StableBrowser {
     await this._screenShot(options);
   }
 }
+
 export { StableBrowser };
