@@ -252,7 +252,7 @@ class StableBrowser {
     try {
       let foundText = await this.getText(selector, _params, options, info);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-      let pattern = pattern.replace("{text}", escapedText);
+      pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern);
       if (!regex.test(foundText)) {
         info.foundText = foundText;
