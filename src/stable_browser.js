@@ -1,5 +1,7 @@
 import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
+import fs from "fs";
+let configuration = null;
 class StableBrowser {
   constructor(browser, page, logger) {
     this.browser = browser;
@@ -314,6 +316,20 @@ class StableBrowser {
   }
   async waitForPageLoad(options = {}) {
     let timeout = 10000;
+    if (!configuration) {
+      try {
+        if (fs.existsSync(".ai_config.json")) {
+          configuration = JSON.parse(fs.readFileSync(".ai_config.json"));
+        } else {
+          configuration = {};
+        }
+      } catch (e) {
+        this.logger.error("unable to read .ai_config.json");
+      }
+    }
+    if (configuration.page_timeout) {
+      timeout = configuration.page_timeout;
+    }
     if (options.page_timeout) {
       timeout = options.page_timeout;
     }
