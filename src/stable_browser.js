@@ -313,8 +313,12 @@ class StableBrowser {
     }
   }
   async waitForPageLoad(options = {}) {
+    let timeout = 10000;
+    if (options.page_timeout) {
+      timeout = options.page_timeout;
+    }
     const waitOptions = {
-      timeout: 10000,
+      timeout: timeout,
     };
     try {
       await Promise.all([
