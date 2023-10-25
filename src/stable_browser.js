@@ -249,8 +249,9 @@ class StableBrowser {
     info.selector = selector;
     info.value = text;
     info.pattern = pattern;
+    let foundText = null;
     try {
-      let foundText = await this.getText(selector, _params, options, info);
+      foundText = await this.getText(selector, _params, options, info);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern);
@@ -261,6 +262,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this.logger.error("found text " + foundText + " pattern " + pattern);
       Object.assign(e, { info: info });
       await this._screenShot(options);
       throw e;
