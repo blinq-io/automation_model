@@ -27,10 +27,8 @@ function processTableQuary(table, quary) {
   tableData.columnNames = [];
   let columnheader = [];
   if (rows.length > 0) {
-    const rowheader = rows[0];
-    columnheader = Array.from(
-      rowheader.querySelectorAll("th, [data-blinq-role='columnheader'], [role='columnheader']")
-    );
+    //const rowheader = rows[0];
+    columnheader = Array.from(table.querySelectorAll("th, [data-blinq-role='columnheader'], [role='columnheader']"));
     console.log("columnheader length", columnheader.length);
     tableData.columnscount = columnheader.length;
     for (let i = 0; i < columnheader.length; i++) {
@@ -40,9 +38,9 @@ function processTableQuary(table, quary) {
     }
   }
   tableData.rowStartIndex = 0;
-  if (columnheader.length > 0) {
-    tableData.rowStartIndex = 1;
-  }
+  // if (columnheader.length > 0) {
+  //   tableData.rowStartIndex = 1;
+  // }
 
   if (quary.startsWith("table.")) {
     return [tableData[quary.substring(6)]];

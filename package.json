@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.49",
+  "version": "1.0.50",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "bin/index.js",
   "type": "module",
@@ -8,7 +8,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "pack": "mkdir build && mkdir build/bin && cp ./src/auto_page.js ./build/bin/auto_page.js && cp ./src/environment.js ./build/bin/environment.js && cp ./src/browser_manager.js ./build/bin/browser_manager.js && cp ./src/test_context.js ./build/bin/test_context.js && cp ./src/init_browser.js ./build/bin/init_browser.js && cp ./src/stable_browser.js ./build/bin/stable_browser.js && cp ./src/index.js ./build/bin/index.js && cp ./package.json ./build/package.json",
+    "pack": "mkdir build && mkdir build/bin && cp ./src/auto_page.js ./build/bin/auto_page.js && cp ./src/environment.js ./build/bin/environment.js && cp ./src/browser_manager.js ./build/bin/browser_manager.js && cp ./src/test_context.js ./build/bin/test_context.js && cp ./src/init_browser.js ./build/bin/init_browser.js && cp ./src/stable_browser.js ./build/bin/stable_browser.js && cp ./src/index.js ./build/bin/index.js && cp ./package.json ./build/package.json && cp ./src/table_analyze.js ./build/bin/table_analyze.js",
     "clean": "rm -rf ./build",
     "build": "npm run clean && npm run pack",
     "test": "node ./tests/launch_page.js"
