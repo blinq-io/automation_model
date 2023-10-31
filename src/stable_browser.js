@@ -1,6 +1,7 @@
 import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
 import fs from "fs";
+import { getTableCells } from "./table_analyze.js";
 let configuration = null;
 class StableBrowser {
   constructor(browser, page, logger) {
@@ -198,51 +199,6 @@ class StableBrowser {
     let element = await this._locate(selector, info, _params);
     await this._screenShot(options);
     return await element.innerText();
-    // let textFound = await element.evaluate((_node) => {
-    //   function isInline(element) {
-    //     var displayStyle = window.getComputedStyle(element, null).getPropertyValue("display");
-    //     return displayStyle === "inline" || displayStyle === "inline-block";
-    //   }
-
-    //   function isElementVisible(element) {
-    //     if (!element.getBoundingClientRect) {
-    //       return true;
-    //     }
-    //     const rect = element.getBoundingClientRect();
-    //     if (rect.height === 0 || rect.width === 0) {
-    //       return false;
-    //     }
-    //     const viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
-    //     return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
-    //   }
-    //   function getVisibleText(node) {
-    //     if (!isElementVisible(node)) {
-    //       return "";
-    //     }
-    //     if (node.nodeType === Node.TEXT_NODE) {
-    //       return node.nodeValue.trim();
-    //     }
-    //     if (node.nodeType !== Node.ELEMENT_NODE) {
-    //       return "";
-    //     }
-    //     let block = !isInline(node);
-    //     let text = "";
-    //     for (let child of node.childNodes) {
-    //       text += getVisibleText(child);
-    //     }
-    //     if (block) {
-    //       text += "\n";
-    //     } else {
-    //       text = " " + text;
-    //     }
-    //     return text;
-    //   }
-    //   return getVisibleText(_node).trim();
-    // });
-    // return textFound
-    //   .split("\n")
-    //   .filter((line) => line.trim() !== "")
-    //   .join("\n");
   }
   async containsPattern(selector, pattern, text, _params = null, options = {}) {
     const info = {};
@@ -309,6 +265,87 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("verify failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      await this._screenShot(options);
+      throw e;
+    }
+  }
+  async analyzeTable(selector, quary, operator, value, _params = null, options = {}) {
+    const info = {};
+    info.log = [];
+    info.operation = "analyzeTable";
+    info.selector = selector;
+    info.quary = quary;
+    info.operator = operator;
+    info.value = value;
+    try {
+      let table = await this._locate(selector, info, _params);
+      await this._screenShot(options);
+      const cells = await getTableCells(this.page, table, quary, info);
+
+      if (cells.error) {
+        throw new Error(cells.error);
+      }
+      if (operator === "===" || operator === "==" || operator === "=" || operator === "equals") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i] !== value) {
+            throw new Error("table data doesn't match");
+          }
+        }
+      } else if (operator === "!==" || operator === "!=" || operator === "not_equals") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i] === value) {
+            throw new Error("table data doesn't match");
+          }
+        }
+      } else if (operator === ">=" || operator === "greater_than_or_equal") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i] < value) {
+            throw new Error(`found table cell value ${cells[i]} < ${value}`);
+          }
+        }
+      } else if (operator === ">" || operator === "greater_than") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i] <= value) {
+            throw new Error(`found table cell value ${cells[i]} <= ${value}`);
+          }
+        }
+      } else if (operator === "<=" || operator === "less_than_or_equal") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i] > value) {
+            throw new Error(`found table cell value ${cells[i]} > ${value}`);
+          }
+        }
+      } else if (operator === "<" || operator === "less_than") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i] >= value) {
+            throw new Error(`found table cell value ${cells[i]} >= ${value}`);
+          }
+        }
+      } else {
+        throw new Error("unknown operator " + operator);
+      }
+      return info;
+    } catch (e) {
+      this.logger.error("analyzeTable failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
       await this._screenShot(options);
       throw e;
