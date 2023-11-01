@@ -32,10 +32,10 @@ function stringifyObject(obj, indentation = 0) {
   }
   return result;
 }
-
-const __dirname = path.resolve();
+const __filename = new URL(import.meta.url).pathname;
+const currentDir = path.dirname(__filename);
 const getTableCells = async (page, element, tableSelector, info = {}) => {
-  let script = fs.readFileSync(path.join(__dirname, "src", "locator.js"), "utf8");
+  let script = fs.readFileSync(path.join(currentDir, "locator.js"), "utf8");
   let aiConfigPath = path.join(process.cwd(), "ai_config.json");
   if (fs.existsSync(aiConfigPath)) {
     let aiConfig = JSON.parse(fs.readFileSync(aiConfigPath, "utf8"));
