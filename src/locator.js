@@ -4,7 +4,7 @@ const tableSelector = null;
 document.tableSelector = tableSelector;
 
 // locator                        | operator | value
-// table.rowscount                | >=       | 1
+// table.rows                     | >=       | 1
 // table[1]["Availability"].text  | equals   | 100%
 // table[*][2].text               |not_equals| error
 
@@ -23,14 +23,14 @@ function processTableQuary(table, quary) {
   }
 
   const rows = Array.from(table.querySelectorAll("tr, [data-blinq-role='row'], [role='row']"));
-  tableData.rowscount = rows.length;
+  tableData.rows = rows.length;
   tableData.columnNames = [];
   let columnheader = [];
   if (rows.length > 0) {
     //const rowheader = rows[0];
     columnheader = Array.from(table.querySelectorAll("th, [data-blinq-role='columnheader'], [role='columnheader']"));
     console.log("columnheader length", columnheader.length);
-    tableData.columnscount = columnheader.length;
+    tableData.columns = columnheader.length;
     for (let i = 0; i < columnheader.length; i++) {
       const cell = columnheader[i];
       const cellText = cell.innerText;
@@ -43,7 +43,13 @@ function processTableQuary(table, quary) {
   // }
 
   if (quary.startsWith("table.")) {
-    return [tableData[quary.substring(6)]];
+    const result = [];
+    const property = quary.substring(6);
+    //console.log("property", property);
+    const value = tableData[property];
+    //console.log("value", value);
+    result.push(value);
+    return { cells: result };
   }
   const pattern = /^table\[(.+)\]\[(.+)\]\.(.+)$/;
   const match = quary.match(pattern);
