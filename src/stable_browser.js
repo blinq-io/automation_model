@@ -270,18 +270,20 @@ class StableBrowser {
       throw e;
     }
   }
-  async analyzeTable(selector, quary, operator, value, _params = null, options = {}) {
+  async analyzeTable(selector, query, operator, value, _params = null, options = {}) {
     const info = {};
     info.log = [];
     info.operation = "analyzeTable";
     info.selector = selector;
-    info.quary = quary;
+    info.query = query;
+    query = this._fixUsingParams(query, _params);
+    info.query_fixed = query;
     info.operator = operator;
     info.value = value;
     try {
       let table = await this._locate(selector, info, _params);
       await this._screenShot(options);
-      const cells = await getTableCells(this.page, table, quary, info);
+      const cells = await getTableCells(this.page, table, query, info);
 
       if (cells.error) {
         throw new Error(cells.error);
