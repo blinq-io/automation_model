@@ -66,7 +66,7 @@ class StableBrowser {
       }
     }
   }
-  async _locate(selectors, info, _params, timeout = 10000) {
+  async _locate(selectors, info, _params, timeout = 30000) {
     let locatorsByPriority = [];
     let startTime = performance.now();
     let locatorsCount = 0;
@@ -371,13 +371,13 @@ class StableBrowser {
     let timeout = 10000;
     if (!configuration) {
       try {
-        if (fs.existsSync(".ai_config.json")) {
-          configuration = JSON.parse(fs.readFileSync(".ai_config.json"));
+        if (fs.existsSync("ai_config.json")) {
+          configuration = JSON.parse(fs.readFileSync("ai_config.json"));
         } else {
           configuration = {};
         }
       } catch (e) {
-        this.logger.error("unable to read .ai_config.json");
+        this.logger.error("unable to read ai_config.json");
       }
     }
     if (configuration.page_timeout) {
