@@ -198,7 +198,12 @@ class StableBrowser {
     }
     let element = await this._locate(selector, info, _params);
     await this._screenShot(options);
-    return await element.innerText();
+    try {
+      return await element.innerText();
+    } catch (e) {
+      this.logger.info("no innerText will use textContent");
+      return await element.textContent();
+    }
   }
   async containsPattern(selector, pattern, text, _params = null, options = {}) {
     const info = {};
