@@ -57,7 +57,7 @@ function processTableQuary(table, quary) {
     return { error: "Invalid quary" };
   }
   const rowSelector = match[1];
-  const columnSelector = match[2];
+  let columnSelector = match[2];
   const property = match[3];
   let selectedRows = [];
   if (rowSelector === "*") {
@@ -77,7 +77,10 @@ function processTableQuary(table, quary) {
   if (isNaN(columnSelector)) {
     if (columnSelector.startsWith('"') && columnSelector.endsWith('"')) {
       columnSelector = columnSelector.substring(1, columnSelector.length - 1);
+    } else if (columnSelector.startsWith("'") && columnSelector.endsWith("'")) {
+      columnSelector = columnSelector.substring(1, columnSelector.length - 1);
     }
+
     if (columnheader.length === 0) {
       return { error: "No column header available" };
     }

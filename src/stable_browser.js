@@ -310,8 +310,11 @@ class StableBrowser {
         if (cells.length === 0) {
           throw new Error("no cells found");
         }
+        value = Number(value);
         for (let i = 0; i < cells.length; i++) {
-          if (cells[i] < value) {
+          let foundValue = Number(cells[i]);
+
+          if (foundValue < value) {
             throw new Error(`found table cell value ${cells[i]} < ${value}`);
           }
         }
@@ -319,8 +322,10 @@ class StableBrowser {
         if (cells.length === 0) {
           throw new Error("no cells found");
         }
+        value = Number(value);
         for (let i = 0; i < cells.length; i++) {
-          if (cells[i] <= value) {
+          let foundValue = Number(cells[i]);
+          if (foundValue <= value) {
             throw new Error(`found table cell value ${cells[i]} <= ${value}`);
           }
         }
@@ -328,8 +333,10 @@ class StableBrowser {
         if (cells.length === 0) {
           throw new Error("no cells found");
         }
+        value = Number(value);
         for (let i = 0; i < cells.length; i++) {
-          if (cells[i] > value) {
+          let foundValue = Number(cells[i]);
+          if (foundValue > value) {
             throw new Error(`found table cell value ${cells[i]} > ${value}`);
           }
         }
@@ -337,8 +344,10 @@ class StableBrowser {
         if (cells.length === 0) {
           throw new Error("no cells found");
         }
+        value = Number(value);
         for (let i = 0; i < cells.length; i++) {
-          if (cells[i] >= value) {
+          let foundValue = Number(cells[i]);
+          if (foundValue >= value) {
             throw new Error(`found table cell value ${cells[i]} >= ${value}`);
           }
         }
