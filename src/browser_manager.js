@@ -16,10 +16,7 @@ class BrowserManager {
     if (browser) {
       await browser.close();
       for (let i = 0; i < this.browsers.length; i++) {
-        if (
-          this.browsers[i].browser === browser ||
-          this.browsers[i] === browser
-        ) {
+        if (this.browsers[i].browser === browser || this.browsers[i] === browser) {
           this.browsers.splice(i, 1);
           i--;
           break;
@@ -52,6 +49,7 @@ class Browser {
     this.browser = await chromium.launch({
       headless: headless,
       timeout: 0,
+      args: ["--ignore-https-errors"],
     });
 
     this.context = await this.browser.newContext();

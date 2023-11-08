@@ -41,28 +41,96 @@ class StableBrowser {
     if (locator.css) {
       return scope.locator(this._fixUsingParams(locator.css, _params));
     }
-    if (locator.text) {
-      return scope.getByText(this._fixUsingParams(locator.text, _params));
-    }
     throw new Error("unknown locator type");
   }
+  async _locateElementByText(scope, text1, regex = false, _params = null) {
+    //const stringifyText = JSON.stringify(text);
+    return await scope.evaluate((text) => {
+      function isParent(parent, child) {
+        let currentNode = child.parentNode;
+        while (currentNode !== null) {
+          if (currentNode === parent) {
+            return true;
+          }
+          currentNode = currentNode.parentNode;
+        }
+        return false;
+      }
+      let elements = Array.from(document.querySelectorAll("*"));
+      let randomToken = null;
 
-  async _collectLocatorInformation(locators, index, scope, foundLocators, _params) {
-    if (index === locators.length) {
+      text = text.trim();
+      const foundElements = [];
+      for (let i = 0; i < elements.length; i++) {
+        const element = elements[i];
+        if (element.innerText && element.innerText.trim() === text) {
+          foundElements.push(element);
+        }
+      }
+      let noChildElements = [];
+      for (let i = 0; i < foundElements.length; i++) {
+        let element = foundElements[i];
+        let hasChild = false;
+        for (let j = 0; j < foundElements.length; j++) {
+          if (i === j) {
+            continue;
+          }
+          if (isParent(element, foundElements[j])) {
+            hasChild = true;
+            break;
+          }
+        }
+        if (!hasChild) {
+          noChildElements.push(element);
+        }
+      }
+      let elementCount = 0;
+      if (noChildElements.length > 0) {
+        for (let i = 0; i < noChildElements.length; i++) {
+          if (randomToken === null) {
+            randomToken = Math.random().toString(36).substring(7);
+          }
+          let element = noChildElements[i];
+          element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
+          elementCount++;
+        }
+      }
+      return { elementCount: elementCount, randomToken: randomToken };
+    }, text1);
+  }
+
+  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params) {
+    if (index === selectorHierarchy.length) {
       return;
     }
-    const locator = this._getLocator(locators[index], scope, _params);
+    if (selectorHierarchy.length !== 1) {
+      this.logger.info("only single selector hierarchy supported, will use first selector");
+    }
+
+    let locatorSearch = selectorHierarchy[index];
+    let locator = null;
+    if (locatorSearch.text) {
+      let result = await this._locateElementByText(scope, locatorSearch.text, false, _params);
+      if (result.elementCount === 0) {
+        return;
+      }
+      locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+      locator = this._getLocator(locatorSearch, scope, _params);
+    } else {
+      locator = this._getLocator(locatorSearch, scope, _params);
+    }
+
     let count = await locator.count();
-    let visibleCount = 0;
+    //let visibleCount = 0;
     let visibleLocator = null;
     for (let j = 0; j < count; j++) {
       if ((await locator.nth(j).isVisible()) && (await locator.nth(j).isEnabled())) {
-        visibleCount++;
-        if (index === locators.length - 1) {
-          foundLocators.push(locator.nth(j));
-        } else {
-          this._collectLocatorInformation(locators, index + 1, locator.nth(j), foundLocators);
-        }
+        //visibleCount++;
+        // if (index === selectorHierarchy.length - 1) {
+        foundLocators.push(locator.nth(j));
+        // } else {
+        //   this._collectLocatorInformation(selectorHierarchy, index + 1, locator.nth(j), foundLocators);
+        // }
       }
     }
   }

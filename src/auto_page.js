@@ -1,3 +1,4 @@
+import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
 
 let context = null;
@@ -23,5 +24,10 @@ const initContext = async (path, doNavigate = true, headless = false) => {
 
   return context;
 };
-
-export { initContext, navigate };
+const closeContext = async () => {
+  if (context && context.browser) {
+    await browserManager.closeBrowser(context.browser);
+  }
+  context = null;
+};
+export { initContext, navigate, closeContext };
