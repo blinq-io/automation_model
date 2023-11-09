@@ -46,7 +46,7 @@ class StableBrowser {
   async _locateElementByText(scope, text1, tag1, regex = false, _params = null) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
-      (text, tag) => {
+      ([text, tag]) => {
         function isParent(parent, child) {
           let currentNode = child.parentNode;
           while (currentNode !== null) {
@@ -101,8 +101,7 @@ class StableBrowser {
         }
         return { elementCount: elementCount, randomToken: randomToken };
       },
-      text1,
-      tag1
+      [text1, tag1]
     );
   }
 
