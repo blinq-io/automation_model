@@ -43,60 +43,67 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, regex = false, _params = null) {
+  async _locateElementByText(scope, text1, tag1, regex = false, _params = null) {
     //const stringifyText = JSON.stringify(text);
-    return await scope.evaluate((text) => {
-      function isParent(parent, child) {
-        let currentNode = child.parentNode;
-        while (currentNode !== null) {
-          if (currentNode === parent) {
-            return true;
+    return await scope.evaluate(
+      (text, tag) => {
+        function isParent(parent, child) {
+          let currentNode = child.parentNode;
+          while (currentNode !== null) {
+            if (currentNode === parent) {
+              return true;
+            }
+            currentNode = currentNode.parentNode;
           }
-          currentNode = currentNode.parentNode;
+          return false;
         }
-        return false;
-      }
-      let elements = Array.from(document.querySelectorAll("*"));
-      let randomToken = null;
+        if (!tag) {
+          tag = "*";
+        }
+        let elements = Array.from(document.querySelectorAll(tag));
+        let randomToken = null;
 
-      text = text.trim();
-      const foundElements = [];
-      for (let i = 0; i < elements.length; i++) {
-        const element = elements[i];
-        if (element.innerText && element.innerText.trim() === text) {
-          foundElements.push(element);
-        }
-      }
-      let noChildElements = [];
-      for (let i = 0; i < foundElements.length; i++) {
-        let element = foundElements[i];
-        let hasChild = false;
-        for (let j = 0; j < foundElements.length; j++) {
-          if (i === j) {
-            continue;
-          }
-          if (isParent(element, foundElements[j])) {
-            hasChild = true;
-            break;
+        text = text.trim();
+        const foundElements = [];
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
+          if (element.innerText && element.innerText.trim() === text) {
+            foundElements.push(element);
           }
         }
-        if (!hasChild) {
-          noChildElements.push(element);
-        }
-      }
-      let elementCount = 0;
-      if (noChildElements.length > 0) {
-        for (let i = 0; i < noChildElements.length; i++) {
-          if (randomToken === null) {
-            randomToken = Math.random().toString(36).substring(7);
+        let noChildElements = [];
+        for (let i = 0; i < foundElements.length; i++) {
+          let element = foundElements[i];
+          let hasChild = false;
+          for (let j = 0; j < foundElements.length; j++) {
+            if (i === j) {
+              continue;
+            }
+            if (isParent(element, foundElements[j])) {
+              hasChild = true;
+              break;
+            }
           }
-          let element = noChildElements[i];
-          element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
-          elementCount++;
+          if (!hasChild) {
+            noChildElements.push(element);
+          }
         }
-      }
-      return { elementCount: elementCount, randomToken: randomToken };
-    }, text1);
+        let elementCount = 0;
+        if (noChildElements.length > 0) {
+          for (let i = 0; i < noChildElements.length; i++) {
+            if (randomToken === null) {
+              randomToken = Math.random().toString(36).substring(7);
+            }
+            let element = noChildElements[i];
+            element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
+            elementCount++;
+          }
+        }
+        return { elementCount: elementCount, randomToken: randomToken };
+      },
+      text1,
+      tag1
+    );
   }
 
   async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params) {
@@ -110,7 +117,7 @@ class StableBrowser {
     let locatorSearch = selectorHierarchy[index];
     let locator = null;
     if (locatorSearch.text) {
-      let result = await this._locateElementByText(scope, locatorSearch.text, false, _params);
+      let result = await this._locateElementByText(scope, locatorSearch.text, locatorSearch.tag, false, _params);
       if (result.elementCount === 0) {
         return;
       }
