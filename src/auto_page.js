@@ -1,6 +1,7 @@
 import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
-
+import fs from "fs";
+import path from "path";
 let context = null;
 const navigate = async (path = "") => {
   let url = null;
@@ -20,10 +21,10 @@ const _findEmptyFolder = (folder) => {
     fs.mkdirSync(folder);
   }
   let nextIndex = 1;
-  while (fs.existsSync(path.join(folder, nextIndex))) {
+  while (fs.existsSync(path.join(folder, nextIndex.toString()))) {
     nextIndex++;
   }
-  return path.join(folder, nextIndex);
+  return path.join(folder, nextIndex.toString());
 };
 const initContext = async (path, doNavigate = true, headless = false, world = null) => {
   if (context) {

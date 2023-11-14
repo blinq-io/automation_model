@@ -192,7 +192,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "click";
     info.selector = selector;
-
+    this._reportToWorld(world, { command: "click", params: _params, selector: selector });
     try {
       let element = await this._locate(selector, info, _params);
 
@@ -201,17 +201,18 @@ class StableBrowser {
         await element.click({ timeout: 5000 });
       } catch (e) {
         info.log.push("click failed, will try force click");
+        this._reportToWorld(world, { message: "click failed, will try force click" });
         await element.click({ timeout: 10000, force: true });
       }
+      this._reportToWorld(world, { result: "success", info: info });
       await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("click failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
-
-      this.logger.info("click failed, will try next selector");
     }
   }
 
@@ -220,7 +221,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "selectOptions";
     info.selector = selector;
-
+    this._reportToWorld(world, { command: "select", values, params: _params, selector: selector });
     try {
       let element = await this._locate(selector, info, _params);
 
@@ -229,12 +230,14 @@ class StableBrowser {
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
         info.log.push("selectOption failed, will try force");
+        this._reportToWorld(world, { message: "select failed, will try force select" });
         await element.selectOption(values, { timeout: 10000, force: true });
       }
       await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
@@ -249,6 +252,7 @@ class StableBrowser {
     info.operation = "fill";
     info.selector = selector;
     info.value = value;
+    this._reportToWorld(world, { command: "fill", value, enter, params: _params, selector: selector });
     try {
       let element = await this._locate(selector, info, _params);
       await this._screenShot(options, world);
@@ -261,6 +265,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
@@ -288,6 +293,7 @@ class StableBrowser {
     info.value = text;
     info.pattern = pattern;
     let foundText = null;
+    this._reportToWorld(world, { command: "contains", pattern, text, params: _params, selector: selector });
     try {
       foundText = await this.getText(selector, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
@@ -301,6 +307,7 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
@@ -322,6 +329,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
@@ -336,13 +344,11 @@ class StableBrowser {
       while (fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))) {
         nextIndex++;
       }
-      await this.page.screenshot({ path: path.join(world.screenshotPath, nextIndex + ".png") });
-      await world.attach(
-        { path: world.screenshotPath },
-        {
-          mediaType: "application/json",
-        }
-      );
+      const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
+      await this.page.screenshot({ path: screenshotPath });
+      await world.attach(JSON.stringify({ path: screenshotPath }), {
+        mediaType: "application/json",
+      });
     } else if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
@@ -353,6 +359,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "verify";
     info.selector = selector;
+    this._reportToWorld(world, { command: "verify", params: _params, selector: selector });
     try {
       const element = await this._locate(selector, info, _params);
       await this._screenShot(options, world);
@@ -360,6 +367,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("verify failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
@@ -375,6 +383,14 @@ class StableBrowser {
     info.query_fixed = query;
     info.operator = operator;
     info.value = value;
+    this._reportToWorld(world, {
+      command: "analyzeTable",
+      query,
+      operator,
+      value,
+      params: _params,
+      selector: selector,
+    });
     try {
       let table = await this._locate(selector, info, _params);
       await this._screenShot(options, world);
@@ -452,6 +468,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("analyzeTable failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
       await this._screenShot(options, world);
       throw e;
@@ -459,6 +476,7 @@ class StableBrowser {
   }
   async waitForPageLoad(options = {}, world = null) {
     let timeout = 10000;
+    this._reportToWorld(world, { command: "waitForPageLoade" });
     if (!configuration) {
       try {
         if (fs.existsSync("ai_config.json")) {
@@ -491,11 +509,11 @@ class StableBrowser {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     await this._screenShot(options, world);
   }
-  _reportToWorld(world, command, _params) {
+  _reportToWorld(world, properties = {}) {
     if (!world || !world.attach) {
       return;
     }
-    world.attach({ command: command, params: _params });
+    world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
 }
 
