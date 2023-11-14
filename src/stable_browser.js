@@ -1,6 +1,7 @@
 import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
 import fs from "fs";
+import path from "path";
 import { getTableCells } from "./table_analyze.js";
 let configuration = null;
 class StableBrowser {
@@ -186,7 +187,7 @@ class StableBrowser {
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
-  async click(selector, _params = null, options = {}) {
+  async click(selector, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "click";
@@ -195,7 +196,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selector, info, _params);
 
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       try {
         await element.click({ timeout: 5000 });
       } catch (e) {
@@ -207,14 +208,14 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("click failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
 
       this.logger.info("click failed, will try next selector");
     }
   }
 
-  async selectOption(selector, values, _params = null, options = {}) {
+  async selectOption(selector, values, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "selectOptions";
@@ -223,7 +224,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selector, info, _params);
 
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       try {
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
@@ -235,14 +236,14 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
 
       this.logger.info("click failed, will try next selector");
     }
   }
 
-  async fill(selector, value, enter = false, _params = null, options = {}) {
+  async fill(selector, value, enter = false, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "fill";
@@ -250,7 +251,7 @@ class StableBrowser {
     info.value = value;
     try {
       let element = await this._locate(selector, info, _params);
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
       if (enter) {
@@ -261,17 +262,17 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
 
-  async getText(selector, _params = null, options = {}, info = {}) {
+  async getText(selector, _params = null, options = {}, info = {}, world = null) {
     if (!info.log) {
       info.log = [];
     }
     let element = await this._locate(selector, info, _params);
-    await this._screenShot(options);
+    await this._screenShot(options, world);
     try {
       return await element.innerText();
     } catch (e) {
@@ -279,7 +280,7 @@ class StableBrowser {
       return await element.textContent();
     }
   }
-  async containsPattern(selector, pattern, text, _params = null, options = {}) {
+  async containsPattern(selector, pattern, text, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "containsPattern";
@@ -288,7 +289,7 @@ class StableBrowser {
     info.pattern = pattern;
     let foundText = null;
     try {
-      foundText = await this.getText(selector, _params, options, info);
+      foundText = await this.getText(selector, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "m");
@@ -301,19 +302,19 @@ class StableBrowser {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
 
-  async containsText(selector, text, _params = null, options = {}) {
+  async containsText(selector, text, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "containsText";
     info.selector = selector;
     info.value = text;
     try {
-      let foundText = await this.getText(selector, _params, options, info);
+      let foundText = await this.getText(selector, _params, options, info, world);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
@@ -322,16 +323,31 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
-  async _screenShot(options = {}) {
-    if (options.screenshot) {
+  async _screenShot(options = {}, world = null) {
+    if (world && world.attach && world.screenshot && world.screenshotPath) {
+      if (!fs.existsSync(world.screenshotPath)) {
+        fs.mkdirSync(world.screenshotPath, { recursive: true });
+      }
+      let nextIndex = 1;
+      while (fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))) {
+        nextIndex++;
+      }
+      await this.page.screenshot({ path: path.join(world.screenshotPath, nextIndex + ".png") });
+      await world.attach(
+        { path: world.screenshotPath },
+        {
+          mediaType: "application/json",
+        }
+      );
+    } else if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
-  async verifyElementExistInPage(selector, _params = null, options = {}) {
+  async verifyElementExistInPage(selector, _params = null, options = {}, world = null) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
@@ -339,17 +355,17 @@ class StableBrowser {
     info.selector = selector;
     try {
       const element = await this._locate(selector, info, _params);
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
     } catch (e) {
       this.logger.error("verify failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
-  async analyzeTable(selector, query, operator, value, _params = null, options = {}) {
+  async analyzeTable(selector, query, operator, value, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "analyzeTable";
@@ -361,7 +377,7 @@ class StableBrowser {
     info.value = value;
     try {
       let table = await this._locate(selector, info, _params);
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       const cells = await getTableCells(this.page, table, query, info);
 
       if (cells.error) {
@@ -437,11 +453,11 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("analyzeTable failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
-  async waitForPageLoad(options = {}) {
+  async waitForPageLoad(options = {}, world = null) {
     let timeout = 10000;
     if (!configuration) {
       try {
@@ -473,7 +489,13 @@ class StableBrowser {
       console.log("waitForPageLoad error, ignored");
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    await this._screenShot(options);
+    await this._screenShot(options, world);
+  }
+  _reportToWorld(world, command, _params) {
+    if (!world || !world.attach) {
+      return;
+    }
+    world.attach({ command: command, params: _params });
   }
 }
 

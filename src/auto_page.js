@@ -12,12 +12,35 @@ const navigate = async (path = "") => {
   await context.stable.goto(url);
   await context.stable.waitForPageLoad();
 };
-
-const initContext = async (path, doNavigate = true, headless = false) => {
+const _findEmptyFolder = (folder) => {
+  if (!folder) {
+    folder = "./runs";
+  }
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder);
+  }
+  let nextIndex = 1;
+  while (fs.existsSync(path.join(folder, nextIndex))) {
+    nextIndex++;
+  }
+  return path.join(folder, nextIndex);
+};
+const initContext = async (path, doNavigate = true, headless = false, world = null) => {
   if (context) {
     return context;
   }
   context = await getContext(null, headless);
+
+  if (world) {
+    world.screenshot = true;
+    const reportFolder = _findEmptyFolder();
+    if (world.attach) {
+      world.attach(reportFolder, { mediaType: "text/plain" });
+    }
+    world.screenshotPath = reportFolder;
+    context.reportFolder = reportFolder;
+  }
+
   if (doNavigate) {
     await navigate(path);
   }
