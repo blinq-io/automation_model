@@ -47,8 +47,8 @@ const elements = {
 const context = await initContext(path, true, false);
 const loginAndCreateRepo = async function () {
   let info = null;
-  await context.stable.fill(elements.textbox_username, "aayush2400");
-  await context.stable.fill(elements.textbox_password, "Blinqio@24");
+  await context.stable.fill(elements.textbox_username, "username");
+  await context.stable.fill(elements.textbox_password, "password");
   info = await context.stable.click(elements.button_signin);
   await context.stable.waitForPageLoad();
 
