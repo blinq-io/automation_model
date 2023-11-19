@@ -1,6 +1,7 @@
 import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
 import fs from "fs";
+import path from "path";
 import { getTableCells } from "./table_analyze.js";
 let configuration = null;
 class StableBrowser {
@@ -43,60 +44,66 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, regex = false, _params = null) {
+  async _locateElementByText(scope, text1, tag1, regex = false, _params = null) {
     //const stringifyText = JSON.stringify(text);
-    return await scope.evaluate((text) => {
-      function isParent(parent, child) {
-        let currentNode = child.parentNode;
-        while (currentNode !== null) {
-          if (currentNode === parent) {
-            return true;
+    return await scope.evaluate(
+      ([text, tag]) => {
+        function isParent(parent, child) {
+          let currentNode = child.parentNode;
+          while (currentNode !== null) {
+            if (currentNode === parent) {
+              return true;
+            }
+            currentNode = currentNode.parentNode;
           }
-          currentNode = currentNode.parentNode;
+          return false;
         }
-        return false;
-      }
-      let elements = Array.from(document.querySelectorAll("*"));
-      let randomToken = null;
+        if (!tag) {
+          tag = "*";
+        }
+        let elements = Array.from(document.querySelectorAll(tag));
+        let randomToken = null;
 
-      text = text.trim();
-      const foundElements = [];
-      for (let i = 0; i < elements.length; i++) {
-        const element = elements[i];
-        if (element.innerText && element.innerText.trim() === text) {
-          foundElements.push(element);
-        }
-      }
-      let noChildElements = [];
-      for (let i = 0; i < foundElements.length; i++) {
-        let element = foundElements[i];
-        let hasChild = false;
-        for (let j = 0; j < foundElements.length; j++) {
-          if (i === j) {
-            continue;
-          }
-          if (isParent(element, foundElements[j])) {
-            hasChild = true;
-            break;
+        text = text.trim();
+        const foundElements = [];
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
+          if (element.innerText && element.innerText.trim() === text) {
+            foundElements.push(element);
           }
         }
-        if (!hasChild) {
-          noChildElements.push(element);
-        }
-      }
-      let elementCount = 0;
-      if (noChildElements.length > 0) {
-        for (let i = 0; i < noChildElements.length; i++) {
-          if (randomToken === null) {
-            randomToken = Math.random().toString(36).substring(7);
+        let noChildElements = [];
+        for (let i = 0; i < foundElements.length; i++) {
+          let element = foundElements[i];
+          let hasChild = false;
+          for (let j = 0; j < foundElements.length; j++) {
+            if (i === j) {
+              continue;
+            }
+            if (isParent(element, foundElements[j])) {
+              hasChild = true;
+              break;
+            }
           }
-          let element = noChildElements[i];
-          element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
-          elementCount++;
+          if (!hasChild) {
+            noChildElements.push(element);
+          }
         }
-      }
-      return { elementCount: elementCount, randomToken: randomToken };
-    }, text1);
+        let elementCount = 0;
+        if (noChildElements.length > 0) {
+          for (let i = 0; i < noChildElements.length; i++) {
+            if (randomToken === null) {
+              randomToken = Math.random().toString(36).substring(7);
+            }
+            let element = noChildElements[i];
+            element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
+            elementCount++;
+          }
+        }
+        return { elementCount: elementCount, randomToken: randomToken };
+      },
+      [text1, tag1]
+    );
   }
 
   async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params) {
@@ -110,7 +117,7 @@ class StableBrowser {
     let locatorSearch = selectorHierarchy[index];
     let locator = null;
     if (locatorSearch.text) {
-      let result = await this._locateElementByText(scope, locatorSearch.text, false, _params);
+      let result = await this._locateElementByText(scope, locatorSearch.text, locatorSearch.tag, false, _params);
       if (result.elementCount === 0) {
         return;
       }
@@ -180,71 +187,75 @@ class StableBrowser {
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
-  async click(selector, _params = null, options = {}) {
+  async click(selector, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "click";
     info.selector = selector;
-
+    this._reportToWorld(world, { command: "click", params: _params, selector: selector });
     try {
       let element = await this._locate(selector, info, _params);
 
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       try {
         await element.click({ timeout: 5000 });
       } catch (e) {
         info.log.push("click failed, will try force click");
+        this._reportToWorld(world, { message: "click failed, will try force click" });
         await element.click({ timeout: 10000, force: true });
       }
+      this._reportToWorld(world, { result: "success", info: info });
       await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("click failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
-
-      this.logger.info("click failed, will try next selector");
     }
   }
 
-  async selectOption(selector, values, _params = null, options = {}) {
+  async selectOption(selector, values, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "selectOptions";
     info.selector = selector;
-
+    this._reportToWorld(world, { command: "select", values, params: _params, selector: selector });
     try {
       let element = await this._locate(selector, info, _params);
 
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       try {
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
         info.log.push("selectOption failed, will try force");
+        this._reportToWorld(world, { message: "select failed, will try force select" });
         await element.selectOption(values, { timeout: 10000, force: true });
       }
       await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
 
       this.logger.info("click failed, will try next selector");
     }
   }
 
-  async fill(selector, value, enter = false, _params = null, options = {}) {
+  async fill(selector, value, enter = false, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "fill";
     info.selector = selector;
     info.value = value;
+    this._reportToWorld(world, { command: "fill", value, enter, params: _params, selector: selector });
     try {
       let element = await this._locate(selector, info, _params);
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
       if (enter) {
@@ -254,18 +265,19 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
 
-  async getText(selector, _params = null, options = {}, info = {}) {
+  async getText(selector, _params = null, options = {}, info = {}, world = null) {
     if (!info.log) {
       info.log = [];
     }
     let element = await this._locate(selector, info, _params);
-    await this._screenShot(options);
+    await this._screenShot(options, world);
     try {
       return await element.innerText();
     } catch (e) {
@@ -273,7 +285,7 @@ class StableBrowser {
       return await element.textContent();
     }
   }
-  async containsPattern(selector, pattern, text, _params = null, options = {}) {
+  async containsPattern(selector, pattern, text, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "containsPattern";
@@ -281,8 +293,9 @@ class StableBrowser {
     info.value = text;
     info.pattern = pattern;
     let foundText = null;
+    this._reportToWorld(world, { command: "contains", pattern, text, params: _params, selector: selector });
     try {
-      foundText = await this.getText(selector, _params, options, info);
+      foundText = await this.getText(selector, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "m");
@@ -294,20 +307,21 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
 
-  async containsText(selector, text, _params = null, options = {}) {
+  async containsText(selector, text, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "containsText";
     info.selector = selector;
     info.value = text;
     try {
-      let foundText = await this.getText(selector, _params, options, info);
+      let foundText = await this.getText(selector, _params, options, info, world);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
@@ -315,35 +329,51 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
-  async _screenShot(options = {}) {
-    if (options.screenshot) {
+  async _screenShot(options = {}, world = null) {
+    if (world && world.attach && world.screenshot && world.screenshotPath) {
+      if (!fs.existsSync(world.screenshotPath)) {
+        fs.mkdirSync(world.screenshotPath, { recursive: true });
+      }
+      let nextIndex = 1;
+      while (fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))) {
+        nextIndex++;
+      }
+      const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
+      await this.page.screenshot({ path: screenshotPath });
+      await world.attach(JSON.stringify({ path: screenshotPath }), {
+        mediaType: "application/json",
+      });
+    } else if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
-  async verifyElementExistInPage(selector, _params = null, options = {}) {
+  async verifyElementExistInPage(selector, _params = null, options = {}, world = null) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
     info.operation = "verify";
     info.selector = selector;
+    this._reportToWorld(world, { command: "verify", params: _params, selector: selector });
     try {
       const element = await this._locate(selector, info, _params);
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
     } catch (e) {
       this.logger.error("verify failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
-  async analyzeTable(selector, query, operator, value, _params = null, options = {}) {
+  async analyzeTable(selector, query, operator, value, _params = null, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "analyzeTable";
@@ -353,9 +383,17 @@ class StableBrowser {
     info.query_fixed = query;
     info.operator = operator;
     info.value = value;
+    this._reportToWorld(world, {
+      command: "analyzeTable",
+      query,
+      operator,
+      value,
+      params: _params,
+      selector: selector,
+    });
     try {
       let table = await this._locate(selector, info, _params);
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       const cells = await getTableCells(this.page, table, query, info);
 
       if (cells.error) {
@@ -430,13 +468,15 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("analyzeTable failed " + JSON.stringify(info));
+      this._reportToWorld(world, { result: "failed", info: info, error: e });
       Object.assign(e, { info: info });
-      await this._screenShot(options);
+      await this._screenShot(options, world);
       throw e;
     }
   }
-  async waitForPageLoad(options = {}) {
+  async waitForPageLoad(options = {}, world = null) {
     let timeout = 10000;
+    this._reportToWorld(world, { command: "waitForPageLoade" });
     if (!configuration) {
       try {
         if (fs.existsSync("ai_config.json")) {
@@ -467,7 +507,13 @@ class StableBrowser {
       console.log("waitForPageLoad error, ignored");
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    await this._screenShot(options);
+    await this._screenShot(options, world);
+  }
+  _reportToWorld(world, properties = {}) {
+    if (!world || !world.attach) {
+      return;
+    }
+    world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
 }
 

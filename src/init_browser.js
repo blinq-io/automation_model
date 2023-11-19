@@ -17,6 +17,7 @@ const getContext = async function (environment = null, headless = false, logger 
   context.playContext = browser.context;
   context.page = browser.page;
   context.environment = environment;
+
   context.stable = new StableBrowser(context.browser, context.page, logger);
   await _initCookies(context);
   return context;
@@ -48,7 +49,8 @@ const initEnvoronment = function () {
       const envObject = JSON.parse(data);
       //console.log("envObject", envObject);
       Object.assign(environment, envObject);
-      console.log("env", environment);
+      //console.log("env", environment);
+      console.log("Base url: " + environment.baseUrl);
     } catch (err) {
       console.error("Error reading env.json", err);
     }
