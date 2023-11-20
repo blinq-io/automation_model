@@ -11,7 +11,9 @@ const getContext = async function (environment = null, headless = false, logger 
   if (environment === null) {
     environment = initEnvironment();
   }
-  let browser = await browserManager.getBrowser(headless, environment.storageState);
+  const {cookies, origins} = environment;
+  const storageState = {cookies, origins};
+  let browser = await browserManager.getBrowser(headless, storageState);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
