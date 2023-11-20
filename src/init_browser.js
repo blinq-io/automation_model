@@ -9,9 +9,11 @@ let environment = null;
 // init browser create context and page, if context and page are not null
 const getContext = async function (environment = null, headless = false, logger = null) {
   if (environment === null) {
-    environment = initEnvoronment();
+    environment = initEnvironment();
   }
-  let browser = await browserManager.getBrowser(headless);
+  const {cookies, origins} = environment;
+  const storageState = {cookies, origins};
+  let browser = await browserManager.getBrowser(headless, storageState);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
@@ -19,28 +21,28 @@ const getContext = async function (environment = null, headless = false, logger 
   context.environment = environment;
 
   context.stable = new StableBrowser(context.browser, context.page, logger);
-  await _initCookies(context);
+  // await _initCookies(context);
   return context;
 };
-const _initCookies = async function (context) {
-  if (context.environment.cookies) {
-    const cookies = [];
-    for (let i = 0; i < context.environment.cookies.length; i++) {
-      const cookie = context.environment.cookies[i];
-      if (cookie.expires && cookie.expires == "undefined") {
-        delete cookie.expires;
-      }
-      cookies.push(cookie);
-    }
-    await context.playContext.addCookies(cookies);
-  }
-};
+// const _initCookies = async function (context) {
+//   if (context.environment.cookies) {
+//     const cookies = [];
+//     for (let i = 0; i < context.environment.cookies.length; i++) {
+//       const cookie = context.environment.cookies[i];
+//       if (cookie.expires && cookie.expires == "undefined") {
+//         delete cookie.expires;
+//       }
+//       cookies.push(cookie);
+//     }
+//     await context.playContext.addCookies(cookies);
+//   }
+// };
 
 const closeBrowser = async function (browser) {
   await browserManager.closeBrowser(browser);
 };
 
-const initEnvoronment = function () {
+const initEnvironment = function () {
   if (environment === null) {
     environment = new Environment();
     try {

@@ -25,15 +25,15 @@ class BrowserManager {
     }
   }
 
-  async createBrowser(headless = false) {
+  async createBrowser(headless = false, storageState = undefined) {
     const browser = new Browser();
-    await browser.init(headless);
+    await browser.init(headless, storageState);
     this.browsers.push(browser);
     return browser;
   }
-  async getBrowser(headless = false) {
+  async getBrowser(headless = false, storageState = undefined) {
     if (this.browsers.length === 0) {
-      return await this.createBrowser(headless);
+      return await this.createBrowser(headless, storageState);
     }
     return this.browsers[0];
   }
@@ -45,14 +45,14 @@ class Browser {
     this.page = null;
   }
 
-  async init(headless = false) {
+  async init(headless = false, storageState = undefined) {
     this.browser = await chromium.launch({
       headless: headless,
       timeout: 0,
       args: ["--ignore-https-errors"],
     });
 
-    this.context = await this.browser.newContext();
+    this.context = await this.browser.newContext({storageState});
     this.page = await this.context.newPage();
   }
 
