@@ -2,9 +2,9 @@
   "name": "automation_model",
   "version": "1.0.66",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
-  "main": "build/index.js",
+  "main": "lib/index.js",
   "type": "module",
-  "types": "build/index.d.ts",
+  "types": "lib/index.d.ts",
   "directories": {
     "lib": "lib"
   },
