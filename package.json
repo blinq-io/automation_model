@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.67",
+  "version": "1.0.71",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
@@ -10,7 +10,6 @@
   },
   "scripts": {
     "compile": "tsc",
-    "publish": "cd build && npm publish",
     "pack": "mkdir build && mkdir build/bin && cp ./src/auto_page.js ./build/bin/auto_page.js && cp ./src/environment.js ./build/bin/environment.js && cp ./src/browser_manager.js ./build/bin/browser_manager.js && cp ./src/test_context.js ./build/bin/test_context.js && cp ./src/init_browser.js ./build/bin/init_browser.js && cp ./src/stable_browser.js ./build/bin/stable_browser.js && cp ./package.json ./build/package.json",
     "clean": "rimraf -g build && rimraf -g types",
     "build": "npm run clean && npm run compile && ncp package.json build/package.json",
