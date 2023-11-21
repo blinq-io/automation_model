@@ -1,7 +1,10 @@
 import fs from "fs";
 import path from "path";
-
-function stringifyObject(obj, indentation = 0) {
+import type { Page, ElementHandle } from "playwright";
+// import type {TprocessTableQuery} from "./locator.js"
+// type Change = {css:string, changes:{role:string}};
+// declare const document: Document & { selectors: Change[] ; tableSelector: string; processTableQuery: TprocessTableQuery };
+function stringifyObject(obj:unknown, indentation = 0) {
   let result = "";
   const indent = " ".repeat(indentation);
   if (Array.isArray(obj)) {
@@ -22,6 +25,7 @@ function stringifyObject(obj, indentation = 0) {
           "  " +
           JSON.stringify(key) +
           ": " +
+          // @ts-ignore
           stringifyObject(obj[key], indentation + 2);
         first = false;
       }
@@ -34,7 +38,7 @@ function stringifyObject(obj, indentation = 0) {
 }
 const __filename = new URL(import.meta.url).pathname;
 const currentDir = path.dirname(__filename);
-const getTableCells = async (page, element, tableSelector, info = {}) => {
+const getTableCells = async (page:Page, element:ElementHandle, tableSelector:any, info:any = {}) => {
   let script = fs.readFileSync(path.join(currentDir, "locator.js"), "utf8");
   let aiConfigPath = path.join(process.cwd(), "ai_config.json");
   if (fs.existsSync(aiConfigPath)) {
@@ -46,10 +50,14 @@ const getTableCells = async (page, element, tableSelector, info = {}) => {
   script = script.replace("const tableSelector = null", "const tableSelector = " + stringifyObject(tableSelector));
   await page.evaluate(script);
   try {
+    // @ts-ignore
     let result = await element.evaluate((_node) => {
+      // @ts-ignore
       console.log("tableSelector", document.tableSelector);
-      return document.processTableQuary(_node, document.tableSelector);
+      // @ts-ignore
+      return document.processTableQuery(_node as Element, document.tableSelector);
     });
+    // @ts-ignore
     info.box = result.rect;
     return result.cells;
   } catch (error) {

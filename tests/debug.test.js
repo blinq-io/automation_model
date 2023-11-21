@@ -1,6 +1,6 @@
-import { initContext } from "../src/auto_page.js";
-import { closeBrowser } from "../src/init_browser.js";
-import { getTableCells } from "../src/table_analyze.js";
+import { initContext } from "../build/auto_page.js";
+import { closeBrowser } from "../build/init_browser.js";
+import { getTableCells } from "../build/table_analyze.js";
 
 const name = "login";
 const path = "/";

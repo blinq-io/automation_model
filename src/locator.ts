@@ -1,3 +1,5 @@
+type Change = {css:string, changes:{role:string}};
+declare const document: Document & { selectors: Change[]|null ; tableSelector: string|null; processTableQuery: TprocessTableQuery };
 const selectors = null;
 document.selectors = selectors;
 const tableSelector = null;
@@ -8,8 +10,8 @@ document.tableSelector = tableSelector;
 // table[1]["Availability"].text  | equals   | 100%
 // table[*][2].text               |not_equals| error
 
-function processTableQuary(table, quary) {
-  const tableData = {};
+function processTableQuery(table:Element, query:string) {
+  
   if (document.selectors && document.selectors.length > 0) {
     for (let i = 0; i < document.selectors.length; i++) {
       const selector = document.selectors[i];
@@ -23,36 +25,43 @@ function processTableQuary(table, quary) {
   }
 
   const rows = Array.from(table.querySelectorAll("tr, [data-blinq-role='row'], [role='row']"));
-  tableData.rows = rows.length;
-  tableData.columnNames = [];
-  let columnheader = [];
+  const _rows = rows.length;
+  const _columnNames = [];
+  let  _columns:number = 0;
+  let columnheader:HTMLElement[] = [];
   if (rows.length > 0) {
     //const rowheader = rows[0];
     columnheader = Array.from(table.querySelectorAll("th, [data-blinq-role='columnheader'], [role='columnheader']"));
     console.log("columnheader length", columnheader.length);
-    tableData.columns = columnheader.length;
+    _columns = columnheader.length;
     for (let i = 0; i < columnheader.length; i++) {
       const cell = columnheader[i];
       const cellText = cell.innerText;
-      tableData.columnNames.push(cellText);
+      _columnNames.push(cellText);
     }
   }
-  tableData.rowStartIndex = 0;
+  let _rowStartIndex = 0;
   // if (columnheader.length > 0) {
   //   tableData.rowStartIndex = 1;
   // }
-
-  if (quary.startsWith("table.")) {
+  const tableData = {
+    rows: _rows,
+    columns: _columns,
+    columnNames: _columnNames,
+    rowStartIndex: _rowStartIndex,
+  };
+  if (query.startsWith("table.")) {
     const result = [];
-    const property = quary.substring(6);
+    const property = query.substring(6);
     //console.log("property", property);
+    // @ts-ignore
     const value = tableData[property];
     //console.log("value", value);
     result.push(value);
     return { cells: result };
   }
   const pattern = /^table\[(.+)\]\[(.+)\]\.(.+)$/;
-  const match = quary.match(pattern);
+  const match = query.match(pattern);
   if (!match) {
     return { error: "Invalid quary" };
   }
@@ -63,6 +72,7 @@ function processTableQuary(table, quary) {
   if (rowSelector === "*") {
     selectedRows = rows;
   } else {
+    // @ts-ignore
     if (isNaN(rowSelector)) {
       return { error: "Invalid row selector" };
     }
@@ -73,7 +83,8 @@ function processTableQuary(table, quary) {
     selectedRows.push(rows[rowIndex]);
   }
   console.log("selectedRows count", selectedRows.length);
-  const selectedCells = [];
+  const selectedCells:HTMLElement[] = [];
+  // @ts-ignore
   if (isNaN(columnSelector)) {
     if (columnSelector.startsWith('"') && columnSelector.endsWith('"')) {
       columnSelector = columnSelector.substring(1, columnSelector.length - 1);
@@ -100,7 +111,7 @@ function processTableQuary(table, quary) {
     const foundHeaderRec = foundHeader.getBoundingClientRect();
     for (let i = 0; i < selectedRows.length; i++) {
       const row = selectedRows[i];
-      const cells = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
+      const cells:HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
       console.log("cells count", cells.length);
       for (let j = 0; j < cells.length; j++) {
         const cell = cells[j];
@@ -118,11 +129,11 @@ function processTableQuary(table, quary) {
     }
     for (let i = 0; i < selectedRows.length; i++) {
       const row = selectedRows[i];
-      const cells = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
+      const cells:HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
       selectedCells.push(cells[columnIndex]);
     }
   }
-  let rect = null;
+  let rect:DOMRect|null = null;
   const result = [];
   for (let i = 0; i < selectedCells.length; i++) {
     let added = false;
@@ -139,6 +150,7 @@ function processTableQuary(table, quary) {
           result.push(selectedCells[i].getAttribute(property));
         } else {
           added = true;
+          // @ts-ignore
           result.push(selectedCells[i][property]);
         }
       }
@@ -149,11 +161,13 @@ function processTableQuary(table, quary) {
   }
   return { cells: result, rect };
 }
-const merge = (rec1, rec2) => {
+const merge = (rec1:DOMRect, rec2:DOMRect) => {
   const x = Math.min(rec1.left, rec2.left);
   const y = Math.min(rec1.top, rec2.top);
   const width = Math.max(rec1.right, rec2.right) - x;
   const height = Math.max(rec1.bottom, rec2.bottom) - y;
-  return { x, y, width, height };
+  return { x, y, width, height } as DOMRect;
 };
-document.processTableQuary = processTableQuary;
+document.processTableQuery = processTableQuery;
+type TprocessTableQuery = typeof processTableQuery;
+export type {TprocessTableQuery}

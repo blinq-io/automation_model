@@ -3,11 +3,13 @@ import { Environment } from "./environment.js";
 import { browserManager } from "./browser_manager.js";
 import { TestContext } from "./test_context.js";
 import { StableBrowser } from "./stable_browser.js";
+import {  Browser as PlaywrightBrowser } from "playwright";
+import { Browser } from "./browser_manager.js";
 
-let environment = null;
+// let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (environment = null, headless = false, logger = null) {
+const getContext = async function (environment: Environment|null, headless = false, logger?: null) {
   if (environment === null) {
     environment = initEnvironment();
   }
@@ -20,7 +22,7 @@ const getContext = async function (environment = null, headless = false, logger 
   context.page = browser.page;
   context.environment = environment;
 
-  context.stable = new StableBrowser(context.browser, context.page, logger);
+  context.stable = new StableBrowser(context.browser!, context.page!, logger);
   // await _initCookies(context);
   return context;
 };
@@ -38,13 +40,13 @@ const getContext = async function (environment = null, headless = false, logger 
 //   }
 // };
 
-const closeBrowser = async function (browser) {
+const closeBrowser = async function (browser? :Browser|PlaywrightBrowser) {
   await browserManager.closeBrowser(browser);
 };
 
 const initEnvironment = function () {
-  if (environment === null) {
-    environment = new Environment();
+  // if (environment === null) {
+    const environment = new Environment();
     try {
       const data = fs.readFileSync("env.json", "utf8");
       //console.log("data", data);
@@ -56,7 +58,7 @@ const initEnvironment = function () {
     } catch (err) {
       console.error("Error reading env.json", err);
     }
-  }
+  // }
   return environment;
 };
 

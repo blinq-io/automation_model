@@ -34,5 +34,5 @@ jobs:
         uses: JS-DevTools/npm-publish@v1
         with:
           token: ${{ secrets.NPM_PASSWORD }}
-          package: ${{ github.workspace }}/build/package.json
+          package: ${{ github.workspace }}/package.json
           check-version: true
