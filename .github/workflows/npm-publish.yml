@@ -23,6 +23,9 @@ jobs:
           cache-dependency-path: "**/package-lock.json"
       - run: npm install
         working-directory: ${{ github.workspace }}
+      - name: Install Playwright dependencies
+        run: npx playwright install
+        working-directory: ${{ github.workspace }}
       - run: npm run build
         working-directory: ${{ github.workspace }}
       - run: npm test

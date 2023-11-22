@@ -2,18 +2,19 @@ import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
 import fs from "fs";
 import path from "path";
-let context = null;
+import type { TestContext } from "./test_context.js";
+let context:TestContext|null = null;
 const navigate = async (path = "") => {
   let url = null;
   if (path === null) {
-    url = context.environment.baseUrl;
+    url = context!.environment!.baseUrl!;
   } else {
-    url = new URL(path, context.environment.baseUrl).href;
+    url = new URL(path, context!.environment!.baseUrl).href;
   }
-  await context.stable.goto(url);
-  await context.stable.waitForPageLoad();
+  await context!.stable!.goto(url);
+  await context!.stable!.waitForPageLoad();
 };
-const _findEmptyFolder = (folder) => {
+const _findEmptyFolder = (folder?:string) => {
   if (!folder) {
     folder = "./runs";
   }
@@ -26,7 +27,7 @@ const _findEmptyFolder = (folder) => {
   }
   return path.join(folder, nextIndex.toString());
 };
-const initContext = async (path, doNavigate = true, headless = false, world = null) => {
+const initContext = async (path:string, doNavigate = true, headless = false, world:any = null) => {
   if (context) {
     return context;
   }

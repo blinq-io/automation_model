@@ -1,5 +1,5 @@
-import { initContext } from "../src/auto_page.js";
-import { closeBrowser } from "../src/init_browser.js";
+import { initContext } from "../build/auto_page.js";
+import { closeBrowser } from "../build/init_browser.js";
 
 const path = "https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin";
 const elements = {
