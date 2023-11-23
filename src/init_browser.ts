@@ -14,10 +14,12 @@ const getContext = async function (environment: Environment | null, headless = f
     environment = initEnvironment();
   }
   const { cookies, origins } = environment;
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i];
-    if (cookie.expires === "undefined") {
-      delete cookie.expires;
+  if (cookies) {
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      if (cookie.expires === "undefined") {
+        delete cookie.expires;
+      }
     }
   }
   const storageState = { cookies, origins };
