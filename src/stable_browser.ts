@@ -8,7 +8,7 @@ import type { Browser, Page } from "playwright";
 let configuration = null;
 type Params = Record<string, string>;
 class StableBrowser {
-  constructor(public browser:Browser, public page:Page, public logger:any=null) {
+  constructor(public browser: Browser, public page: Page, public logger: any = null) {
     // this.browser = browser;
     // this.page = page;
     // this.logger = logger;
@@ -17,12 +17,12 @@ class StableBrowser {
     }
   }
 
-  async goto(url:string) {
+  async goto(url: string) {
     await this.page.goto(url, {
       timeout: 60000,
     });
   }
-  _fixUsingParams(text, _params:Params) {
+  _fixUsingParams(text, _params: Params) {
     if (!_params || typeof text !== "string") {
       return text;
     }
@@ -31,7 +31,7 @@ class StableBrowser {
     }
     return text;
   }
-  _getLocator(locator, scope, _params:Params) {
+  _getLocator(locator, scope, _params: Params) {
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
@@ -47,7 +47,7 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, tag1, regex = false, _params:Params) {
+  async _locateElementByText(scope, text1, tag1, regex = false, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
       ([text, tag]) => {
@@ -61,10 +61,33 @@ class StableBrowser {
           }
           return false;
         }
+        function collectAllShadowDomElements(element, result = []) {
+          // Check and add the element if it has a shadow root
+          if (element.shadowRoot) {
+            result.push(element);
+            // Also search within the shadow root
+            collectAllShadowDomElements(element.shadowRoot, result);
+          }
+
+          // Iterate over child nodes
+          element.childNodes.forEach((child) => {
+            // Recursively call the function for each child node
+            collectAllShadowDomElements(child, result);
+          });
+
+          return result;
+        }
         if (!tag) {
           tag = "*";
         }
         let elements = Array.from(document.querySelectorAll(tag));
+        let shadowElements = [];
+        collectAllShadowDomElements(document, shadowElements);
+        for (let i = 0; i < shadowElements.length; i++) {
+          let shadowElement = shadowElements[i].shadowElement;
+          let shadowElements = Array.from(shadowElement.querySelectorAll(tag));
+          elements = elements.concat(shadowElements);
+        }
         let randomToken = null;
 
         text = text.trim();
@@ -109,7 +132,7 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params:Params) {
+  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params) {
     if (index === selectorHierarchy.length) {
       return;
     }
@@ -144,7 +167,7 @@ class StableBrowser {
       }
     }
   }
-  async _locate(selectors, info, _params?:Params, timeout = 30000) {
+  async _locate(selectors, info, _params?: Params, timeout = 30000) {
     let locatorsByPriority = [];
     let startTime = performance.now();
     let locatorsCount = 0;
@@ -190,7 +213,7 @@ class StableBrowser {
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
-  async click(selector, _params?:Params, options = {}, world = null) {
+  async click(selector, _params?: Params, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "click";
