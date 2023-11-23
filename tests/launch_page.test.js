@@ -1,5 +1,5 @@
-import { initContext } from "../build/bin/auto_page.js";
-import { closeBrowser } from "../build/bin/init_browser.js";
+import { initContext } from "../build/lib/auto_page.js";
+import { closeBrowser } from "../build/lib/init_browser.js";
 
 const name = "login";
 const path = "/";
