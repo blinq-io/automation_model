@@ -8,7 +8,7 @@ import type { Browser, Page } from "playwright";
 let configuration = null;
 type Params = Record<string, string>;
 class StableBrowser {
-  constructor(public browser:Browser, public page:Page, public logger:any=null) {
+  constructor(public browser: Browser, public page: Page, public logger: any = null) {
     // this.browser = browser;
     // this.page = page;
     // this.logger = logger;
@@ -17,12 +17,12 @@ class StableBrowser {
     }
   }
 
-  async goto(url:string) {
+  async goto(url: string) {
     await this.page.goto(url, {
       timeout: 60000,
     });
   }
-  _fixUsingParams(text, _params:Params) {
+  _fixUsingParams(text, _params: Params) {
     if (!_params || typeof text !== "string") {
       return text;
     }
@@ -31,7 +31,7 @@ class StableBrowser {
     }
     return text;
   }
-  _getLocator(locator, scope, _params:Params) {
+  _getLocator(locator, scope, _params: Params) {
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
@@ -47,7 +47,7 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, tag1, regex = false, _params:Params) {
+  async _locateElementByText(scope, text1, tag1, regex = false, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
       ([text, tag]) => {
@@ -109,7 +109,7 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params:Params) {
+  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params) {
     if (index === selectorHierarchy.length) {
       return;
     }
@@ -144,7 +144,7 @@ class StableBrowser {
       }
     }
   }
-  async _locate(selectors, info, _params?:Params, timeout = 30000) {
+  async _locate(selectors, info, _params?: Params, timeout = 30000) {
     let locatorsByPriority = [];
     let startTime = performance.now();
     let locatorsCount = 0;
@@ -190,7 +190,7 @@ class StableBrowser {
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
-  async click(selector, _params?:Params, options = {}, world = null) {
+  async click(selector, _params?: Params, options = {}, world = null) {
     const info = {};
     info.log = [];
     info.operation = "click";
@@ -352,7 +352,7 @@ class StableBrowser {
       await world.attach(JSON.stringify({ path: screenshotPath }), {
         mediaType: "application/json",
       });
-    } else if (options.screenshot) {
+    } else if (options && options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
