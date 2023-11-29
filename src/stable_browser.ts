@@ -61,10 +61,33 @@ class StableBrowser {
           }
           return false;
         }
+        function collectAllShadowDomElements(element, result = []) {
+          // Check and add the element if it has a shadow root
+          if (element.shadowRoot) {
+            result.push(element);
+            // Also search within the shadow root
+            collectAllShadowDomElements(element.shadowRoot, result);
+          }
+
+          // Iterate over child nodes
+          element.childNodes.forEach((child) => {
+            // Recursively call the function for each child node
+            collectAllShadowDomElements(child, result);
+          });
+
+          return result;
+        }
         if (!tag) {
           tag = "*";
         }
         let elements = Array.from(document.querySelectorAll(tag));
+        let shadowElements = [];
+        collectAllShadowDomElements(document, shadowElements);
+        for (let i = 0; i < shadowElements.length; i++) {
+          let shadowElement = shadowElements[i].shadowElement;
+          let shadowElements = Array.from(shadowElement.querySelectorAll(tag));
+          elements = elements.concat(shadowElements);
+        }
         let randomToken = null;
 
         text = text.trim();
