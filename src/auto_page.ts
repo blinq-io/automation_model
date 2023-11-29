@@ -16,7 +16,7 @@ const navigate = async (path = "") => {
 };
 const _findEmptyFolder = (folder?:string) => {
   if (!folder) {
-    folder = "./reports";
+    folder = "./runs";
   }
   if (!fs.existsSync(folder)) {
     fs.mkdirSync(folder);
@@ -39,7 +39,7 @@ const initContext = async (path:string, doNavigate = true, headless = false, wor
     if (world.attach) {
       world.attach(reportFolder, { mediaType: "text/plain" });
     }
-    world.screenshotPath = reportFolder + "/screenshots";
+    world.screenshotPath = reportFolder;
     context.reportFolder = reportFolder;
   }
 
