@@ -238,7 +238,7 @@ class StableBrowser {
   }
 
   async click(selector, _params?: Params, options = {}, world = null) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
     const info = {};
@@ -264,14 +264,23 @@ class StableBrowser {
       screenshotPath = await this._screenShot(options, world);
       error = e;
     } finally {
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "click",
+        type: "click",
+        text: `Click element`,
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -283,7 +292,7 @@ class StableBrowser {
     options = {},
     world = null
   ) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
     const info = {};
@@ -306,18 +315,28 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world); 
+      screenshotPath = await this._screenShot(options, world);
       error = e;
       this.logger.info("click failed, will try next selector");
-    } finally{
-      const endTime = performance.now();
+    } finally {
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "select",
+        type: "select",
+        text: `Select option: ${values}`,
+        value: values.toString(),
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -330,7 +349,7 @@ class StableBrowser {
     options = {},
     world = null
   ) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
 
@@ -338,7 +357,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "fill";
     info.selector = selector;
-    info.value = value;       
+    info.value = value;
     try {
       let element = await this._locate(selector, info, _params);
       screenshotPath = await this._screenShot(options, world);
@@ -350,23 +369,31 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("fill failed " + JSON.stringify(info)); 
+      this.logger.error("fill failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world); 
+      screenshotPath = await this._screenShot(options, world);
       error = e;
     } finally {
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "fill",
+        type: "fill",
         screenshotPath,
         value,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        text: `Fill input with value: ${value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
-
   }
 
   async getText(
@@ -396,7 +423,7 @@ class StableBrowser {
     options = {},
     world = null
   ) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
     const info = {};
@@ -405,7 +432,7 @@ class StableBrowser {
     info.selector = selector;
     info.value = text;
     info.pattern = pattern;
-    let foundText = null;       
+    let foundText = null;
     try {
       foundText = await this.getText(selector, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
@@ -420,19 +447,29 @@ class StableBrowser {
       this.logger.error(
         "verify element contains text failed " + JSON.stringify(info)
       );
-      this.logger.error("found text " + foundText + " pattern " + pattern); 
+      this.logger.error("found text " + foundText + " pattern " + pattern);
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world); 
+      screenshotPath = await this._screenShot(options, world);
       error = e;
     } finally {
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "containsPattern",
+        type: "containsPattern",
+        value: pattern,
+        text: `Verify element contains pattern: ${pattern}`,
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -444,7 +481,7 @@ class StableBrowser {
     options = {},
     world = null
   ) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
     const info = {};
@@ -470,17 +507,27 @@ class StableBrowser {
         "verify element contains text failed " + JSON.stringify(info)
       );
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world); 
+      screenshotPath = await this._screenShot(options, world);
       error = e;
     } finally {
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "containsText",
+        type: "containsText",
+        text: `Verify element contains text: ${text}`,
+        value: text,
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -499,8 +546,8 @@ class StableBrowser {
         world.screenshotPath,
         nextIndex + ".png"
       );
-      await this.page.screenshot({ path: screenshotPath });   
-      return screenshotPath
+      await this.page.screenshot({ path: screenshotPath });
+      return screenshotPath;
     } else if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
@@ -511,33 +558,42 @@ class StableBrowser {
     options = {},
     world = null
   ) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
     info.operation = "verify";
-    info.selector = selector;     
+    info.selector = selector;
     try {
       const element = await this._locate(selector, info, _params);
       screenshotPath = await this._screenShot(options, world);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
     } catch (e) {
-      this.logger.error("verify failed " + JSON.stringify(info)); 
+      this.logger.error("verify failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world); 
+      screenshotPath = await this._screenShot(options, world);
       error = e;
     } finally {
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "verify",
+        type: "verify",
+        text: "Verify element exists in page",
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -550,7 +606,7 @@ class StableBrowser {
     options = {},
     world = null
   ) {
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
     const info = {};
@@ -561,7 +617,7 @@ class StableBrowser {
     query = this._fixUsingParams(query, _params);
     info.query_fixed = query;
     info.operator = operator;
-    info.value = value;        
+    info.value = value;
     try {
       let table = await this._locate(selector, info, _params);
       screenshotPath = await this._screenShot(options, world);
@@ -647,27 +703,36 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
-      this.logger.error("analyzeTable failed " + JSON.stringify(info)); 
+      this.logger.error("analyzeTable failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world); 
+      screenshotPath = await this._screenShot(options, world);
       error = e;
     } finally {
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "analyzeTable",
+        type: "analyzeTable",
+        text: "Analyze table",
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
   async waitForPageLoad(options = {}, world = null) {
     let timeout = 10000;
-    const startTime = performance.now();
+    const startTime = Date.now();
     let error = null;
-    let screenshotPath = null; 
+    let screenshotPath = null;
     if (!configuration) {
       try {
         if (fs.existsSync("ai_config.json")) {
@@ -697,17 +762,25 @@ class StableBrowser {
     } catch (e) {
       console.log("waitForPageLoad error, ignored");
     } finally {
-
       await new Promise((resolve) => setTimeout(resolve, 2000));
       screenshotPath = await this._screenShot(options, world);
-      const endTime = performance.now();
+      const endTime = Date.now();
       this._reportToWorld(world, {
-        command: "waitForPageLoad",
+        type: "waitForPageLoad",
+        text: "Wait for page load",
         screenshotPath,
-        result: error ? "failed" : "success",
-        message: error?.message,
-        startTime,
-        endTime,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -718,13 +791,26 @@ class StableBrowser {
     world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
 }
+type JsonTimestamp = number;
+type JsonResultPassed = {
+  status: "PASSED";
+  startTime: JsonTimestamp;
+  endTime: JsonTimestamp;
+};
+type JsonResultFailed = {
+  status: "FAILED";
+  startTime: JsonTimestamp;
+  endTime: JsonTimestamp;
+  message?: string;
+  // exception?: JsonException
+};
+
+type JsonCommandResult = JsonResultPassed | JsonResultFailed;
 type JsonCommandReport = {
   type: string;
   value?: string;
-  startTime: number;
-  endTime: number;
+  text: string;
   screenshotPath?: string;
-  message?: string;
-  result: "PASSED" | "FAILED";
+  result: JsonCommandResult;
 };
 export { StableBrowser };
