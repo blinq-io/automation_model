@@ -173,26 +173,40 @@ class StableBrowser {
     let locatorsCount = 0;
     while (true) {
       locatorsCount = 0;
-      for (let i = 0; i < selectors.length; i++) {
-        let selectorList = selectors[i];
-
-        let foundLocators = [];
-        try {
-          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators, _params);
-        } catch (e) {
-          foundLocators = [];
-          await this._collectLocatorInformation(selectorList, 0, this.page, foundLocators, _params);
+      let selectorIndex = 0;
+      let scope = this.page;
+      // check for iframe section
+      if (selectors.length === 2) {
+        selectorIndex = 1;
+        let iframeSelector = selectors[0];
+        scope = this.page.frame({ url: iframeSelector.url });
+        if (!scope) {
+          info.log.pugh("unable to locate iframe " + iframeSelector.url);
+          if (performance.now() - startTime > timeout) {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
         }
-
-        info.log.push("total elements found " + foundLocators.length);
-        if (foundLocators.length === 1) {
-          info.log.push("found unique element");
-          info.box = await foundLocators[0].boundingBox();
-          return foundLocators[0];
-        }
-        locatorsByPriority.push(foundLocators);
-        locatorsCount += foundLocators.length;
       }
+      let selectorList = selectors[selectorIndex];
+
+      let foundLocators = [];
+      try {
+        await this._collectLocatorInformation(selectorList, 0, scope, foundLocators, _params);
+      } catch (e) {
+        foundLocators = [];
+        await this._collectLocatorInformation(selectorList, 0, scope, foundLocators, _params);
+      }
+
+      info.log.push("total elements found " + foundLocators.length);
+      if (foundLocators.length === 1) {
+        info.log.push("found unique element");
+        info.box = await foundLocators[0].boundingBox();
+        return foundLocators[0];
+      }
+      locatorsByPriority.push(foundLocators);
+      locatorsCount += foundLocators.length;
       if (locatorsCount > 0) {
         break;
       }
