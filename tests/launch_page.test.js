@@ -10,7 +10,7 @@ const elements = {
   },
   loginButton: [[{ role: ["button", { name: "Sign in" }] }]],
 };
-const context = await initContext(path, true, false);
+const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
   info = await context.stable.click(elements.sign_in, { signin: "Sign in" });
