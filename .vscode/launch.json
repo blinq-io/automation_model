@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "launch_page",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/tests/launch_page.js",
+      "program": "${workspaceFolder}/tests/launch_page.test.js",
       // set default directory to the workspace folder
       "cwd": "${workspaceFolder}",
       "stopOnEntry": false,
