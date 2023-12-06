@@ -292,7 +292,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "click";
     info.selector = selector;
-
+    let screenshotPath = null;
     try {
       let element = await this._locate(selector, info, _params);
 
