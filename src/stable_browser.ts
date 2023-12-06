@@ -288,10 +288,12 @@ class StableBrowser {
   }
 
   async click(selector, _params?: Params, options = {}, world = null) {
+    const startTime = Date.now();
     const info = {};
     info.log = [];
     info.operation = "click";
     info.selector = selector;
+    let error = null;
     let screenshotPath = null;
     try {
       let element = await this._locate(selector, info, _params);
