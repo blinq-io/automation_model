@@ -3,18 +3,26 @@ import { Environment } from "./environment.js";
 import { browserManager } from "./browser_manager.js";
 import { TestContext } from "./test_context.js";
 import { StableBrowser } from "./stable_browser.js";
-import {  Browser as PlaywrightBrowser } from "playwright";
+import { Browser as PlaywrightBrowser } from "playwright";
 import { Browser } from "./browser_manager.js";
 
 // let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (environment: Environment|null, headless = false, logger?: null) {
+const getContext = async function (environment: Environment | null, headless = false, logger?: null) {
   if (environment === null) {
     environment = initEnvironment();
   }
-  const {cookies, origins} = environment;
-  const storageState = {cookies, origins};
+  const { cookies, origins } = environment;
+  if (cookies) {
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      if (cookie.expires === "undefined") {
+        delete cookie.expires;
+      }
+    }
+  }
+  const storageState = { cookies, origins };
   let browser = await browserManager.getBrowser(headless, storageState);
   let context = new TestContext();
   context.browser = browser.browser;
@@ -40,24 +48,24 @@ const getContext = async function (environment: Environment|null, headless = fal
 //   }
 // };
 
-const closeBrowser = async function (browser? :Browser|PlaywrightBrowser) {
+const closeBrowser = async function (browser?: Browser | PlaywrightBrowser) {
   await browserManager.closeBrowser(browser);
 };
 
 const initEnvironment = function () {
   // if (environment === null) {
-    const environment = new Environment();
-    try {
-      const data = fs.readFileSync("env.json", "utf8");
-      //console.log("data", data);
-      const envObject = JSON.parse(data);
-      //console.log("envObject", envObject);
-      Object.assign(environment, envObject);
-      //console.log("env", environment);
-      console.log("Base url: " + environment.baseUrl);
-    } catch (err) {
-      console.error("Error reading env.json", err);
-    }
+  const environment = new Environment();
+  try {
+    const data = fs.readFileSync("env.json", "utf8");
+    //console.log("data", data);
+    const envObject = JSON.parse(data);
+    //console.log("envObject", envObject);
+    Object.assign(environment, envObject);
+    //console.log("env", environment);
+    console.log("Base url: " + environment.baseUrl);
+  } catch (err) {
+    console.error("Error reading env.json", err);
+  }
   // }
   return environment;
 };

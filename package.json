@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.79",
+  "version": "1.0.90",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
@@ -13,15 +13,15 @@
     "pack": "mkdir build && mkdir build/bin && cp ./src/auto_page.js ./build/bin/auto_page.js && cp ./src/environment.js ./build/bin/environment.js && cp ./src/browser_manager.js ./build/bin/browser_manager.js && cp ./src/test_context.js ./build/bin/test_context.js && cp ./src/init_browser.js ./build/bin/init_browser.js && cp ./src/stable_browser.js ./build/bin/stable_browser.js && cp ./package.json ./build/package.json",
     "clean": "rimraf -g build && rimraf -g types",
     "build": "npm run clean && npm run compile && ncp package.json build/package.json",
-    "test": "node tests/debug.test.js",
+    "test": "node tests/launch_page.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "playwright": "^1.39.0",
-    "regex-parser": "^2.2.11",
-    "@playwright/test": "^1.40.0"
+    "@playwright/test": "^1.40.0",
+    "regex-parser": "^2.2.11"
   },
   "devDependencies": {
     "@types/node": "^20.9.3",
