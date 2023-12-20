@@ -8,11 +8,7 @@ import type { Browser, Page } from "playwright";
 let configuration = null;
 type Params = Record<string, string>;
 class StableBrowser {
-  constructor(
-    public browser: Browser,
-    public page: Page,
-    public logger: any = null
-  ) {
+  constructor(public browser: Browser, public page: Page, public logger: any = null) {
     if (!this.logger) {
       this.logger = console;
     }
@@ -39,10 +35,7 @@ class StableBrowser {
         delete locator.role[1].nameReg;
       }
       if (locator.role[1].name) {
-        locator.role[1].name = this._fixUsingParams(
-          locator.role[1].name,
-          _params
-        );
+        locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
       }
       if (exact) {
         locator.role[1].exact = true;
@@ -146,17 +139,10 @@ class StableBrowser {
   }
 
   async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, exact = false) {
-
     let locatorSearch = selectorHierarchy[index];
     let locator = null;
     if (locatorSearch.text) {
-      let result = await this._locateElementByText(
-        scope,
-        locatorSearch.text,
-        locatorSearch.tag,
-        false,
-        _params
-      );
+      let result = await this._locateElementByText(scope, locatorSearch.text, locatorSearch.tag, false, _params);
       if (result.elementCount === 0) {
         return;
       }
@@ -170,10 +156,7 @@ class StableBrowser {
     //let visibleCount = 0;
     let visibleLocator = null;
     for (let j = 0; j < count; j++) {
-      if (
-        (await locator.nth(j).isVisible()) &&
-        (await locator.nth(j).isEnabled())
-      ) {
+      if ((await locator.nth(j).isVisible()) && (await locator.nth(j).isEnabled())) {
         //visibleCount++;
         // if (index === selectorHierarchy.length - 1) {
         foundLocators.push(locator.nth(j));
@@ -305,11 +288,13 @@ class StableBrowser {
   }
 
   async click(selector, _params?: Params, options = {}, world = null) {
+    const startTime = Date.now();
     const info = {};
     info.log = [];
     info.operation = "click";
     info.selector = selector;
-
+    let error = null;
+    let screenshotPath = null;
     try {
       let element = await this._locate(selector, info, _params);
 
@@ -349,13 +334,7 @@ class StableBrowser {
     }
   }
 
-  async selectOption(
-    selector,
-    values,
-    _params = null,
-    options = {},
-    world = null
-  ) {
+  async selectOption(selector, values, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
@@ -405,14 +384,55 @@ class StableBrowser {
     }
   }
 
-  async fill(
-    selector,
-    value,
-    enter = false,
-    _params = null,
-    options = {},
-    world = null
-  ) {
+  async clickType(selector, value, enter = false, _params = null, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotPath = null;
+
+    const info = {};
+    info.log = [];
+    info.operation = "clickType";
+    info.selector = selector;
+    info.value = value;
+    try {
+      let element = await this._locate(selector, info, _params);
+      screenshotPath = await this._screenShot(options, world);
+      await element.click({ timeout: 5000 });
+      await this.page.keyboard.type(value, { timeout: 10000 });
+      if (enter) {
+        await this.page.keyboard.press("Enter");
+      }
+      await this.waitForPageLoad();
+      return info;
+    } catch (e) {
+      this.logger.error("fill failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      screenshotPath = await this._screenShot(options, world);
+      error = e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: "clickType",
+        screenshotPath,
+        value,
+        text: `clickType input with value: ${value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
+
+  async fill(selector, value, enter = false, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
@@ -460,13 +480,7 @@ class StableBrowser {
     }
   }
 
-  async getText(
-    selector,
-    _params = null,
-    options = {},
-    info = {},
-    world = null
-  ) {
+  async getText(selector, _params = null, options = {}, info = {}, world = null) {
     if (!info.log) {
       info.log = [];
     }
@@ -479,14 +493,7 @@ class StableBrowser {
       return await element.textContent();
     }
   }
-  async containsPattern(
-    selector,
-    pattern,
-    text,
-    _params = null,
-    options = {},
-    world = null
-  ) {
+  async containsPattern(selector, pattern, text, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
@@ -508,9 +515,7 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
-      this.logger.error(
-        "verify element contains text failed " + JSON.stringify(info)
-      );
+      this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
       Object.assign(e, { info: info });
       screenshotPath = await this._screenShot(options, world);
@@ -538,13 +543,7 @@ class StableBrowser {
     }
   }
 
-  async containsText(
-    selector,
-    text,
-    _params = null,
-    options = {},
-    world = null
-  ) {
+  async containsText(selector, text, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
@@ -554,22 +553,14 @@ class StableBrowser {
     info.selector = selector;
     info.value = text;
     try {
-      let foundText = await this.getText(
-        selector,
-        _params,
-        options,
-        info,
-        world
-      );
+      let foundText = await this.getText(selector, _params, options, info, world);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
     } catch (e) {
-      this.logger.error(
-        "verify element contains text failed " + JSON.stringify(info)
-      );
+      this.logger.error("verify element contains text failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
       screenshotPath = await this._screenShot(options, world);
       error = e;
@@ -601,27 +592,17 @@ class StableBrowser {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
       }
       let nextIndex = 1;
-      while (
-        fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))
-      ) {
+      while (fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))) {
         nextIndex++;
       }
-      const screenshotPath = path.join(
-        world.screenshotPath,
-        nextIndex + ".png"
-      );
+      const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       await this.page.screenshot({ path: screenshotPath });
       return screenshotPath;
     } else if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
-  async verifyElementExistInPage(
-    selector,
-    _params = null,
-    options = {},
-    world = null
-  ) {
+  async verifyElementExistInPage(selector, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
@@ -661,15 +642,7 @@ class StableBrowser {
       });
     }
   }
-  async analyzeTable(
-    selector,
-    query,
-    operator,
-    value,
-    _params = null,
-    options = {},
-    world = null
-  ) {
+  async analyzeTable(selector, query, operator, value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotPath = null;
@@ -690,12 +663,7 @@ class StableBrowser {
       if (cells.error) {
         throw new Error(cells.error);
       }
-      if (
-        operator === "===" ||
-        operator === "==" ||
-        operator === "=" ||
-        operator === "equals"
-      ) {
+      if (operator === "===" || operator === "==" || operator === "=" || operator === "equals") {
         if (cells.length === 0) {
           throw new Error("no cells found");
         }
@@ -704,11 +672,7 @@ class StableBrowser {
             throw new Error("table data doesn't match");
           }
         }
-      } else if (
-        operator === "!==" ||
-        operator === "!=" ||
-        operator === "not_equals"
-      ) {
+      } else if (operator === "!==" || operator === "!=" || operator === "not_equals") {
         if (cells.length === 0) {
           throw new Error("no cells found");
         }
