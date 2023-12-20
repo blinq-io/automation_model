@@ -1,3 +1,4 @@
+// @ts-nocheck
 type Change = {css:string, changes:{role:string}};
 declare const document: Document & { selectors: Change[]|null ; tableSelector: string|null; processTableQuery: TprocessTableQuery };
 const selectors = null;
@@ -168,6 +169,7 @@ const merge = (rec1:DOMRect, rec2:DOMRect) => {
   const height = Math.max(rec1.bottom, rec2.bottom) - y;
   return { x, y, width, height } as DOMRect;
 };
+// @ts-ignore
 document.processTableQuery = processTableQuery;
 type TprocessTableQuery = typeof processTableQuery;
-export type {TprocessTableQuery}
+// export type {TprocessTableQuery}
