@@ -4,7 +4,7 @@ import type { Page, ElementHandle } from "playwright";
 // import type {TprocessTableQuery} from "./locator.js"
 // type Change = {css:string, changes:{role:string}};
 // declare const document: Document & { selectors: Change[] ; tableSelector: string; processTableQuery: TprocessTableQuery };
-function stringifyObject(obj:unknown, indentation = 0) {
+function stringifyObject(obj: unknown, indentation = 0) {
   let result = "";
   const indent = " ".repeat(indentation);
   if (Array.isArray(obj)) {
@@ -38,7 +38,7 @@ function stringifyObject(obj:unknown, indentation = 0) {
 }
 const __filename = new URL(import.meta.url).pathname;
 const currentDir = path.dirname(__filename);
-const getTableCells = async (page:Page, element:ElementHandle, tableSelector:any, info:any = {}) => {
+const getTableCells = async (page: Page, element: ElementHandle, tableSelector: any, info: any = {}) => {
   let script = fs.readFileSync(path.join(currentDir, "locator.js"), "utf8");
   let aiConfigPath = path.join(process.cwd(), "ai_config.json");
   if (fs.existsSync(aiConfigPath)) {
@@ -48,7 +48,8 @@ const getTableCells = async (page:Page, element:ElementHandle, tableSelector:any
     }
   }
   script = script.replace("const tableSelector = null", "const tableSelector = " + stringifyObject(tableSelector));
-  await page.evaluate(script);
+  // run the script inside the element context (iframe)
+  await element.evaluate(script);
   try {
     // @ts-ignore
     let result = await element.evaluate((_node) => {
