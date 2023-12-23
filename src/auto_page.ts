@@ -39,7 +39,7 @@ const initContext = async (path:string, doNavigate = true, headless = false, wor
     if (world.attach) {
       world.attach(reportFolder, { mediaType: "text/plain" });
     }
-    world.screenshotPath = reportFolder;
+    world.screenshotPath = reportFolder + "/screenshots/";
     context.reportFolder = reportFolder;
   }
 

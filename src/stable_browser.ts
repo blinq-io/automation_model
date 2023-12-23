@@ -294,11 +294,11 @@ class StableBrowser {
     info.operation = "click";
     info.selector = selector;
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     try {
       let element = await this._locate(selector, info, _params);
 
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       try {
         await element.click({ timeout: 5000 });
       } catch (e) {
@@ -310,14 +310,14 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("click failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: "click",
         text: `Click element`,
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -337,7 +337,7 @@ class StableBrowser {
   async selectOption(selector, values, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "selectOptions";
@@ -346,7 +346,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selector, info, _params);
 
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       try {
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
@@ -358,7 +358,7 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
       this.logger.info("click failed, will try next selector");
     } finally {
@@ -367,7 +367,7 @@ class StableBrowser {
         type: "select",
         text: `Select option: ${values}`,
         value: values.toString(),
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -387,7 +387,7 @@ class StableBrowser {
   async clickType(selector, value, enter = false, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
 
     const info = {};
     info.log = [];
@@ -396,7 +396,7 @@ class StableBrowser {
     info.value = value;
     try {
       let element = await this._locate(selector, info, _params);
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       await element.click({ timeout: 5000 });
       await this.page.keyboard.type(value, { timeout: 10000 });
       if (enter) {
@@ -407,13 +407,13 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: "clickType",
-        screenshotPath,
+        screenshotId,
         value,
         text: `clickType input with value: ${value}`,
         result: error
@@ -435,7 +435,7 @@ class StableBrowser {
   async fill(selector, value, enter = false, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
 
     const info = {};
     info.log = [];
@@ -444,7 +444,7 @@ class StableBrowser {
     info.value = value;
     try {
       let element = await this._locate(selector, info, _params);
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
       if (enter) {
@@ -455,13 +455,13 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: "fill",
-        screenshotPath,
+        screenshotId,
         value,
         text: `Fill input with value: ${value}`,
         result: error
@@ -485,7 +485,7 @@ class StableBrowser {
       info.log = [];
     }
     let element = await this._locate(selector, info, _params);
-    screenshotPath = await this._screenShot(options, world);
+    screenshotId = await this._screenShot(options, world);
     try {
       return await element.innerText();
     } catch (e) {
@@ -496,7 +496,7 @@ class StableBrowser {
   async containsPattern(selector, pattern, text, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "containsPattern";
@@ -518,7 +518,7 @@ class StableBrowser {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
@@ -526,7 +526,7 @@ class StableBrowser {
         type: "containsPattern",
         value: pattern,
         text: `Verify element contains pattern: ${pattern}`,
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -546,7 +546,7 @@ class StableBrowser {
   async containsText(selector, text, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "containsText";
@@ -562,7 +562,7 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
@@ -570,7 +570,7 @@ class StableBrowser {
         type: "containsText",
         text: `Verify element contains text: ${text}`,
         value: text,
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -597,7 +597,7 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       await this.page.screenshot({ path: screenshotPath });
-      return screenshotPath;
+      return nextIndex;
     } else if (options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
@@ -605,7 +605,7 @@ class StableBrowser {
   async verifyElementExistInPage(selector, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
@@ -613,20 +613,20 @@ class StableBrowser {
     info.selector = selector;
     try {
       const element = await this._locate(selector, info, _params);
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
     } catch (e) {
       this.logger.error("verify failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: "verify",
         text: "Verify element exists in page",
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -645,7 +645,7 @@ class StableBrowser {
   async analyzeTable(selector, query, operator, value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "analyzeTable";
@@ -657,7 +657,7 @@ class StableBrowser {
     info.value = value;
     try {
       let table = await this._locate(selector, info, _params);
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       const cells = await getTableCells(this.page, table, query, info);
 
       if (cells.error) {
@@ -733,14 +733,14 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("analyzeTable failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       error = e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: "analyzeTable",
         text: "Analyze table",
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -760,7 +760,7 @@ class StableBrowser {
     let timeout = 10000;
     const startTime = Date.now();
     let error = null;
-    let screenshotPath = null;
+    let screenshotId = null;
     if (!configuration) {
       try {
         if (fs.existsSync("ai_config.json")) {
@@ -791,12 +791,12 @@ class StableBrowser {
       console.log("waitForPageLoad error, ignored");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      screenshotPath = await this._screenShot(options, world);
+      screenshotId = await this._screenShot(options, world);
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: "waitForPageLoad",
         text: "Wait for page load",
-        screenshotPath,
+        screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -838,7 +838,7 @@ type JsonCommandReport = {
   type: string;
   value?: string;
   text: string;
-  screenshotPath?: string;
+  screenshotId?: string;
   result: JsonCommandResult;
 };
 export { StableBrowser };
