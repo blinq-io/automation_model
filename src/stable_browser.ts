@@ -485,7 +485,7 @@ class StableBrowser {
       info.log = [];
     }
     let element = await this._locate(selector, info, _params);
-    screenshotId = await this._screenShot(options, world);
+    let screenshotId = await this._screenShot(options, world);
     try {
       return await element.innerText();
     } catch (e) {
