@@ -508,7 +508,7 @@ class StableBrowser {
       foundText = await this.getText(selector, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
-      let regex = new RegExp(pattern, "m");
+      let regex = new RegExp(pattern, "im");
       if (!regex.test(foundText)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
