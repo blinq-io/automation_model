@@ -312,6 +312,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -359,8 +360,9 @@ class StableBrowser {
       this.logger.error("selectOption failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
-      error = e;
       this.logger.info("click failed, will try next selector");
+      error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -409,6 +411,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -457,6 +460,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -520,6 +524,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -564,6 +569,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -621,6 +627,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -749,6 +756,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       screenshotId = await this._screenShot(options, world);
       error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
