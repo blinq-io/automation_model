@@ -726,6 +726,20 @@ class StableBrowser {
             throw new Error(`found table cell value ${cells[i]} >= ${value}`);
           }
         }
+      } else if (operator === "contains") {
+        if (cells.length === 0) {
+          throw new Error("no cells found");
+        }
+        let found = false;
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i].toLowerCase().includes(value.toLowerCase())) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          throw new Error(`no table cell contains value ${value}`);
+        }
       } else {
         throw new Error("unknown operator " + operator);
       }
