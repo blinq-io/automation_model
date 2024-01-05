@@ -206,42 +206,26 @@ class StableBrowser {
         try {
           await this._collectLocatorInformation(selectorsLocators, i, scope, foundLocators, _params, exact);
         } catch (e) {
-          this.logger.error("unable to use locator " + JSON.stringify(selectorsLocators[i]));
+          this.logger.info("unable to use locator " + JSON.stringify(selectorsLocators[i]));
           foundLocators = [];
           try {
             await this._collectLocatorInformation(selectorsLocators, i, this.page, foundLocators, _params, exact);
           } catch (e) {
-            this.logger.error("unable to use locator (second try) " + JSON.stringify(selectorsLocators[i]));
+            this.logger.info("unable to use locator (second try) " + JSON.stringify(selectorsLocators[i]));
           }
         }
         if (foundLocators.length === 1) {
           foundElements.push({ locator: foundLocators[0], box: await foundLocators[0].boundingBox(), unique: true });
         } else if (foundLocators.length > 1) {
           exact = true;
-          //   for (let j = 0; j < foundLocators.length; j++) {
-          //     console.log("found locators " + JSON.stringify(await foundLocators[j].boundingBox()));
-          //     //            foundElements.push({ locator: foundLocators[j], box: await foundLocators[j].boundingBox(), unique: false });
-          //   }
         }
       }
-      // } catch (e) {
-      //   let foundUnique = false;
-      //   for (let i = 0; i < foundElements.length; i++) {
-      //     let element = foundElements[i];
-      //     if (element.unique) {
-      //       foundUnique = true;
-      //       break;
-      //     }
-      //   }
-      //   if (!foundUnique) {
-      //     info.log.push("unable to locate element " + e.message);
-      //   }
-      // }
+
       if (foundElements.length === 1 && foundElements[0].unique) {
         info.box = foundElements[0].box;
         return foundElements[0].locator;
       }
-      info.log.push("total elements found " + foundElements.length);
+      //info.log.push("total elements found " + foundElements.length);
       if (foundElements.length > 1) {
         let electionResult = {};
         for (let i = 0; i < foundElements.length; i++) {
@@ -277,13 +261,7 @@ class StableBrowser {
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     info.log.push("failed to locate unique element, total elements found " + locatorsCount);
-    // for (let i = 0; i < locatorsByPriority.length; i++) {
-    //   let locators = locatorsByPriority[i];
-    //   if (locators.length > 0) {
-    //     info.box = await locators[0].boundingBox();
-    //     return locators[0];
-    //   }
-    // }
+
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
@@ -488,6 +466,8 @@ class StableBrowser {
     if (!info.log) {
       info.log = [];
     }
+    info.operation = "getText";
+    info.selector = selector;
     let element = await this._locate(selector, info, _params);
     let screenshotId = await this._screenShot(options, world);
     try {
