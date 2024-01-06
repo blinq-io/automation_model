@@ -381,8 +381,10 @@ class StableBrowser {
       await this.page.keyboard.type(value, { timeout: 10000 });
       if (enter) {
         await this.page.keyboard.press("Enter");
+        await this.waitForPageLoad();
+      } else {
+        await element.dispatchEvent("change");
       }
-      await this.waitForPageLoad();
       return info;
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
