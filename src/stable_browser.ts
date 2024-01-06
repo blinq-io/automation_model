@@ -647,7 +647,7 @@ class StableBrowser {
       screenshotId = await this._screenShot(options, world);
       const cells = await getTableCells(this.page, table, query, info);
 
-      if (cells.error) {
+      if (cells && cells.error) {
         throw new Error(cells.error);
       }
       if (operator === "===" || operator === "==" || operator === "=" || operator === "equals") {

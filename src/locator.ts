@@ -1,6 +1,10 @@
 // @ts-nocheck
-type Change = {css:string, changes:{role:string}};
-declare const document: Document & { selectors: Change[]|null ; tableSelector: string|null; processTableQuery: TprocessTableQuery };
+type Change = { css: string; changes: { role: string } };
+declare const document: Document & {
+  selectors: Change[] | null;
+  tableSelector: string | null;
+  processTableQuery: TprocessTableQuery;
+};
 const selectors = null;
 document.selectors = selectors;
 const tableSelector = null;
@@ -11,8 +15,7 @@ document.tableSelector = tableSelector;
 // table[1]["Availability"].text  | equals   | 100%
 // table[*][2].text               |not_equals| error
 
-function processTableQuery(table:Element, query:string) {
-  
+function processTableQuery(table: Element, query: string) {
   if (document.selectors && document.selectors.length > 0) {
     for (let i = 0; i < document.selectors.length; i++) {
       const selector = document.selectors[i];
@@ -28,8 +31,8 @@ function processTableQuery(table:Element, query:string) {
   const rows = Array.from(table.querySelectorAll("tr, [data-blinq-role='row'], [role='row']"));
   const _rows = rows.length;
   const _columnNames = [];
-  let  _columns:number = 0;
-  let columnheader:HTMLElement[] = [];
+  let _columns: number = 0;
+  let columnheader: HTMLElement[] = [];
   if (rows.length > 0) {
     //const rowheader = rows[0];
     columnheader = Array.from(table.querySelectorAll("th, [data-blinq-role='columnheader'], [role='columnheader']"));
@@ -84,7 +87,7 @@ function processTableQuery(table:Element, query:string) {
     selectedRows.push(rows[rowIndex]);
   }
   console.log("selectedRows count", selectedRows.length);
-  const selectedCells:HTMLElement[] = [];
+  const selectedCells: HTMLElement[] = [];
   // @ts-ignore
   if (isNaN(columnSelector)) {
     if (columnSelector.startsWith('"') && columnSelector.endsWith('"')) {
@@ -107,12 +110,23 @@ function processTableQuery(table:Element, query:string) {
       }
     }
     if (!foundHeader) {
-      return { error: "No column header found" };
+      for (let i = 0; i < columnheader.length; i++) {
+        const cell = columnheader[i];
+        const cellText = cell.innerText;
+        console.log("cellText", cellText);
+        if (cellText.includes(columnSelector)) {
+          foundHeader = cell;
+          break;
+        }
+      }
+      if (!foundHeader) {
+        return { error: "No column header found" };
+      }
     }
     const foundHeaderRec = foundHeader.getBoundingClientRect();
     for (let i = 0; i < selectedRows.length; i++) {
       const row = selectedRows[i];
-      const cells:HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
+      const cells: HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
       console.log("cells count", cells.length);
       for (let j = 0; j < cells.length; j++) {
         const cell = cells[j];
@@ -130,11 +144,11 @@ function processTableQuery(table:Element, query:string) {
     }
     for (let i = 0; i < selectedRows.length; i++) {
       const row = selectedRows[i];
-      const cells:HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
+      const cells: HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
       selectedCells.push(cells[columnIndex]);
     }
   }
-  let rect:DOMRect|null = null;
+  let rect: DOMRect | null = null;
   const result = [];
   for (let i = 0; i < selectedCells.length; i++) {
     let added = false;
@@ -162,7 +176,7 @@ function processTableQuery(table:Element, query:string) {
   }
   return { cells: result, rect };
 }
-const merge = (rec1:DOMRect, rec2:DOMRect) => {
+const merge = (rec1: DOMRect, rec2: DOMRect) => {
   const x = Math.min(rec1.left, rec2.left);
   const y = Math.min(rec1.top, rec2.top);
   const width = Math.max(rec1.right, rec2.right) - x;

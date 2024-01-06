@@ -61,6 +61,10 @@ const getTableCells = async (page: Page, element: ElementHandle, tableSelector: 
     // @ts-ignore
     info.box = result.rect;
     info.cells = result.cells;
+    info.error = result.error;
+    if (result.error) {
+      return { error: result.error };
+    }
     return result.cells;
   } catch (error) {
     console.log("error", error);
