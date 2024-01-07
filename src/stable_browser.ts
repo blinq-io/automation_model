@@ -586,7 +586,7 @@ class StableBrowser {
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       await this.page.screenshot({ path: screenshotPath });
       return nextIndex;
-    } else if (options.screenshot) {
+    } else if (options && options.screenshot) {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
