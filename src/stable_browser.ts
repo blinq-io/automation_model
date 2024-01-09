@@ -39,11 +39,14 @@ class StableBrowser {
     if (!selectors) {
       throw new Error("selectors is null");
     }
-    if (!Array.isArray(selectors)) {
-      throw new Error("selectors expected to be array");
+    if (!selectors.locators) {
+      throw new Error("selectors.locators is null");
     }
-    if (selectors.length === 0) {
-      throw new Error("selectors expected to be non empty array");
+    if (!Array.isArray(selectors.locators)) {
+      throw new Error("selectors.locators expected to be array");
+    }
+    if (selectors.locators.length === 0) {
+      throw new Error("selectors.locators expected to be non empty array");
     }
   }
   _fixUsingParams(text, _params: Params) {

@@ -4,11 +4,16 @@ import { closeBrowser } from "../build/lib/init_browser.js";
 const name = "login";
 const path = "/";
 const elements = {
-  sign_in: [[{ role: ["link", { name: "{signin}" }] }], [{ css: "a[href='/login']" }]],
+  sign_in: {
+    locators: [{ role: ["link", { name: "{signin}" }] }, { css: "a[href='/login']" }],
+  },
   username: {
     locators: [{ css: 'input[name="login"]' }],
   },
-  loginButton: [[{ role: ["button", { name: "Sign in" }] }]],
+
+  loginButton: {
+    locators: [{ role: ["button", { name: "Sign in" }] }],
+  },
 };
 const context = await initContext(path, true, true);
 const login = async function () {
@@ -19,13 +24,13 @@ const login = async function () {
   console.log("info fill username", JSON.stringify(info, null, 2));
   info = await context.stable.click(elements.loginButton);
   console.log("info click login", JSON.stringify(info, null, 2));
-  info = await context.stable.verifyElementExistInPage([
-    [
+  info = await context.stable.verifyElementExistInPage({
+    locators: [
       {
         text: "Incorrect username or password.",
       },
     ],
-  ]);
+  });
   console.log("info verify", JSON.stringify(info, null, 2));
 };
 await login();
