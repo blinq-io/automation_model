@@ -449,6 +449,8 @@ class StableBrowser {
   }
 
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -498,6 +500,7 @@ class StableBrowser {
   }
 
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
+    this._validateSelectors(selectors);
     if (!info.log) {
       info.log = [];
     }
@@ -513,6 +516,13 @@ class StableBrowser {
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    if (!pattern) {
+      throw new Error("pattern is null");
+    }
+    if (!text) {
+      throw new Error("text is null");
+    }
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -564,6 +574,10 @@ class StableBrowser {
   }
 
   async containsText(selectors, text, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    if (!text) {
+      throw new Error("text is null");
+    }
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -624,6 +638,7 @@ class StableBrowser {
     }
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -665,6 +680,16 @@ class StableBrowser {
     }
   }
   async analyzeTable(selectors, query, operator, value, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    if (!query) {
+      throw new Error("query is null");
+    }
+    if (!operator) {
+      throw new Error("operator is null");
+    }
+    if (!value) {
+      throw new Error("value is null");
+    }
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
