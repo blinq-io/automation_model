@@ -35,6 +35,17 @@ class StableBrowser {
       timeout: 60000,
     });
   }
+  _validateSelectors(selectors) {
+    if (!selectors) {
+      throw new Error("selectors is null");
+    }
+    if (!Array.isArray(selectors)) {
+      throw new Error("selectors expected to be array");
+    }
+    if (selectors.length === 0) {
+      throw new Error("selectors expected to be non empty array");
+    }
+  }
   _fixUsingParams(text, _params: Params) {
     if (!_params || typeof text !== "string") {
       return text;
@@ -281,16 +292,17 @@ class StableBrowser {
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
 
-  async click(selector, _params?: Params, options = {}, world = null) {
+  async click(selectors, _params?: Params, options = {}, world = null) {
+    this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
     info.log = [];
     info.operation = "click";
-    info.selector = selector;
+    info.selectors = selectors;
     let error = null;
     let screenshotId = null;
     try {
-      let element = await this._locate(selector, info, _params);
+      let element = await this._locate(selectors, info, _params);
 
       screenshotId = await this._screenShot(options, world);
       try {
@@ -329,17 +341,21 @@ class StableBrowser {
     }
   }
 
-  async selectOption(selector, values, _params = null, options = {}, world = null) {
+  async selectOption(selectors, values, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    if (!values) {
+      throw new Error("values is null");
+    }
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "selectOptions";
-    info.selector = selector;
+    info.selectors = selectors;
 
     try {
-      let element = await this._locate(selector, info, _params);
+      let element = await this._locate(selectors, info, _params);
 
       screenshotId = await this._screenShot(options, world);
       try {
@@ -380,7 +396,8 @@ class StableBrowser {
     }
   }
 
-  async clickType(selector, value, enter = false, _params = null, options = {}, world = null) {
+  async clickType(selectors, value, enter = false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -388,10 +405,10 @@ class StableBrowser {
     const info = {};
     info.log = [];
     info.operation = "clickType";
-    info.selector = selector;
+    info.selectors = selectors;
     info.value = value;
     try {
-      let element = await this._locate(selector, info, _params);
+      let element = await this._locate(selectors, info, _params);
       screenshotId = await this._screenShot(options, world);
       await element.click({ timeout: 5000 });
       await this.page.keyboard.type(value, { timeout: 10000 });
@@ -431,7 +448,7 @@ class StableBrowser {
     }
   }
 
-  async fill(selector, value, enter = false, _params = null, options = {}, world = null) {
+  async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -439,10 +456,10 @@ class StableBrowser {
     const info = {};
     info.log = [];
     info.operation = "fill";
-    info.selector = selector;
+    info.selectors = selectors;
     info.value = value;
     try {
-      let element = await this._locate(selector, info, _params);
+      let element = await this._locate(selectors, info, _params);
       screenshotId = await this._screenShot(options, world);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
@@ -480,13 +497,13 @@ class StableBrowser {
     }
   }
 
-  async getText(selector, _params = null, options = {}, info = {}, world = null) {
+  async getText(selectors, _params = null, options = {}, info = {}, world = null) {
     if (!info.log) {
       info.log = [];
     }
     info.operation = "getText";
-    info.selector = selector;
-    let element = await this._locate(selector, info, _params);
+    info.selectors = selectors;
+    let element = await this._locate(selectors, info, _params);
     let screenshotId = await this._screenShot(options, world);
     try {
       return await element.innerText();
@@ -495,19 +512,19 @@ class StableBrowser {
       return await element.textContent();
     }
   }
-  async containsPattern(selector, pattern, text, _params = null, options = {}, world = null) {
+  async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "containsPattern";
-    info.selector = selector;
+    info.selectors = selectors;
     info.value = text;
     info.pattern = pattern;
     let foundText = null;
     try {
-      foundText = await this.getText(selector, _params, options, info, world);
+      foundText = await this.getText(selectors, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -546,17 +563,17 @@ class StableBrowser {
     }
   }
 
-  async containsText(selector, text, _params = null, options = {}, world = null) {
+  async containsText(selectors, text, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "containsText";
-    info.selector = selector;
+    info.selectors = selectors;
     info.value = text;
     try {
-      let foundText = await this.getText(selector, _params, options, info, world);
+      let foundText = await this.getText(selectors, _params, options, info, world);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
@@ -606,7 +623,7 @@ class StableBrowser {
       await this.page.screenshot({ path: options.screenshotPath });
     }
   }
-  async verifyElementExistInPage(selector, _params = null, options = {}, world = null) {
+  async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -614,9 +631,9 @@ class StableBrowser {
     const info = {};
     info.log = [];
     info.operation = "verify";
-    info.selector = selector;
+    info.selectors = selectors;
     try {
-      const element = await this._locate(selector, info, _params);
+      const element = await this._locate(selectors, info, _params);
       screenshotId = await this._screenShot(options, world);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
@@ -647,21 +664,21 @@ class StableBrowser {
       });
     }
   }
-  async analyzeTable(selector, query, operator, value, _params = null, options = {}, world = null) {
+  async analyzeTable(selectors, query, operator, value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
     const info = {};
     info.log = [];
     info.operation = "analyzeTable";
-    info.selector = selector;
+    info.selectors = selectors;
     info.query = query;
     query = this._fixUsingParams(query, _params);
     info.query_fixed = query;
     info.operator = operator;
     info.value = value;
     try {
-      let table = await this._locate(selector, info, _params);
+      let table = await this._locate(selectors, info, _params);
       screenshotId = await this._screenShot(options, world);
       const cells = await getTableCells(this.page, table, query, info);
 
