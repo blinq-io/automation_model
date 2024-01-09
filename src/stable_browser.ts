@@ -7,6 +7,22 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 let configuration = null;
 type Params = Record<string, string>;
+
+const Types = {
+  CLICK: "click_element",
+  NAVIGATE: "navigate", ///
+  FILL: "fill_element",
+  EXECUTE: "execute_page_method", //
+  OPEN: "open_environment", //
+  COMPLETE: "task_complete",
+  ASK: "information_needed",
+  GET_PAGE_STATUS: "get_page_status", ///
+  CLICK_ROW_ACTION: "click_row_action", //
+  VERIFY_ELEMENT_CONTAINS_TEXT: "verify_element_contains_text",
+  ANALYZE_TABLE: "analyze_table",
+  SELECT: "select_combobox", //
+};
+
 class StableBrowser {
   constructor(public browser: Browser, public page: Page, public logger: any = null) {
     if (!this.logger) {
@@ -294,7 +310,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "click",
+        type: Types.CLICK,
         text: `Click element`,
         screenshotId,
         result: error
@@ -344,7 +360,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "select",
+        type: Types.SELECT,
         text: `Select option: ${values}`,
         value: values.toString(),
         screenshotId,
@@ -395,7 +411,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "clickType",
+        type: Types.FILL,
         screenshotId,
         value,
         text: `clickType input with value: ${value}`,
@@ -444,7 +460,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "fill",
+        type: Types.FILL,
         screenshotId,
         value,
         text: `Fill input with value: ${value}`,
@@ -510,7 +526,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "containsPattern",
+        type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         value: pattern,
         text: `Verify element contains pattern: ${pattern}`,
         screenshotId,
@@ -555,7 +571,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "containsText",
+        type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: `Verify element contains text: ${text}`,
         value: text,
         screenshotId,
@@ -613,7 +629,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "verify",
+        type: "verify_element_exists",
         text: "Verify element exists in page",
         screenshotId,
         result: error
@@ -742,7 +758,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "analyzeTable",
+        type: Types.ANALYZE_TABLE,
         text: "Analyze table",
         screenshotId,
         result: error
@@ -798,7 +814,7 @@ class StableBrowser {
       screenshotId = await this._screenShot(options, world);
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "waitForPageLoad",
+        type: Types.GET_PAGE_STATUS,
         text: "Wait for page load",
         screenshotId,
         result: error
