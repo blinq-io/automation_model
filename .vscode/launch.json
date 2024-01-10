@@ -20,7 +20,7 @@
       "request": "launch",
       "name": "debug",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/tests/debug.js",
+      "program": "${workspaceFolder}/tests/debug.test.js",
       // set default directory to the workspace folder
       "cwd": "${workspaceFolder}",
       "stopOnEntry": false,
