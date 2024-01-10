@@ -18,6 +18,7 @@ const elements = {
 const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
+  info = await context.stable.verifyTextExistInPage("github", {});
   info = await context.stable.click(elements.sign_in, { signin: "Sign in" });
   console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
