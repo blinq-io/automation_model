@@ -77,10 +77,10 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, tag1, regex = false, _params: Params) {
+  async _locateElementByText(scope, text1, tag1, regex1 = false, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
-      ([text, tag]) => {
+      ([text, tag, regex]) => {
         function isParent(parent, child) {
           let currentNode = child.parentNode;
           while (currentNode !== null) {
@@ -125,13 +125,22 @@ class StableBrowser {
           elements = elements.concat(shadowElements);
         }
         let randomToken = null;
-
-        text = text.trim();
         const foundElements = [];
-        for (let i = 0; i < elements.length; i++) {
-          const element = elements[i];
-          if (element.innerText && element.innerText.trim() === text) {
-            foundElements.push(element);
+        if (regex) {
+          let regexpSearch = new RegExp(text, "im");
+          for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            if (element.innerText && regexpSearch.test(element.innerText)) {
+              foundElements.push(element);
+            }
+          }
+        } else {
+          text = text.trim();
+          for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            if (element.innerText && element.innerText.trim() === text) {
+              foundElements.push(element);
+            }
           }
         }
         let noChildElements = [];
@@ -164,7 +173,7 @@ class StableBrowser {
         }
         return { elementCount: elementCount, randomToken: randomToken };
       },
-      [text1, tag1]
+      [text1, tag1, regex1]
     );
   }
 
@@ -666,6 +675,52 @@ class StableBrowser {
       this._reportToWorld(world, {
         type: "verify_element_exists",
         text: "Verify element exists in page",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
+  async verifyTextExistInPage(text, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = [];
+    info.operation = "verifyTextExistInPage";
+    info.text = text;
+    try {
+      const result = await this._locateElementByText(this.page, text, "*", true, {});
+
+      screenshotId = await this._screenShot(options, world);
+      // await expect(element).toHaveCount(1, { timeout: 10000 });
+      info.result = result;
+      if (result.elementCount === 0) {
+        throw new Error(`Text ${text} not found in page`);
+      }
+      return info;
+    } catch (e) {
+      this.logger.error("verify text exist in page failed " + JSON.stringify(info));
+      Object.assign(e, { info: info });
+      screenshotId = await this._screenShot(options, world);
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: "verify_text_exist_in_page",
+        text: "Verify text exists in page",
         screenshotId,
         result: error
           ? {

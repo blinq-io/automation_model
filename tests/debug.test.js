@@ -1,6 +1,5 @@
-import { initContext } from "../build/auto_page.js";
-import { closeBrowser } from "../build/init_browser.js";
-import { getTableCells } from "../build/table_analyze.js";
+import { initContext } from "../build/lib/auto_page.js";
+import { closeBrowser } from "../build/lib/init_browser.js";
 
 const name = "login";
 const path = "/";
@@ -27,6 +26,7 @@ const elements = {
 const context = await initContext(path, true, false);
 const login = async function () {
   let info = null;
+  await context.stable.verifyTextExistInPage("github", {});
   await context.stable.goto("https://sandbox-ext-6.glassboxcloud.com:8443/webinterface/webui/#/application-summary");
   await context.stable.fill(elements.textbox_username, "BlinqIO");
   await context.stable.fill(elements.textbox_password, "G11assb0x12!");
