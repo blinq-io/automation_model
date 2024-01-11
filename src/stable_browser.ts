@@ -693,6 +693,7 @@ class StableBrowser {
   }
   async verifyTextExistInPage(text, options = {}, world = null) {
     const startTime = Date.now();
+    const timeout = this._getLoadTimeout(options);
     let error = null;
     let screenshotId = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -701,15 +702,21 @@ class StableBrowser {
     info.operation = "verifyTextExistInPage";
     info.text = text;
     try {
-      const result = await this._locateElementByText(this.page, text, "*", true, {});
-
-      screenshotId = await this._screenShot(options, world);
-      // await expect(element).toHaveCount(1, { timeout: 10000 });
-      info.result = result;
-      if (result.elementCount === 0) {
-        throw new Error(`Text ${text} not found in page`);
+      while (true) {
+        const result = await this._locateElementByText(this.page, text, "*", true, {});
+        info.result = result;
+        if (result.elementCount === 0) {
+          if (Date.now() - startTime > timeout) {
+            throw new Error(`Text ${text} not found in page`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        screenshotId = await this._screenShot(options, world);
+        return info;
       }
-      return info;
+
+      // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       this.logger.error("verify text exist in page failed " + JSON.stringify(info));
       Object.assign(e, { info: info });
@@ -876,11 +883,8 @@ class StableBrowser {
       });
     }
   }
-  async waitForPageLoad(options = {}, world = null) {
+  _getLoadTimeout(options) {
     let timeout = 10000;
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
     if (!configuration) {
       try {
         if (fs.existsSync("ai_config.json")) {
@@ -895,12 +899,20 @@ class StableBrowser {
     if (configuration.page_timeout) {
       timeout = configuration.page_timeout;
     }
-    if (options.page_timeout) {
+    if (options && options.page_timeout) {
       timeout = options.page_timeout;
     }
+    return timeout;
+  }
+  async waitForPageLoad(options = {}, world = null) {
+    let timeout = this._getLoadTimeout(options);
     const waitOptions = {
       timeout: timeout,
     };
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+
     try {
       await Promise.all([
         this.page.waitForLoadState("networkidle", waitOptions),
