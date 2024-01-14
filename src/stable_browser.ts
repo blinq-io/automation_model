@@ -181,7 +181,13 @@ class StableBrowser {
     let locatorSearch = selectorHierarchy[index];
     let locator = null;
     if (locatorSearch.text) {
-      let result = await this._locateElementByText(scope, locatorSearch.text, locatorSearch.tag, false, _params);
+      let result = await this._locateElementByText(
+        scope,
+        this._fixUsingParams(locatorSearch.text, _params),
+        locatorSearch.tag,
+        false,
+        _params
+      );
       if (result.elementCount === 0) {
         return;
       }
@@ -194,14 +200,14 @@ class StableBrowser {
     let count = await locator.count();
     //let visibleCount = 0;
     let visibleLocator = null;
+    if (locatorSearch.index && locatorSearch.index < count) {
+      foundLocators.push(locator.nth(locatorSearch.index));
+      return;
+    }
+
     for (let j = 0; j < count; j++) {
       if ((await locator.nth(j).isVisible()) && (await locator.nth(j).isEnabled())) {
-        //visibleCount++;
-        // if (index === selectorHierarchy.length - 1) {
         foundLocators.push(locator.nth(j));
-        // } else {
-        //   this._collectLocatorInformation(selectorHierarchy, index + 1, locator.nth(j), foundLocators);
-        // }
       }
     }
   }
