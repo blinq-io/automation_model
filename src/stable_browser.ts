@@ -431,6 +431,7 @@ class StableBrowser {
       await element.click({ timeout: 5000 });
       await this.page.keyboard.type(value, { timeout: 10000 });
       if (enter) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
       } else {
@@ -484,6 +485,7 @@ class StableBrowser {
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
       if (enter) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
       }
       await this.waitForPageLoad();
