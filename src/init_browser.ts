@@ -10,11 +10,7 @@ import { Browser } from "./browser_manager.js";
 // let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (
-  environment: Environment | null,
-  headless = false,
-  logger?: null
-) {
+const getContext = async function (environment: Environment | null, headless = false, logger?: null) {
   if (environment === null) {
     environment = initEnvironment();
   }
@@ -35,7 +31,7 @@ const getContext = async function (
   context.page = browser.page;
   context.environment = environment;
 
-  context.stable = new StableBrowser(context.browser!, context.page!, logger);
+  context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
   // await _initCookies(context);
   return context;
 };

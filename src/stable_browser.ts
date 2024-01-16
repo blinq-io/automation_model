@@ -24,10 +24,16 @@ const Types = {
 };
 
 class StableBrowser {
-  constructor(public browser: Browser, public page: Page, public logger: any = null) {
+  constructor(public browser: Browser, public page: Page, public logger: any = null, context: any = null) {
     if (!this.logger) {
       this.logger = console;
     }
+    context.playContext.on("page", async (page) => {
+      this.page = page;
+      context.page = page;
+      await page.waitForLoadState();
+      console.log("Switch page: " + (await page.title()));
+    });
   }
 
   async goto(url: string) {
