@@ -697,6 +697,38 @@ class StableBrowser {
       });
     }
   }
+  async _highlightElements(scope, css) {
+    try {
+      await scope.evaluate(
+        ([css]) => {
+          if (!css) {
+            return;
+          }
+          let elements = Array.from(document.querySelectorAll(css));
+          console.log("found: " + elements.length);
+          for (let i = 0; i < elements.length; i++) {
+            let element = elements[i];
+            if (!element.style) {
+              return;
+            }
+            var originalBorder = element.style.border;
+
+            // Set the new border to be red and 2px solid
+            element.style.border = "2px solid red";
+
+            // Set a timeout to revert to the original border after 2 seconds
+            setTimeout(function () {
+              element.style.border = originalBorder;
+            }, 2000);
+          }
+          return;
+        },
+        [css]
+      );
+    } catch (error) {
+      console.debug(error);
+    }
+  }
   async verifyTextExistInPage(text, options = {}, world = null) {
     const startTime = Date.now();
     const timeout = this._getLoadTimeout(options);
@@ -719,6 +751,9 @@ class StableBrowser {
           continue;
         }
         screenshotId = await this._screenShot(options, world);
+        if (result.randomToken) {
+          await this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
+        }
         return info;
       }
 
