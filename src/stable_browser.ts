@@ -442,6 +442,7 @@ class StableBrowser {
         await this.waitForPageLoad();
       } else {
         await element.dispatchEvent("change");
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
       return info;
     } catch (e) {
