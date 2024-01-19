@@ -64,7 +64,7 @@ class StableBrowser {
     }
     return text;
   }
-  _getLocator(locator, scope, _params: Params, exact: boolean = false) {
+  _getLocator(locator, scope, _params: Params) {
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
@@ -73,9 +73,7 @@ class StableBrowser {
       if (locator.role[1].name) {
         locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
       }
-      if (exact) {
-        locator.role[1].exact = true;
-      }
+
       return scope.getByRole(locator.role[0], locator.role[1]);
     }
     if (locator.css) {
@@ -183,7 +181,7 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, exact = false) {
+  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params) {
     let locatorSearch = selectorHierarchy[index];
     let locator = null;
     if (locatorSearch.text) {
@@ -198,9 +196,9 @@ class StableBrowser {
         return;
       }
       locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
-      locator = this._getLocator(locatorSearch, scope, _params, exact);
+      locator = this._getLocator(locatorSearch, scope, _params);
     } else {
-      locator = this._getLocator(locatorSearch, scope, _params, exact);
+      locator = this._getLocator(locatorSearch, scope, _params);
     }
 
     let count = await locator.count();
@@ -218,7 +216,7 @@ class StableBrowser {
     }
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
-    let locatorsByPriority = [];
+    let highPriorityTimeout = 5000;
     let startTime = performance.now();
     let locatorsCount = 0;
     let arrayMode = Array.isArray(selectors);
@@ -246,31 +244,39 @@ class StableBrowser {
         selectorsLocators.push(selectors[i][0]);
       }
     }
-    let exact = false;
+    // group selectors by priority
+    let locatorsByPriority = { "1": [], "2": [], "3": [] };
+    for (let i = 0; i < selectorsLocators.length; i++) {
+      if (!selectorsLocators[i].priority || selectorsLocators[i].priority === 1) {
+        locatorsByPriority["1"].push(selectorsLocators[i]);
+      } else if (selectorsLocators[i].priority === 2) {
+        locatorsByPriority["2"].push(selectorsLocators[i]);
+      } else if (selectselectorsLocatorsors[i].priority === 3) {
+        locatorsByPriority["3"].push(selectorsLocators[i]);
+      }
+    }
+    for (let i = 0; i < locatorsByPriority["1"].length; i++) {
+      if (locatorsByPriority["1"][i].role && locatorsByPriority["1"][i].role.length === 2) {
+        locatorsByPriority["1"][i].role[1].exact = true;
+        // clone the locator
+        let locator = JSON.parse(JSON.stringify(locatorsByPriority["1"][i]));
+        locator.role[1].exact = false;
+        locatorsByPriority["2"].push(locator);
+      }
+    }
+
+    let highPriorityOnly = true;
     while (true) {
       locatorsCount = 0;
-      let selectorIndex = 0;
-      // check for iframe section
-      const foundElements = [];
-      for (let i = 0; i < selectorsLocators.length; i++) {
-        let foundLocators = [];
-        try {
-          await this._collectLocatorInformation(selectorsLocators, i, scope, foundLocators, _params, exact);
-        } catch (e) {
-          this.logger.info("unable to use locator " + JSON.stringify(selectorsLocators[i]));
-          foundLocators = [];
-          try {
-            await this._collectLocatorInformation(selectorsLocators, i, this.page, foundLocators, _params, exact);
-          } catch (e) {
-            this.logger.info("unable to use locator (second try) " + JSON.stringify(selectorsLocators[i]));
-          }
-        }
-        if (foundLocators.length === 1) {
-          foundElements.push({ locator: foundLocators[0], box: await foundLocators[0].boundingBox(), unique: true });
-        } else if (foundLocators.length > 1) {
-          exact = true;
-        }
+      let result = [];
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params);
+      if (result.foundElements.length === 0) {
+        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params);
       }
+      if (result.foundElements.length === 0 && !highPriorityOnly) {
+        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params);
+      }
+      let foundElements = result.foundElements;
 
       if (foundElements.length === 1 && foundElements[0].unique) {
         info.box = foundElements[0].box;
@@ -308,12 +314,43 @@ class StableBrowser {
       if (performance.now() - startTime > timeout) {
         break;
       }
+      if (performance.now() - startTime > highPriorityTimeout) {
+        highPriorityOnly = false;
+      }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     info.log.push("failed to locate unique element, total elements found " + locatorsCount);
 
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
+  }
+  async _scanLocatorsGroup(locatorsGroup, scope, _params) {
+    let foundElements = [];
+    const result = {
+      foundElements: foundElements,
+    };
+    for (let i = 0; i < locatorsGroup.length; i++) {
+      let foundLocators = [];
+      try {
+        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params);
+      } catch (e) {
+        this.logger.info("unable to use locator " + JSON.stringify(locatorsGroup[i]));
+        foundLocators = [];
+        try {
+          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params);
+        } catch (e) {
+          this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
+        }
+      }
+      if (foundLocators.length === 1) {
+        result.foundElements.push({
+          locator: foundLocators[0],
+          box: await foundLocators[0].boundingBox(),
+          unique: true,
+        });
+      }
+    }
+    return result;
   }
 
   async click(selectors, _params?: Params, options = {}, world = null) {
@@ -330,6 +367,7 @@ class StableBrowser {
 
       screenshotId = await this._screenShot(options, world);
       try {
+        this._highlightElements(element);
         await element.click({ timeout: 5000 });
       } catch (e) {
         info.log.push("click failed, will try force click");
@@ -383,6 +421,7 @@ class StableBrowser {
 
       screenshotId = await this._screenShot(options, world);
       try {
+        this._highlightElements(element);
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
         info.log.push("selectOption failed, will try force");
@@ -434,6 +473,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
       screenshotId = await this._screenShot(options, world);
+      this._highlightElements(element);
       await element.click({ timeout: 5000 });
       await this.page.keyboard.type(value, { timeout: 10000 });
       if (enter) {
@@ -489,6 +529,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
       screenshotId = await this._screenShot(options, world);
+      this._highlightElements(element);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
       if (enter) {
@@ -536,6 +577,7 @@ class StableBrowser {
     let element = await this._locate(selectors, info, _params);
     let screenshotId = await this._screenShot(options, world);
     try {
+      this._highlightElements(element);
       return await element.innerText();
     } catch (e) {
       this.logger.info("no innerText will use textContent");
@@ -676,6 +718,7 @@ class StableBrowser {
     info.selectors = selectors;
     try {
       const element = await this._locate(selectors, info, _params);
+      this._highlightElements(element);
       screenshotId = await this._screenShot(options, world);
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
@@ -706,34 +749,49 @@ class StableBrowser {
       });
     }
   }
-  async _highlightElements(scope, css) {
+  _highlightElements(scope, css) {
     try {
-      await scope.evaluate(
-        ([css]) => {
-          if (!css) {
-            return;
-          }
-          let elements = Array.from(document.querySelectorAll(css));
-          console.log("found: " + elements.length);
-          for (let i = 0; i < elements.length; i++) {
-            let element = elements[i];
-            if (!element.style) {
-              return;
-            }
-            var originalBorder = element.style.border;
-
-            // Set the new border to be red and 2px solid
-            element.style.border = "2px solid red";
-
-            // Set a timeout to revert to the original border after 2 seconds
+      if (!scope) {
+        return;
+      }
+      if (!css) {
+        scope.evaluate((node) => {
+          if (node && node.style) {
+            let originalBorder = node.style.border;
+            node.style.border = "2px solid red";
             setTimeout(function () {
-              element.style.border = originalBorder;
+              node.style.border = originalBorder;
             }, 2000);
           }
-          return;
-        },
-        [css]
-      );
+        });
+      } else {
+        scope.evaluate(
+          ([css]) => {
+            if (!css) {
+              return;
+            }
+            let elements = Array.from(document.querySelectorAll(css));
+            console.log("found: " + elements.length);
+            for (let i = 0; i < elements.length; i++) {
+              let element = elements[i];
+              if (!element.style) {
+                return;
+              }
+              var originalBorder = element.style.border;
+
+              // Set the new border to be red and 2px solid
+              element.style.border = "2px solid red";
+
+              // Set a timeout to revert to the original border after 2 seconds
+              setTimeout(function () {
+                element.style.border = originalBorder;
+              }, 2000);
+            }
+            return;
+          },
+          [css]
+        );
+      }
     } catch (error) {
       console.debug(error);
     }
@@ -761,7 +819,7 @@ class StableBrowser {
         }
         screenshotId = await this._screenShot(options, world);
         if (result.randomToken) {
-          await this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
+          this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
         }
         return info;
       }
