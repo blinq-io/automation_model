@@ -251,7 +251,7 @@ class StableBrowser {
         locatorsByPriority["1"].push(selectorsLocators[i]);
       } else if (selectorsLocators[i].priority === 2) {
         locatorsByPriority["2"].push(selectorsLocators[i]);
-      } else if (selectselectorsLocatorsors[i].priority === 3) {
+      } else if (selectorsLocators[i].priority === 3) {
         locatorsByPriority["3"].push(selectorsLocators[i]);
       }
     }
