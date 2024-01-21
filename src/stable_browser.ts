@@ -81,10 +81,10 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, tag1, regex1 = false, _params: Params) {
+  async _locateElementByText(scope, text1, tag1, regex1 = false, partial, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
-      ([text, tag, regex]) => {
+      ([text, tag, regex, partial]) => {
         function isParent(parent, child) {
           let currentNode = child.parentNode;
           while (currentNode !== null) {
@@ -142,8 +142,14 @@ class StableBrowser {
           text = text.trim();
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
-            if (element.innerText && element.innerText.trim() === text) {
-              foundElements.push(element);
+            if (partial) {
+              if (element.innerText && element.innerText.trim().includes(text)) {
+                foundElements.push(element);
+              }
+            } else {
+              if (element.innerText && element.innerText.trim() === text) {
+                foundElements.push(element);
+              }
             }
           }
         }
@@ -177,7 +183,7 @@ class StableBrowser {
         }
         return { elementCount: elementCount, randomToken: randomToken };
       },
-      [text1, tag1, regex1]
+      [text1, tag1, regex1, partial1]
     );
   }
 
@@ -190,6 +196,7 @@ class StableBrowser {
         this._fixUsingParams(locatorSearch.text, _params),
         locatorSearch.tag,
         false,
+        locatorSearch.partial === true,
         _params
       );
       if (result.elementCount === 0) {
