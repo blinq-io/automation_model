@@ -81,7 +81,7 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
-  async _locateElementByText(scope, text1, tag1, regex1 = false, partial, _params: Params) {
+  async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
       ([text, tag, regex, partial]) => {
