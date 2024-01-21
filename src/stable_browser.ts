@@ -203,6 +203,9 @@ class StableBrowser {
         return;
       }
       locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+      if (locatorSearch.childCss) {
+        locatorSearch.css = locatorSearch.css + " " + locatorSearch.childCss;
+      }
       locator = this._getLocator(locatorSearch, scope, _params);
     } else {
       locator = this._getLocator(locatorSearch, scope, _params);
