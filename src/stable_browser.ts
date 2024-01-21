@@ -759,6 +759,11 @@ class StableBrowser {
           if (node && node.style) {
             let originalBorder = node.style.border;
             node.style.border = "2px solid red";
+            if (window) {
+              window.addEventListener("beforeunload", function (e) {
+                node.style.border = originalBorder;
+              });
+            }
             setTimeout(function () {
               node.style.border = originalBorder;
             }, 2000);
@@ -781,7 +786,11 @@ class StableBrowser {
 
               // Set the new border to be red and 2px solid
               element.style.border = "2px solid red";
-
+              if (window) {
+                window.addEventListener("beforeunload", function (e) {
+                  element.style.border = originalBorder;
+                });
+              }
               // Set a timeout to revert to the original border after 2 seconds
               setTimeout(function () {
                 element.style.border = originalBorder;
