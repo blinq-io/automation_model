@@ -3,7 +3,7 @@ import { getContext } from "./init_browser.js";
 import fs from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
-let context:TestContext|null = null;
+let context: TestContext | null = null;
 const navigate = async (path = "") => {
   let url = null;
   if (path === null) {
@@ -14,7 +14,7 @@ const navigate = async (path = "") => {
   await context!.stable!.goto(url);
   await context!.stable!.waitForPageLoad();
 };
-const _findEmptyFolder = (folder?:string) => {
+const _findEmptyFolder = (folder?: string) => {
   if (!folder) {
     folder = "./runs";
   }
@@ -27,7 +27,7 @@ const _findEmptyFolder = (folder?:string) => {
   }
   return path.join(folder, nextIndex.toString());
 };
-const initContext = async (path:string, doNavigate = true, headless = false, world:any = null) => {
+const initContext = async (path: string, doNavigate = true, headless = false, world: any = null) => {
   if (context) {
     return context;
   }
@@ -50,8 +50,13 @@ const initContext = async (path:string, doNavigate = true, headless = false, wor
   return context;
 };
 const closeContext = async () => {
-  if (context && context.browser) {
-    await browserManager.closeBrowser(context.browser);
+  try {
+    if (context && context.browser) {
+      await browserManager.closeBrowser(context.browser);
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    // ignore
   }
   context = null;
 };
