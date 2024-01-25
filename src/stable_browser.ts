@@ -741,7 +741,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "verify_element_exists",
+        type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: "Verify element exists in page",
         screenshotId,
         result: error
@@ -853,7 +853,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: "verify_text_exist_in_page",
+        type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: "Verify text exists in page",
         screenshotId,
         result: error
