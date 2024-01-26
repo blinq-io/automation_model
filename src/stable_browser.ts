@@ -727,12 +727,11 @@ class StableBrowser {
       await this.page.screenshot({ path: screenshotPath });
       result.screenshotId = nextIndex;
       result.screenshotPath = screenshotPath;
-      return result;
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       await this.page.screenshot({ path: options.screenshotPath });
-      return result;
     }
+    return result;
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
