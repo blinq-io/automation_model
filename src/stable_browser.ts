@@ -372,10 +372,11 @@ class StableBrowser {
     info.selectors = selectors;
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     try {
       let element = await this._locate(selectors, info, _params);
 
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       try {
         this._highlightElements(element);
         await element.click({ timeout: 5000 });
@@ -387,8 +388,9 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("click failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -421,6 +423,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     const info = {};
     info.log = [];
     info.operation = "selectOptions";
@@ -429,7 +432,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
 
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       try {
         this._highlightElements(element);
         await element.selectOption(values, { timeout: 5000 });
@@ -441,8 +444,9 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("selectOption failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       this.logger.info("click failed, will try next selector");
       error = e;
       throw e;
@@ -474,6 +478,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
 
     const info = {};
     info.log = [];
@@ -482,7 +487,7 @@ class StableBrowser {
     info.value = value;
     try {
       let element = await this._locate(selectors, info, _params);
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       this._highlightElements(element);
       await element.click({ timeout: 5000 });
       await this.page.keyboard.type(value, { timeout: 10000 });
@@ -497,8 +502,9 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -530,7 +536,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
-
+    let screenshotPath = null;
     const info = {};
     info.log = [];
     info.operation = "fill";
@@ -538,7 +544,7 @@ class StableBrowser {
     info.value = value;
     try {
       let element = await this._locate(selectors, info, _params);
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       this._highlightElements(element);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
@@ -550,8 +556,9 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("fill failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -579,13 +586,15 @@ class StableBrowser {
 
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
     this._validateSelectors(selectors);
+    let screenshotId = null;
+    let screenshotPath = null;
     if (!info.log) {
       info.log = [];
     }
     info.operation = "getText";
     info.selectors = selectors;
     let element = await this._locate(selectors, info, _params);
-    let screenshotId = await this._screenShot(options, world);
+    ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
     try {
       this._highlightElements(element);
       return await element.innerText();
@@ -605,6 +614,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     const info = {};
     info.log = [];
     info.operation = "containsPattern";
@@ -625,8 +635,9 @@ class StableBrowser {
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -660,6 +671,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     const info = {};
     info.log = [];
     info.operation = "containsText";
@@ -674,8 +686,9 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -701,6 +714,7 @@ class StableBrowser {
     }
   }
   async _screenShot(options = {}, world = null) {
+    let result = {};
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
@@ -711,9 +725,13 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       await this.page.screenshot({ path: screenshotPath });
-      return nextIndex;
+      result.screenshotId = nextIndex;
+      result.screenshotPath = screenshotPath;
+      return result;
     } else if (options && options.screenshot) {
+      result.screenshotPath = options.screenshotPath;
       await this.page.screenshot({ path: options.screenshotPath });
+      return result;
     }
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
@@ -721,6 +739,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
@@ -729,13 +748,14 @@ class StableBrowser {
     try {
       const element = await this._locate(selectors, info, _params);
       this._highlightElements(element);
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
     } catch (e) {
       this.logger.error("verify failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -820,6 +840,7 @@ class StableBrowser {
     const timeout = this._getLoadTimeout(options);
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
     info.log = [];
@@ -836,7 +857,7 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        screenshotId = await this._screenShot(options, world);
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
         if (result.randomToken) {
           this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
         }
@@ -846,8 +867,9 @@ class StableBrowser {
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       this.logger.error("verify text exist in page failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -885,6 +907,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
     const info = {};
     info.log = [];
     info.operation = "analyzeTable";
@@ -896,7 +919,7 @@ class StableBrowser {
     info.value = value;
     try {
       let table = await this._locate(selectors, info, _params);
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const cells = await getTableCells(this.page, table, query, info);
 
       if (cells && cells.error) {
@@ -985,8 +1008,9 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("analyzeTable failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
-      screenshotId = await this._screenShot(options, world);
       error = e;
       throw e;
     } finally {
@@ -1039,6 +1063,7 @@ class StableBrowser {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
+    let screenshotPath = null;
 
     try {
       await Promise.all([
@@ -1050,7 +1075,7 @@ class StableBrowser {
       console.log("waitForPageLoad error, ignored");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      screenshotId = await this._screenShot(options, world);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
