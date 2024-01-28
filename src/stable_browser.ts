@@ -231,9 +231,22 @@ class StableBrowser {
     let locatorsCount = 0;
     let arrayMode = Array.isArray(selectors);
     let scope = this.page;
-    if (!arrayMode && selectors.iframe_src) {
+    if (!arrayMode && (selectors.iframe_src || selectors.frameLocators)) {
       while (true) {
-        scope = this.page.frame({ url: selectors.iframe_src });
+        let frameFound = false;
+        if (selectors.frameLocators) {
+          for (let i = 0; i < selectors.frameLocators.length; i++) {
+            let frameLocator = selectors.frameLocators[i];
+            if (frameLocator.css) {
+              scope = scope.frameLocator(frameLocator.css);
+              frameFound = true;
+              break;
+            }
+          }
+        }
+        if (!frameFound && selectors.iframe_src) {
+          scope = this.page.frame({ url: selectors.iframe_src });
+        }
         if (!scope) {
           info.log.push("unable to locate iframe " + selectors.iframe_src);
           if (performance.now() - startTime > timeout) {
