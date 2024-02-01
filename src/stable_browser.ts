@@ -391,7 +391,7 @@ class StableBrowser {
 
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       try {
-        this._highlightElements(element);
+        await this._highlightElements(element);
         await element.click({ timeout: 5000 });
       } catch (e) {
         info.log.push("click failed, will try force click");
@@ -447,7 +447,7 @@ class StableBrowser {
 
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       try {
-        this._highlightElements(element);
+        await this._highlightElements(element);
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
         info.log.push("selectOption failed, will try force");
@@ -501,7 +501,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
-      this._highlightElements(element);
+      await this._highlightElements(element);
       await element.click({ timeout: 5000 });
       await this.page.keyboard.type(value, { timeout: 10000 });
       if (enter) {
@@ -558,7 +558,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
-      this._highlightElements(element);
+      await this._highlightElements(element);
       await element.fill(value, { timeout: 10000 });
       await element.dispatchEvent("change");
       if (enter) {
@@ -609,7 +609,7 @@ class StableBrowser {
     let element = await this._locate(selectors, info, _params);
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
     try {
-      this._highlightElements(element);
+      await this._highlightElements(element);
       return await element.innerText();
     } catch (e) {
       this.logger.info("no innerText will use textContent");
@@ -759,7 +759,7 @@ class StableBrowser {
     info.selectors = selectors;
     try {
       const element = await this._locate(selectors, info, _params);
-      this._highlightElements(element);
+      await this._highlightElements(element);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
@@ -791,13 +791,13 @@ class StableBrowser {
       });
     }
   }
-  _highlightElements(scope, css) {
+  async _highlightElements(scope, css) {
     try {
       if (!scope) {
         return;
       }
       if (!css) {
-        scope.evaluate((node) => {
+        await scope.evaluate((node) => {
           if (node && node.style) {
             let originalBorder = node.style.border;
             node.style.border = "2px solid red";
@@ -812,7 +812,7 @@ class StableBrowser {
           }
         });
       } else {
-        scope.evaluate(
+        await scope.evaluate(
           ([css]) => {
             if (!css) {
               return;
@@ -871,7 +871,7 @@ class StableBrowser {
         }
         ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
         if (result.randomToken) {
-          this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
+          await this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
         }
         return info;
       }
@@ -1084,7 +1084,7 @@ class StableBrowser {
         this.page.waitForLoadState("domcontentloaded", waitOptions),
       ]);
     } catch (e) {
-      console.log("waitForPageLoad error, ignored");
+      console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
