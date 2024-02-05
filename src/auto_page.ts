@@ -31,9 +31,12 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
   if (context) {
     return context;
   }
+  if (world && world.context) {
+    return world.context;
+  }
   context = await getContext(null, headless);
-
   if (world) {
+    world.context = context;
     world.screenshot = true;
     const reportFolder = _findEmptyFolder();
     if (world.attach) {
