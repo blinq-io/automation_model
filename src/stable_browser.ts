@@ -1108,6 +1108,39 @@ class StableBrowser {
       });
     }
   }
+  async reloadPage(options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+
+    try {
+      await this.page.reload();
+    } catch (e) {
+      console.log(".");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.GET_PAGE_STATUS,
+        text: "page relaod",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
   _reportToWorld(world, properties: JsonCommandReport) {
     if (!world || !world.attach) {
       return;

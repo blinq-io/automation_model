@@ -26,6 +26,7 @@ const elements = {
 const context = await initContext(path, true, false);
 const login = async function () {
   let info = null;
+  await context.stable.reloadPage();
   await context.stable.verifyTextExistInPage("github", {});
   await context.stable.goto("https://sandbox-ext-6.glassboxcloud.com:8443/webinterface/webui/#/application-summary");
   await context.stable.fill(elements.textbox_username, "BlinqIO");
