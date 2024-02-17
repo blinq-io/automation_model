@@ -81,6 +81,20 @@ class StableBrowser {
     }
     throw new Error("unknown locator type");
   }
+  async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
+    let result = await this._locateElementByText(scope, this._fixUsingParams(text, _params), "*", false, true, _params);
+    if (result.elementCount === 0) {
+      return;
+    }
+    let textElementCss = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+    // css climb to parent element
+    const climbArray = [];
+    for (let i = 0; i < climb; i++) {
+      climbArray.push("..");
+    }
+    let climbXpath = "xpath=" + climbArray.join("/");
+    return textElementCss + " >> " + climbXpath + " >> " + css;
+  }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.evaluate(
@@ -190,7 +204,16 @@ class StableBrowser {
   async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params) {
     let locatorSearch = selectorHierarchy[index];
     let locator = null;
-    if (locatorSearch.text) {
+    if (locatorSearch.climb && locatorSearch.climb >= 0) {
+      let locatorString = await this._locateElmentByTextClimbCss(
+        scope,
+        locatorSearch.text,
+        locatorSearch.climb,
+        locatorSearch.css,
+        _params
+      );
+      locator = this._getLocator({ css: locatorString }, scope, _params);
+    } else if (locatorSearch.text) {
       let result = await this._locateElementByText(
         scope,
         this._fixUsingParams(locatorSearch.text, _params),
