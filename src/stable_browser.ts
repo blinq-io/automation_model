@@ -409,6 +409,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.CLICK,
         text: `Click element`,
         screenshotId,
@@ -466,6 +467,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.SELECT,
         text: `Select option: ${values}`,
         value: values.toString(),
@@ -523,6 +525,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.FILL,
         screenshotId,
         value,
@@ -577,6 +580,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.FILL,
         screenshotId,
         value,
@@ -656,6 +660,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         value: pattern,
         text: `Verify element contains pattern: ${pattern}`,
@@ -707,6 +712,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: `Verify element contains text: ${text}`,
         value: text,
@@ -773,6 +779,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: "Verify element exists in page",
         screenshotId,
@@ -1028,6 +1035,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
+        element_name:selectors.element_name,
         type: Types.ANALYZE_TABLE,
         text: "Analyze table",
         screenshotId,
