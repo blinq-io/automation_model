@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
+import { closeUnexpectedPopups } from "./popups.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -35,7 +36,9 @@ class StableBrowser {
       console.log("Switch page: " + (await page.title()));
     });
   }
-
+  async closeUnexpectedPopups() {
+    await closeUnexpectedPopups(this.page);
+  }
   async goto(url: string) {
     await this.page.goto(url, {
       timeout: 60000,
@@ -417,6 +420,7 @@ class StableBrowser {
         await this._highlightElements(element);
         await element.click({ timeout: 5000 });
       } catch (e) {
+        await this.closeUnexpectedPopups();
         info.log.push("click failed, will try force click");
         await element.click({ timeout: 10000, force: true });
       }
@@ -474,6 +478,7 @@ class StableBrowser {
         await this._highlightElements(element);
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
+        await this.closeUnexpectedPopups();
         info.log.push("selectOption failed, will try force");
         await element.selectOption(values, { timeout: 10000, force: true });
       }
@@ -539,6 +544,7 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.error("fill failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
@@ -594,6 +600,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.error("fill failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
@@ -639,6 +646,7 @@ class StableBrowser {
       await this._highlightElements(element);
       return await element.innerText();
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
       return await element.textContent();
     }
@@ -673,6 +681,7 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       this.logger.error("found text " + foundText + " pattern " + pattern);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
@@ -726,6 +735,7 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
@@ -793,6 +803,7 @@ class StableBrowser {
       await expect(element).toHaveCount(1, { timeout: 10000 });
       return info;
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.error("verify failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
@@ -908,6 +919,7 @@ class StableBrowser {
 
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
+      await this.closeUnexpectedPopups();
       this.logger.error("verify text exist in page failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
