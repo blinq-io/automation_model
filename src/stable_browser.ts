@@ -32,8 +32,13 @@ class StableBrowser {
     context.playContext.on("page", async (page) => {
       this.page = page;
       context.page = page;
-      await page.waitForLoadState();
-      console.log("Switch page: " + (await page.title()));
+
+      try {
+        await page.waitForLoadState();
+        console.log("Switch page: " + (await page.title()));
+      } catch (e) {
+        this.logger.error("error on page load " + e);
+      }
     });
   }
   async closeUnexpectedPopups() {
@@ -436,7 +441,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.CLICK,
         text: `Click element`,
         screenshotId,
@@ -495,7 +500,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.SELECT,
         text: `Select option: ${values}`,
         value: values.toString(),
@@ -554,7 +559,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.FILL,
         screenshotId,
         value,
@@ -610,7 +615,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.FILL,
         screenshotId,
         value,
@@ -630,8 +635,10 @@ class StableBrowser {
       });
     }
   }
-
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
+    return await this._getText(selectors, 0, _params, options, info, world);
+  }
+  async _getText(selectors, climb, _params = null, options = {}, info = {}, world = null) {
     this._validateSelectors(selectors);
     let screenshotId = null;
     let screenshotPath = null;
@@ -641,6 +648,14 @@ class StableBrowser {
     info.operation = "getText";
     info.selectors = selectors;
     let element = await this._locate(selectors, info, _params);
+    if (climb > 0) {
+      const climbArray = [];
+      for (let i = 0; i < climb; i++) {
+        climbArray.push("..");
+      }
+      let climbXpath = "xpath=" + climbArray.join("/");
+      element = element.locator(climbXpath);
+    }
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
     try {
       await this._highlightElements(element);
@@ -671,7 +686,7 @@ class StableBrowser {
     info.pattern = pattern;
     let foundText = null;
     try {
-      foundText = await this.getText(selectors, _params, options, info, world);
+      foundText = await this._getText(selectors, 0, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -692,7 +707,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         value: pattern,
         text: `Verify element contains pattern: ${pattern}`,
@@ -713,7 +728,7 @@ class StableBrowser {
     }
   }
 
-  async containsText(selectors, text, _params = null, options = {}, world = null) {
+  async containsText(selectors, text, climb, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     if (!text) {
       throw new Error("text is null");
@@ -728,7 +743,7 @@ class StableBrowser {
     info.selectors = selectors;
     info.value = text;
     try {
-      let foundText = await this.getText(selectors, _params, options, info, world);
+      let foundText = await this._getText(selectors, climb, _params, options, info, world);
       if (!foundText.includes(text)) {
         info.foundText = foundText;
         throw new Error("element doesn't contain text " + text);
@@ -745,7 +760,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: `Verify element contains text: ${text}`,
         value: text,
@@ -813,7 +828,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: "Verify element exists in page",
         screenshotId,
@@ -1070,7 +1085,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name:selectors.element_name,
+        element_name: selectors.element_name,
         type: Types.ANALYZE_TABLE,
         text: "Analyze table",
         screenshotId,
