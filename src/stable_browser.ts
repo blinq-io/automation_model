@@ -29,7 +29,9 @@ class StableBrowser {
     if (!this.logger) {
       this.logger = console;
     }
+    context.pageLoading = false;
     context.playContext.on("page", async (page) => {
+      context.pageLoading = true;
       this.page = page;
       context.page = page;
 
@@ -39,6 +41,7 @@ class StableBrowser {
       } catch (e) {
         this.logger.error("error on page load " + e);
       }
+      context.pageLoading = false;
     });
   }
   async closeUnexpectedPopups() {
