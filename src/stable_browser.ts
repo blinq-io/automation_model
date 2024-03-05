@@ -31,7 +31,7 @@ class StableBrowser {
     }
     context.pageLoading = false;
     context.playContext.on("page", async (page) => {
-      context.pageLoading = true;
+      context.pageLoading.status = true;
       this.page = page;
       context.page = page;
 
@@ -41,7 +41,7 @@ class StableBrowser {
       } catch (e) {
         this.logger.error("error on page load " + e);
       }
-      context.pageLoading = false;
+      context.pageLoading.status = false;
     });
   }
   async closeUnexpectedPopups() {
