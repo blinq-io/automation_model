@@ -34,7 +34,7 @@ class StableBrowser {
       context.page = page;
 
       try {
-        await page.waitForLoadState();
+        await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
       } catch (e) {
         this.logger.error("error on page load " + e);
