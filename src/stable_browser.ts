@@ -142,7 +142,7 @@ class StableBrowser {
         let shadowHosts = [];
         document.collectAllShadowDomElements(document, shadowHosts);
         for (let i = 0; i < shadowHosts.length; i++) {
-          let shadowElement = shadowHosts[i].shadowElement;
+          let shadowElement = shadowHosts[i].shadowRoot;
           if (!shadowElement) {
             console.log("shadowElement is null, for host " + shadowHosts[i]);
             continue;
