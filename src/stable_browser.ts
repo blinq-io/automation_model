@@ -22,6 +22,7 @@ const Types = {
   VERIFY_ELEMENT_CONTAINS_TEXT: "verify_element_contains_text",
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
+  VERIFY_PAGE_PATH: "verify_page_path",
 };
 
 class StableBrowser {
@@ -904,6 +905,58 @@ class StableBrowser {
       }
     } catch (error) {
       console.debug(error);
+    }
+  }
+  async verifyPagePath(pathPart, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = [];
+    info.operation = "verifyPagePath";
+    info.pathPart = pathPart;
+    try {
+      for (let i = 0; i < 30; i++) {
+        const url = await this.page.url();
+        if (!url.includes(pathPart)) {
+          if (i === 29) {
+            throw new Error(`url ${url} doesn't contain ${pathPart}`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+        return info;
+      }
+    } catch (e) {
+      await this.closeUnexpectedPopups();
+      this.logger.error("verify page path failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.VERIFY_PAGE_PATH,
+        text: "Verify page path",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
     }
   }
   async verifyTextExistInPage(text, options = {}, world = null) {
