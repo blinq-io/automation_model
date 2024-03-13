@@ -19,8 +19,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "playwright": "^1.39.0",
     "@playwright/test": "^1.40.0",
+    "playwright": "^1.39.0",
+    "pureimage": "^0.4.13",
     "regex-parser": "^2.2.11"
   },
   "devDependencies": {
