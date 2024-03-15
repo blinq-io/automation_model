@@ -543,6 +543,14 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       //insert red border around the element
       await this._highlightElements(element);
+      try {
+        let currentValue = await element.inputValue();
+        if (currentValue) {
+          await element.fill("");
+        }
+      } catch (e) {
+        this.logger.error("unable to clear input value");
+      }
       await element.pressSequentially(value, { delay: 50 });
       if (enter) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
