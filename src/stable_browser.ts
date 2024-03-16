@@ -525,7 +525,61 @@ class StableBrowser {
       });
     }
   }
+  async type(value, _params = null, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
 
+    const info = {};
+    info.log = [];
+    info.operation = "type";
+    info.value = value;
+    try {
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      let keyEvent = false;
+      KEYBOARD_EVENTS.forEach((event) => {
+        if (value === event || value.startsWith(event + "+")) {
+          keyEvent = true;
+        }
+      });
+      if (keyEvent) {
+        await this.page.keyboard.press(value);
+      } else {
+        await this.page.keyboard.type(value);
+      }
+      return info;
+    } catch (e) {
+      await this.closeUnexpectedPopups();
+      this.logger.error("type failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.FILL,
+        screenshotId,
+        value,
+        text: `type value: ${value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
   async clickType(selectors, value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
@@ -557,16 +611,7 @@ class StableBrowser {
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
       }
-      // await element.click({ timeout: 5000 });
-      // await this.page.keyboard.type(value, { timeout: 10000 });
-      // if (enter) {
-      //   await new Promise((resolve) => setTimeout(resolve, 2000));
-      //   await this.page.keyboard.press("Enter");
-      //   await this.waitForPageLoad();
-      // } else {
-      //   await element.dispatchEvent("change");
-      //   await new Promise((resolve) => setTimeout(resolve, 500));
-      // }
+
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
@@ -1306,4 +1351,150 @@ type JsonCommandReport = {
   screenshotId?: string;
   result: JsonCommandResult;
 };
+const KEYBOARD_EVENTS = [
+  "ALT",
+  "AltGraph",
+  "CapsLock",
+  "Control",
+  "Fn",
+  "FnLock",
+  "Hyper",
+  "Meta",
+  "NumLock",
+  "ScrollLock",
+  "Shift",
+  "Super",
+  "Symbol",
+  "SymbolLock",
+  "Enter",
+  "Tab",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+  "Backspace",
+  "Clear",
+  "Copy",
+  "CrSel",
+  "Cut",
+  "Delete",
+  "EraseEof",
+  "ExSel",
+  "Insert",
+  "Paste",
+  "Redo",
+  "Undo",
+  "Accept",
+  "Again",
+  "Attn",
+  "Cancel",
+  "ContextMenu",
+  "Escape",
+  "Execute",
+  "Find",
+  "Finish",
+  "Help",
+  "Pause",
+  "Play",
+  "Props",
+  "Select",
+  "ZoomIn",
+  "ZoomOut",
+  "BrightnessDown",
+  "BrightnessUp",
+  "Eject",
+  "LogOff",
+  "Power",
+  "PowerOff",
+  "PrintScreen",
+  "Hibernate",
+  "Standby",
+  "WakeUp",
+  "AllCandidates",
+  "Alphanumeric",
+  "CodeInput",
+  "Compose",
+  "Convert",
+  "Dead",
+  "FinalMode",
+  "GroupFirst",
+  "GroupLast",
+  "GroupNext",
+  "GroupPrevious",
+  "ModeChange",
+  "NextCandidate",
+  "NonConvert",
+  "PreviousCandidate",
+  "Process",
+  "SingleCandidate",
+  "HangulMode",
+  "HanjaMode",
+  "JunjaMode",
+  "Eisu",
+  "Hankaku",
+  "Hiragana",
+  "HiraganaKatakana",
+  "KanaMode",
+  "KanjiMode",
+  "Katakana",
+  "Romaji",
+  "Zenkaku",
+  "ZenkakuHanaku",
+  "F1",
+  "F2",
+  "F3",
+  "F4",
+  "F5",
+  "F6",
+  "F7",
+  "F8",
+  "F9",
+  "F10",
+  "F11",
+  "F12",
+  "Soft1",
+  "Soft2",
+  "Soft3",
+  "Soft4",
+  "ChannelDown",
+  "ChannelUp",
+  "Close",
+  "MailForward",
+  "MailReply",
+  "MailSend",
+  "MediaFastForward",
+  "MediaPause",
+  "MediaPlay",
+  "MediaPlayPause",
+  "MediaRecord",
+  "MediaRewind",
+  "MediaStop",
+  "MediaTrackNext",
+  "MediaTrackPrevious",
+  "AudioBalanceLeft",
+  "AudioBalanceRight",
+  "AudioBassBoostDown",
+  "AudioBassBoostToggle",
+  "AudioBassBoostUp",
+  "AudioFaderFront",
+  "AudioFaderRear",
+  "AudioSurroundModeNext",
+  "AudioTrebleDown",
+  "AudioTrebleUp",
+  "AudioVolumeDown",
+  "AudioVolumeMute",
+  "AudioVolumeUp",
+  "MicrophoneToggle",
+  "MicrophoneVolumeDown",
+  "MicrophoneVolumeMute",
+  "MicrophoneVolumeUp",
+  "TV",
+  "TV3DMode",
+  "TVAntennaCable",
+  "TVAudioDescription",
+];
 export { StableBrowser };
