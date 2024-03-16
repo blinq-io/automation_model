@@ -534,6 +534,7 @@ class StableBrowser {
     const info = {};
     info.log = [];
     info.operation = "type";
+    value = this._fixUsingParams(value, _params);
     info.value = value;
     try {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
