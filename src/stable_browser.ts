@@ -24,6 +24,7 @@ const Types = {
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
+  TYPE_PRESS: "type_press",
 };
 
 class StableBrowser {
@@ -561,8 +562,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.FILL,
+        type: Types.TYPE_PRESS,
         screenshotId,
         value,
         text: `type value: ${value}`,
