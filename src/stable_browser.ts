@@ -606,11 +606,15 @@ class StableBrowser {
       } catch (e) {
         this.logger.error("unable to clear input value");
       }
-      await element.pressSequentially(value, { delay: 50 });
+      await element.click();
+      await this.page.keyboard.type(value);
       if (enter) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
+      } else {
+        await element.dispatchEvent("change");
+        //await this.page.keyboard.press("Tab");
       }
 
       return info;
