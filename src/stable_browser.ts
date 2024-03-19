@@ -729,11 +729,13 @@ class StableBrowser {
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
       await this._highlightElements(element);
-      return await element.innerText();
+      const elementText = await element.innerText();
+      return {text: elementText, screenshotId, screenshotPath};
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
-      return await element.textContent();
+      const elementText = await element.textContent();
+      return {text: elementText, screenshotId, screenshotPath};
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
@@ -754,21 +756,21 @@ class StableBrowser {
     info.selectors = selectors;
     info.value = text;
     info.pattern = pattern;
-    let foundText = null;
+    let foundObj = null;
     try {
-      foundText = await this._getText(selectors, 0, _params, options, info, world);
+      foundObj = await this._getText(selectors, 0, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
-      if (!regex.test(foundText)) {
-        info.foundText = foundText;
+      if (!regex.test(foundObj?.text)) {
+        info.foundText = foundObj?.text;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.error("verify element contains text failed " + JSON.stringify(info));
-      this.logger.error("found text " + foundText + " pattern " + pattern);
+      this.logger.error("found text " + foundObj?.text + " pattern " + pattern);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -781,7 +783,7 @@ class StableBrowser {
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         value: pattern,
         text: `Verify element contains pattern: ${pattern}`,
-        screenshotId,
+        screenshotId: foundObj?.screenshotId,
         result: error
           ? {
               status: "FAILED",
@@ -812,10 +814,11 @@ class StableBrowser {
     info.operation = "containsText";
     info.selectors = selectors;
     info.value = text;
+    let foundObj = null;
     try {
-      let foundText = await this._getText(selectors, climb, _params, options, info, world);
-      if (!foundText.includes(text)) {
-        info.foundText = foundText;
+      foundObj = await this._getText(selectors, climb, _params, options, info, world);
+      if (!foundObj?.text.includes(text)) {
+        info.foundText = foundObj?.text;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
@@ -834,7 +837,7 @@ class StableBrowser {
         type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
         text: `Verify element contains text: ${text}`,
         value: text,
-        screenshotId,
+        screenshotId: foundObj?.screenshotId,
         result: error
           ? {
               status: "FAILED",
