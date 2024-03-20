@@ -1047,17 +1047,28 @@ class StableBrowser {
     info.text = text;
     try {
       while (true) {
-        const result = await this._locateElementByText(this.page, text, "*", true, {});
-        info.result = result;
-        if (result.elementCount === 0) {
+        const frames = this.page.frames();
+        let results = [];
+        for (let i = 0; i < frames.length; i++) {
+          const result = await this._locateElementByText(frames[i], text, "*", true, {});
+          result.frame = frames[i];
+          results.push(result);
+        }
+        info.results = results;
+        const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
+
+        if (resultWithElementsFound.length === 0) {
           if (Date.now() - startTime > timeout) {
             throw new Error(`Text ${text} not found in page`);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        if (result.randomToken) {
-          await this._highlightElements(this.page, `[data-blinq-id="blinq-id-${result.randomToken}"]`);
+        if (resultWithElementsFound[0].randomToken) {
+          await this._highlightElements(
+            resultWithElementsFound[0].frame,
+            `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`
+          );
         }
         ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
