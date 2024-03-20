@@ -394,7 +394,7 @@ class StableBrowser {
       try {
         await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params);
       } catch (e) {
-        this.logger.info("unable to use locator " + JSON.stringify(locatorsGroup[i]));
+        this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         foundLocators = [];
         try {
           await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params);
@@ -730,12 +730,14 @@ class StableBrowser {
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      return {text: elementText, screenshotId, screenshotPath};
+      //return {text: elementText, screenshotId, screenshotPath};
+      return elementText;
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
       const elementText = await element.textContent();
-      return {text: elementText, screenshotId, screenshotPath};
+      //return { text: elementText, screenshotId, screenshotPath };
+      return elementText;
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
