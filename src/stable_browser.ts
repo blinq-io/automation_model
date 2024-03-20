@@ -730,14 +730,12 @@ class StableBrowser {
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      //return {text: elementText, screenshotId, screenshotPath};
-      return elementText;
+      return { text: elementText, screenshotId, screenshotPath };
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
       const elementText = await element.textContent();
-      //return { text: elementText, screenshotId, screenshotPath };
-      return elementText;
+      return { text: elementText, screenshotId, screenshotPath };
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
