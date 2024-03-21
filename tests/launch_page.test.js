@@ -10,7 +10,9 @@ const elements = {
   username: {
     locators: [{ css: 'input[name="login"]' }],
   },
-
+  password: {
+    locators: [{ css: 'input[name="password"]' }],
+  },
   loginButton: {
     locators: [{ role: ["button", { name: "Sign in" }] }],
   },
@@ -23,6 +25,8 @@ const login = async function () {
   console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
   console.log("info fill username", JSON.stringify(info, null, 2));
+  info = await context.stable.fill(elements.password, "guy");
+  console.log("info fill password", JSON.stringify(info, null, 2));
   info = await context.stable.click(elements.loginButton);
   console.log("info click login", JSON.stringify(info, null, 2));
   info = await context.stable.verifyElementExistInPage({
