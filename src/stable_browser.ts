@@ -619,13 +619,16 @@ class StableBrowser {
         await this.page.keyboard.type(value);
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-      if (enter) {
+      if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
-      } else {
+      } else if (enter === false) {
         await element.dispatchEvent("change");
         //await this.page.keyboard.press("Tab");
+      } else {
+        await this.page.keyboard.type(enter);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
 
       return info;
