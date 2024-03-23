@@ -429,7 +429,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 10000 });
+        await element.click({ timeout: 30000 });
       } catch (e) {
         await this.closeUnexpectedPopups();
         info.log.push("click failed, will try force click");
@@ -627,8 +627,10 @@ class StableBrowser {
         await element.dispatchEvent("change");
         //await this.page.keyboard.press("Tab");
       } else {
-        await this.page.keyboard.press(enter);
-        await this.waitForPageLoad();
+        if (enter !== "" && enter !== null && enter !== undefined) {
+          await this.page.keyboard.press(enter);
+          await this.waitForPageLoad();
+        }
       }
 
       return info;
