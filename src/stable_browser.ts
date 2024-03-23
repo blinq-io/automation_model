@@ -627,8 +627,8 @@ class StableBrowser {
         await element.dispatchEvent("change");
         //await this.page.keyboard.press("Tab");
       } else {
-        await this.page.keyboard.type(enter);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await this.page.keyboard.press(enter);
+        await this.waitForPageLoad();
       }
 
       return info;
