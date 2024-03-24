@@ -607,6 +607,7 @@ class StableBrowser {
         this.logger.error("unable to clear input value");
       }
       await element.click();
+      await new Promise((resolve) => setTimeout(resolve, 500));
       let keyEvent = false;
       KEYBOARD_EVENTS.forEach((event) => {
         if (value === event || value.startsWith(event + "+")) {
