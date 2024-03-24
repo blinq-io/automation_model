@@ -429,11 +429,12 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 30000 });
+        await element.click({ timeout: 10000 });
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("click failed, will try force click");
-        await element.click({ timeout: 10000, force: true });
+        info.log.push("click failed, will try again");
+        element = await this._locate(selectors, info, _params);
+        await element.click({ timeout: 10000 });
       }
       await this.waitForPageLoad();
       return info;
