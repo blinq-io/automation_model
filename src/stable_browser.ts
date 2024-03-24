@@ -430,11 +430,13 @@ class StableBrowser {
       try {
         await this._highlightElements(element);
         await element.click({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
         info.log.push("click failed, will try again");
         element = await this._locate(selectors, info, _params);
         await element.click({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
       return info;
