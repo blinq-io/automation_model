@@ -429,11 +429,14 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 5000 });
+        await element.click({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("click failed, will try force click");
-        await element.click({ timeout: 10000, force: true });
+        info.log.push("click failed, will try again");
+        element = await this._locate(selectors, info, _params);
+        await element.click({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
       return info;
@@ -607,14 +610,31 @@ class StableBrowser {
         this.logger.error("unable to clear input value");
       }
       await element.click();
-      await this.page.keyboard.type(value);
-      if (enter) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      let keyEvent = false;
+      KEYBOARD_EVENTS.forEach((event) => {
+        if (value === event || value.startsWith(event + "+")) {
+          keyEvent = true;
+        }
+      });
+      if (keyEvent) {
+        await this.page.keyboard.press(value);
+      } else {
+        await this.page.keyboard.type(value);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+      if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
-      } else {
+      } else if (enter === false) {
         await element.dispatchEvent("change");
         //await this.page.keyboard.press("Tab");
+      } else {
+        if (enter !== "" && enter !== null && enter !== undefined) {
+          await this.page.keyboard.press(enter);
+          await this.waitForPageLoad();
+        }
       }
 
       return info;
@@ -1247,7 +1267,7 @@ class StableBrowser {
     }
   }
   _getLoadTimeout(options) {
-    let timeout = 10000;
+    let timeout = 15000;
     if (!configuration) {
       try {
         if (fs.existsSync("ai_config.json")) {
