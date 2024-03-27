@@ -51,6 +51,9 @@ class StableBrowser {
     await closeUnexpectedPopups(this.page);
   }
   async goto(url: string) {
+    if (!url.startsWith("http")) {
+      url = "https://" + url;
+    }
     await this.page.goto(url, {
       timeout: 60000,
     });
