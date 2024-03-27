@@ -1,8 +1,14 @@
-import { createReadStream, createWriteStream } from "fs";
+import { createReadStream, createWriteStream, existsSync } from "fs";
 import { decodePNGFromStream, encodePNGToStream } from "pureimage";
 
 const drawRectangle = async (inputFilePath: string, x: number, y: number, width: number, height: number) => {
   try {
+    // check if the input file exists on the disk
+    if (!existsSync(inputFilePath)) {
+      console.error("Input file does not exist on the disk");
+      return;
+    }
+
     const img1 = await decodePNGFromStream(createReadStream(inputFilePath));
     const ctx = img1.getContext("2d");
     ctx.fillStyle = "red";

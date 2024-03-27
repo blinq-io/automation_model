@@ -887,7 +887,11 @@ class StableBrowser {
         nextIndex++;
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
-      await this.page.screenshot({ path: screenshotPath });
+      try {
+        await this.page.screenshot({ path: screenshotPath, timeout: 60000 });
+      } catch (e) {
+        this.logger.error("unable to take screenshot " + e.message);
+      }
       result.screenshotId = nextIndex;
       result.screenshotPath = screenshotPath;
       if (info && info.box) {
@@ -895,7 +899,11 @@ class StableBrowser {
       }
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
-      await this.page.screenshot({ path: options.screenshotPath });
+      try {
+        await this.page.screenshot({ path: options.screenshotPath, timeout: 60000 });
+      } catch (e) {
+        this.logger.error("unable to take screenshot " + e.message);
+      }
       if (info && info.box) {
         await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
       }
