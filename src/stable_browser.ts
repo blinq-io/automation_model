@@ -888,7 +888,7 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       try {
-        await this.page.screenshot({ path: screenshotPath, timeout: 60000 });
+        await this.page.screenshot({ path: screenshotPath, timeout: 10000 });
       } catch (e) {
         this.logger.error("unable to take screenshot " + e.message);
       }
@@ -900,7 +900,7 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        await this.page.screenshot({ path: options.screenshotPath, timeout: 60000 });
+        await this.page.screenshot({ path: options.screenshotPath, timeout: 10000 });
       } catch (e) {
         this.logger.error("unable to take screenshot " + e.message);
       }
