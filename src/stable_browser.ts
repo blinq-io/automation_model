@@ -1357,6 +1357,23 @@ class StableBrowser {
   }
   async waitForPageLoad(options = {}, world = null) {
     let timeout = this._getLoadTimeout(options);
+    const promiseArray = [];
+    // let waitForNetworkIdle = true;
+    if (!(configuration && configuration.networkidle === false)) {
+      promiseArray.push(
+        createTimedPromise(this.page.waitForLoadState("networkidle", { timeout: timeout }), "networkidle")
+      );
+    }
+
+    if (!(configuration && configuration.load === false)) {
+      promiseArray.push(createTimedPromise(this.page.waitForLoadState("load", { timeout: timeout }), "load"));
+    }
+
+    if (!(configuration && configuration.domcontentloaded === false)) {
+      promiseArray.push(
+        createTimedPromise(this.page.waitForLoadState("domcontentloaded", { timeout: timeout }), "domcontentloaded")
+      );
+    }
     const waitOptions = {
       timeout: timeout,
     };
@@ -1366,12 +1383,15 @@ class StableBrowser {
     let screenshotPath = null;
 
     try {
-      await Promise.all([
-        this.page.waitForLoadState("networkidle", waitOptions),
-        this.page.waitForLoadState("load", waitOptions),
-        this.page.waitForLoadState("domcontentloaded", waitOptions),
-      ]);
+      await Promise.all(promiseArray);
     } catch (e) {
+      if (e.label === "networkidle") {
+        console.log("waitted for the network to be idle timeout");
+      } else if (e.label === "load") {
+        console.log("waitted for the load timeout");
+      } else if (e.label === "domcontentloaded") {
+        console.log("waitted for the domcontent loaded timeout");
+      }
       console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -1458,6 +1478,11 @@ type JsonCommandReport = {
   screenshotId?: string;
   result: JsonCommandResult;
 };
+function createTimedPromise(promise, label) {
+  return promise
+    .then((result) => ({ status: "fulfilled", label, result }))
+    .catch((error) => Promise.reject({ status: "rejected", label, error }));
+}
 const KEYBOARD_EVENTS = [
   "ALT",
   "AltGraph",
