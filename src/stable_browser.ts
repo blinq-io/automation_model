@@ -631,7 +631,7 @@ class StableBrowser {
       this._reportToWorld(world, {
         type: Types.TYPE_PRESS,
         screenshotId,
-        value,
+        value: _value,
         text: `type value: ${_value}`,
         result: error
           ? {
@@ -719,7 +719,7 @@ class StableBrowser {
         element_name: selectors.element_name,
         type: Types.FILL,
         screenshotId,
-        value,
+        value: _value,
         text: `clickType input with value: ${_value}`,
         result: error
           ? {
