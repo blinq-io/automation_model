@@ -589,7 +589,7 @@ class StableBrowser {
       });
     }
   }
-  async type(value, _params = null, options = {}, world = null) {
+  async type(_value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -598,20 +598,24 @@ class StableBrowser {
     const info = {};
     info.log = [];
     info.operation = "type";
-    value = this._fixUsingParams(value, _params);
-    info.value = value;
+    _value = this._fixUsingParams(_value, _params);
+    info.value = _value;
     try {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      let keyEvent = false;
-      KEYBOARD_EVENTS.forEach((event) => {
-        if (value === event || value.startsWith(event + "+")) {
-          keyEvent = true;
+      const valueSegment = _value.split("||");
+      for (let i = 0; i < valueSegment.length; i++) {
+        let value = valueSegment[i];
+        let keyEvent = false;
+        KEYBOARD_EVENTS.forEach((event) => {
+          if (value === event || value.startsWith(event + "+")) {
+            keyEvent = true;
+          }
+        });
+        if (keyEvent) {
+          await this.page.keyboard.press(value);
+        } else {
+          await this.page.keyboard.type(value);
         }
-      });
-      if (keyEvent) {
-        await this.page.keyboard.press(value);
-      } else {
-        await this.page.keyboard.type(value);
       }
       return info;
     } catch (e) {
@@ -628,7 +632,7 @@ class StableBrowser {
         type: Types.TYPE_PRESS,
         screenshotId,
         value,
-        text: `type value: ${value}`,
+        text: `type value: ${_value}`,
         result: error
           ? {
               status: "FAILED",
