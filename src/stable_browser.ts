@@ -602,7 +602,7 @@ class StableBrowser {
     info.value = _value;
     try {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      const valueSegment = _value.split("||");
+      const valueSegment = _value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
         let value = valueSegment[i];
         let keyEvent = false;
@@ -648,7 +648,7 @@ class StableBrowser {
       });
     }
   }
-  async clickType(selectors, value, enter = false, _params = null, options = {}, world = null) {
+  async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     let error = null;
@@ -659,7 +659,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "clickType";
     info.selectors = selectors;
-    info.value = value;
+    info.value = _value;
     try {
       let element = await this._locate(selectors, info, _params);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
@@ -675,17 +675,20 @@ class StableBrowser {
       }
       await element.click();
       await new Promise((resolve) => setTimeout(resolve, 500));
-      let keyEvent = false;
-      KEYBOARD_EVENTS.forEach((event) => {
-        if (value === event || value.startsWith(event + "+")) {
-          keyEvent = true;
+      const valueSegment = _value.split("&&");
+      for (let i = 0; i < valueSegment.length; i++) {
+        let value = valueSegment[i];
+        let keyEvent = false;
+        KEYBOARD_EVENTS.forEach((event) => {
+          if (value === event || value.startsWith(event + "+")) {
+            keyEvent = true;
+          }
+        });
+        if (keyEvent) {
+          await this.page.keyboard.press(value);
+        } else {
+          await this.page.keyboard.type(value);
         }
-      });
-      if (keyEvent) {
-        await this.page.keyboard.press(value);
-      } else {
-        await this.page.keyboard.type(value);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -717,7 +720,7 @@ class StableBrowser {
         type: Types.FILL,
         screenshotId,
         value,
-        text: `clickType input with value: ${value}`,
+        text: `clickType input with value: ${_value}`,
         result: error
           ? {
               status: "FAILED",
