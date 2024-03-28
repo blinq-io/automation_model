@@ -604,6 +604,9 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const valueSegment = _value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
         let value = valueSegment[i];
         let keyEvent = false;
         KEYBOARD_EVENTS.forEach((event) => {
@@ -677,6 +680,9 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 500));
       const valueSegment = _value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
         let value = valueSegment[i];
         let keyEvent = false;
         KEYBOARD_EVENTS.forEach((event) => {
