@@ -25,6 +25,7 @@ const Types = {
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
+  HOVER: "hover_element",
 };
 
 class StableBrowser {
@@ -456,6 +457,62 @@ class StableBrowser {
         element_name: selectors.element_name,
         type: Types.CLICK,
         text: `Click element`,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
+  async hover(selectors, _params?: Params, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    const info = {};
+    info.log = [];
+    info.operation = "hover";
+    info.selectors = selectors;
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    try {
+      let element = await this._locate(selectors, info, _params);
+
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      try {
+        await this._highlightElements(element);
+        await element.hover({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        await this.closeUnexpectedPopups();
+        info.log.push("hover failed, will try again");
+        element = await this._locate(selectors, info, _params);
+        await element.hover({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      await this.waitForPageLoad();
+      return info;
+    } catch (e) {
+      this.logger.error("hover failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.HOVER,
+        text: `Hover element`,
         screenshotId,
         result: error
           ? {
