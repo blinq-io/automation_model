@@ -25,6 +25,7 @@ const Types = {
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
+  HOVER: "hover_element",
 };
 
 class StableBrowser {
@@ -51,6 +52,9 @@ class StableBrowser {
     await closeUnexpectedPopups(this.page);
   }
   async goto(url: string) {
+    if (!url.startsWith("http")) {
+      url = "https://" + url;
+    }
     await this.page.goto(url, {
       timeout: 60000,
     });
@@ -469,6 +473,62 @@ class StableBrowser {
       });
     }
   }
+  async hover(selectors, _params?: Params, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    const info = {};
+    info.log = [];
+    info.operation = "hover";
+    info.selectors = selectors;
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    try {
+      let element = await this._locate(selectors, info, _params);
+
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      try {
+        await this._highlightElements(element);
+        await element.hover({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        await this.closeUnexpectedPopups();
+        info.log.push("hover failed, will try again");
+        element = await this._locate(selectors, info, _params);
+        await element.hover({ timeout: 10000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      await this.waitForPageLoad();
+      return info;
+    } catch (e) {
+      this.logger.error("hover failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.HOVER,
+        text: `Hover element`,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
 
   async selectOption(selectors, values, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
@@ -529,7 +589,7 @@ class StableBrowser {
       });
     }
   }
-  async type(value, _params = null, options = {}, world = null) {
+  async type(_value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -538,20 +598,27 @@ class StableBrowser {
     const info = {};
     info.log = [];
     info.operation = "type";
-    value = this._fixUsingParams(value, _params);
-    info.value = value;
+    _value = this._fixUsingParams(_value, _params);
+    info.value = _value;
     try {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      let keyEvent = false;
-      KEYBOARD_EVENTS.forEach((event) => {
-        if (value === event || value.startsWith(event + "+")) {
-          keyEvent = true;
+      const valueSegment = _value.split("&&");
+      for (let i = 0; i < valueSegment.length; i++) {
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-      });
-      if (keyEvent) {
-        await this.page.keyboard.press(value);
-      } else {
-        await this.page.keyboard.type(value);
+        let value = valueSegment[i];
+        let keyEvent = false;
+        KEYBOARD_EVENTS.forEach((event) => {
+          if (value === event || value.startsWith(event + "+")) {
+            keyEvent = true;
+          }
+        });
+        if (keyEvent) {
+          await this.page.keyboard.press(value);
+        } else {
+          await this.page.keyboard.type(value);
+        }
       }
       return info;
     } catch (e) {
@@ -567,8 +634,8 @@ class StableBrowser {
       this._reportToWorld(world, {
         type: Types.TYPE_PRESS,
         screenshotId,
-        value,
-        text: `type value: ${value}`,
+        value: _value,
+        text: `type value: ${_value}`,
         result: error
           ? {
               status: "FAILED",
@@ -584,7 +651,7 @@ class StableBrowser {
       });
     }
   }
-  async clickType(selectors, value, enter = false, _params = null, options = {}, world = null) {
+  async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     let error = null;
@@ -595,7 +662,7 @@ class StableBrowser {
     info.log = [];
     info.operation = "clickType";
     info.selectors = selectors;
-    info.value = value;
+    info.value = _value;
     try {
       let element = await this._locate(selectors, info, _params);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
@@ -611,17 +678,23 @@ class StableBrowser {
       }
       await element.click();
       await new Promise((resolve) => setTimeout(resolve, 500));
-      let keyEvent = false;
-      KEYBOARD_EVENTS.forEach((event) => {
-        if (value === event || value.startsWith(event + "+")) {
-          keyEvent = true;
+      const valueSegment = _value.split("&&");
+      for (let i = 0; i < valueSegment.length; i++) {
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-      });
-      if (keyEvent) {
-        await this.page.keyboard.press(value);
-      } else {
-        await this.page.keyboard.type(value);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        let value = valueSegment[i];
+        let keyEvent = false;
+        KEYBOARD_EVENTS.forEach((event) => {
+          if (value === event || value.startsWith(event + "+")) {
+            keyEvent = true;
+          }
+        });
+        if (keyEvent) {
+          await this.page.keyboard.press(value);
+        } else {
+          await this.page.keyboard.type(value);
+        }
       }
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -652,8 +725,8 @@ class StableBrowser {
         element_name: selectors.element_name,
         type: Types.FILL,
         screenshotId,
-        value,
-        text: `clickType input with value: ${value}`,
+        value: _value,
+        text: `clickType input with value: ${_value}`,
         result: error
           ? {
               status: "FAILED",
@@ -884,7 +957,11 @@ class StableBrowser {
         nextIndex++;
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
-      await this.page.screenshot({ path: screenshotPath });
+      try {
+        await this.page.screenshot({ path: screenshotPath, timeout: 5000 });
+      } catch (e) {
+        this.logger.info("unable to take screenshot, ignored");
+      }
       result.screenshotId = nextIndex;
       result.screenshotPath = screenshotPath;
       if (info && info.box) {
@@ -892,7 +969,11 @@ class StableBrowser {
       }
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
-      await this.page.screenshot({ path: options.screenshotPath });
+      try {
+        await this.page.screenshot({ path: options.screenshotPath, timeout: 5000 });
+      } catch (e) {
+        this.logger.info("unable to take screenshot, ignored");
+      }
       if (info && info.box) {
         await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
       }
@@ -1289,6 +1370,23 @@ class StableBrowser {
   }
   async waitForPageLoad(options = {}, world = null) {
     let timeout = this._getLoadTimeout(options);
+    const promiseArray = [];
+    // let waitForNetworkIdle = true;
+    if (!(configuration && configuration.networkidle === false)) {
+      promiseArray.push(
+        createTimedPromise(this.page.waitForLoadState("networkidle", { timeout: timeout }), "networkidle")
+      );
+    }
+
+    if (!(configuration && configuration.load === false)) {
+      promiseArray.push(createTimedPromise(this.page.waitForLoadState("load", { timeout: timeout }), "load"));
+    }
+
+    if (!(configuration && configuration.domcontentloaded === false)) {
+      promiseArray.push(
+        createTimedPromise(this.page.waitForLoadState("domcontentloaded", { timeout: timeout }), "domcontentloaded")
+      );
+    }
     const waitOptions = {
       timeout: timeout,
     };
@@ -1298,12 +1396,15 @@ class StableBrowser {
     let screenshotPath = null;
 
     try {
-      await Promise.all([
-        this.page.waitForLoadState("networkidle", waitOptions),
-        this.page.waitForLoadState("load", waitOptions),
-        this.page.waitForLoadState("domcontentloaded", waitOptions),
-      ]);
+      await Promise.all(promiseArray);
     } catch (e) {
+      if (e.label === "networkidle") {
+        console.log("waitted for the network to be idle timeout");
+      } else if (e.label === "load") {
+        console.log("waitted for the load timeout");
+      } else if (e.label === "domcontentloaded") {
+        console.log("waitted for the domcontent loaded timeout");
+      }
       console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -1390,6 +1491,11 @@ type JsonCommandReport = {
   screenshotId?: string;
   result: JsonCommandResult;
 };
+function createTimedPromise(promise, label) {
+  return promise
+    .then((result) => ({ status: "fulfilled", label, result }))
+    .catch((error) => Promise.reject({ status: "rejected", label, error }));
+}
 const KEYBOARD_EVENTS = [
   "ALT",
   "AltGraph",
