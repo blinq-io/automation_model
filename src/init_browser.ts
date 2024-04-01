@@ -23,8 +23,9 @@ const getContext = async function (environment: Environment | null, headless = f
       }
     }
   }
+  const extensionPath = environment.extensionPath;
   const storageState = { cookies, origins };
-  let browser = await browserManager.getBrowser(headless, storageState);
+  let browser = await browserManager.getBrowser(headless, storageState, extensionPath);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;

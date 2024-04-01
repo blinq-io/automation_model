@@ -43,6 +43,9 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
       world.attach(reportFolder, { mediaType: "text/plain" });
     }
     world.screenshotPath = reportFolder + "/screenshots/";
+    if (!fs.existsSync(world.screenshotPath)) {
+      fs.mkdirSync(world.screenshotPath, { recursive: true });
+    }
     context.reportFolder = reportFolder;
   }
 
