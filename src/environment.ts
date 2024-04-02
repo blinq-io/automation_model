@@ -14,6 +14,7 @@ type LocalStorage = Record<string, string>;
 class Environment {
   cookies: Cookie[] = [];
   origins: { origin: string; localStorage: LocalStorage }[] = [];
+  extensionPath?: string;
   constructor(public baseUrl?: string) {}
   setBaseUrl(url: string) {
     this.baseUrl = url;
