@@ -24,7 +24,10 @@ const getContext = async function (environment: Environment | null, headless = f
     }
   }
   const configuration = JSON.parse(fs.readFileSync("ai_config.json", "utf8"));
-  const extensionPath = path.join(process.cwd(), configuration.extensionPath!);
+  let extensionPath = undefined;
+  if (configuration.extensionPath) {
+    extensionPath = path.join(process.cwd(), configuration.extensionPath!);
+  }
   const storageState = { cookies, origins };
   let browser = await browserManager.getBrowser(headless, storageState, extensionPath);
   let context = new TestContext();
