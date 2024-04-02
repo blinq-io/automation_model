@@ -23,10 +23,12 @@ const getContext = async function (environment: Environment | null, headless = f
       }
     }
   }
-  const configuration = JSON.parse(fs.readFileSync("ai_config.json", "utf8"));
   let extensionPath = undefined;
-  if (configuration.extensionPath) {
-    extensionPath = path.join(process.cwd(), configuration.extensionPath!);
+  if(fs.existsSync("ai_config.json")) {
+    const configuration = JSON.parse(fs.readFileSync("ai_config.json", "utf8"));
+    if (configuration.extensionPath) {
+      extensionPath = configuration.extensionPath;
+    }
   }
   const storageState = { cookies, origins };
   let browser = await browserManager.getBrowser(headless, storageState, extensionPath);
