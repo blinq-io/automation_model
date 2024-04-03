@@ -30,15 +30,15 @@ class BrowserManager {
     }
   }
 
-  async createBrowser(headless = false, storageState?:StorageState) {
+  async createBrowser(headless = false, storageState?:StorageState, extensionPath?: string) {
     const browser = new Browser();
-    await browser.init(headless, storageState);
+    await browser.init(headless, storageState, extensionPath);
     this.browsers.push(browser);
     return browser;
   }
-  async getBrowser(headless = false, storageState?:StorageState) {
+  async getBrowser(headless = false, storageState?:StorageState, extensionPath?: string) {
     if (this.browsers.length === 0) {
-      return await this.createBrowser(headless, storageState);
+      return await this.createBrowser(headless, storageState, extensionPath);
     }
     return this.browsers[0];
   }
@@ -53,15 +53,23 @@ class Browser {
     this.page = null;
   }
 
-  async init(headless = false, storageState?:StorageState) {
-    this.browser = await chromium.launch({
-      headless: headless,
-      timeout: 0,
-      args: ["--ignore-https-errors"],
-    });
-
-    const contextOptions = !!storageState ? {storageState} : undefined
-    this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+  async init(headless = false, storageState?:StorageState, extensionPath?: string) {
+    if (extensionPath) {
+      this.context = await chromium.launchPersistentContext("", {
+        headless: headless,
+        timeout: 0,
+        args: ["--ignore-https-errors", "--disable-extensions-except=" + extensionPath, "--load-extension=" + extensionPath],
+      });
+    } else {
+      this.browser = await chromium.launch({
+        headless: headless,
+        timeout: 0,
+        args: ["--ignore-https-errors"],
+      });
+      
+      const contextOptions = !!storageState ? {storageState} : undefined
+      this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+    }
     this.page = await this.context.newPage();
   }
 

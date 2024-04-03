@@ -23,8 +23,15 @@ const getContext = async function (environment: Environment | null, headless = f
       }
     }
   }
+  let extensionPath = undefined;
+  if(fs.existsSync("ai_config.json")) {
+    const configuration = JSON.parse(fs.readFileSync("ai_config.json", "utf8"));
+    if (configuration.extensionPath) {
+      extensionPath = configuration.extensionPath;
+    }
+  }
   const storageState = { cookies, origins };
-  let browser = await browserManager.getBrowser(headless, storageState);
+  let browser = await browserManager.getBrowser(headless, storageState, extensionPath);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
