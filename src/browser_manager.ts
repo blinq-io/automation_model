@@ -66,7 +66,7 @@ class Browser {
         this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
           headless: headless,
           timeout: 0,
-        args: ["--ignore-https-errors", "--disable-extensions-except=" + extensionPath, "--load-extension=" + extensionPath],
+        args: ["--ignore-https-errors", "--disable-extensions-except=" + extensionPath, "--load-extension=" + extensionPath, "--no-incognito"],
         });
       } else {
         this.browser = await chromium.launch({
