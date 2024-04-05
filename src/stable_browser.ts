@@ -492,13 +492,13 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.setCheck(checked, { timeout: 10000 });
+        await element.setChecked(checked, { timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
         info.log.push("setCheck failed, will try again");
         element = await this._locate(selectors, info, _params);
-        await element.setCheck(checked, { timeout: 10000 });
+        await element.setChecked(checked, { timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
