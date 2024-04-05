@@ -898,7 +898,7 @@ class StableBrowser {
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      return { text: elementText, screenshotId, screenshotPath };
+      return { text: elementText, screenshotId, screenshotPath, value: value };
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
