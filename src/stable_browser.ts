@@ -930,7 +930,7 @@ class StableBrowser {
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
-      if (!regex.test(foundObj?.text)) {
+      if (!regex.test(foundObj?.text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         throw new Error("element doesn't contain text " + text);
       }
@@ -985,8 +985,9 @@ class StableBrowser {
     let foundObj = null;
     try {
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
-      if (!foundObj?.text.includes(text)) {
+      if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
+        info.value = foundObj?.value;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
