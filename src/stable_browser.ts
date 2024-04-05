@@ -888,6 +888,12 @@ class StableBrowser {
       let climbXpath = "xpath=" + climbArray.join("/");
       element = element.locator(climbXpath);
     }
+    let value = null;
+    try {
+      value = await element.inputValue();
+    } catch (e) {
+      //ignore
+    }
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
       await this._highlightElements(element);
@@ -897,7 +903,7 @@ class StableBrowser {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
       const elementText = await element.textContent();
-      return { text: elementText, screenshotId, screenshotPath };
+      return { text: elementText, screenshotId, screenshotPath, value: value };
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
