@@ -168,7 +168,10 @@ class StableBrowser {
           let regexpSearch = new RegExp(text, "im");
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
-            if (element.innerText && regexpSearch.test(element.innerText)) {
+            if (
+              (element.innerText && regexpSearch.test(element.innerText)) ||
+              (element.value && regexpSearch.test(element.value))
+            ) {
               foundElements.push(element);
             }
           }
@@ -177,11 +180,17 @@ class StableBrowser {
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (partial) {
-              if (element.innerText && element.innerText.trim().includes(text)) {
+              if (
+                (element.innerText && element.innerText.trim().includes(text)) ||
+                (element.value && element.value.includes(text))
+              ) {
                 foundElements.push(element);
               }
             } else {
-              if (element.innerText && element.innerText.trim() === text) {
+              if (
+                (element.innerText && element.innerText.trim() === text) ||
+                (element.value && element.value === text)
+              ) {
                 foundElements.push(element);
               }
             }
