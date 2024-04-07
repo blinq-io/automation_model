@@ -504,11 +504,15 @@ class StableBrowser {
         await element.setChecked(checked, { timeout: 5000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
-        await this.closeUnexpectedPopups();
-        info.log.push("setCheck failed, will try again");
-        element = await this._locate(selectors, info, _params);
-        await element.setChecked(checked, { timeout: 5000, force: true });
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (e.message && e.message.includes("did not change its state")) {
+          this.logger.info("element did not change its state, ignoring...");
+        } else {
+          await this.closeUnexpectedPopups();
+          info.log.push("setCheck failed, will try again");
+          element = await this._locate(selectors, info, _params);
+          await element.setChecked(checked, { timeout: 5000, force: true });
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
       await this.waitForPageLoad();
       return info;
