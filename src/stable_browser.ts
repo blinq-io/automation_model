@@ -26,6 +26,8 @@ const Types = {
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
   HOVER: "hover_element",
+  CHECK: "check_element",
+  UNCHECK: "uncheck_element",
 };
 
 class StableBrowser {
@@ -166,7 +168,10 @@ class StableBrowser {
           let regexpSearch = new RegExp(text, "im");
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
-            if (element.innerText && regexpSearch.test(element.innerText)) {
+            if (
+              (element.innerText && regexpSearch.test(element.innerText)) ||
+              (element.value && regexpSearch.test(element.value))
+            ) {
               foundElements.push(element);
             }
           }
@@ -175,11 +180,17 @@ class StableBrowser {
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (partial) {
-              if (element.innerText && element.innerText.trim().includes(text)) {
+              if (
+                (element.innerText && element.innerText.trim().includes(text)) ||
+                (element.value && element.value.includes(text))
+              ) {
                 foundElements.push(element);
               }
             } else {
-              if (element.innerText && element.innerText.trim() === text) {
+              if (
+                (element.innerText && element.innerText.trim() === text) ||
+                (element.value && element.value === text)
+              ) {
                 foundElements.push(element);
               }
             }
@@ -439,7 +450,7 @@ class StableBrowser {
         await this.closeUnexpectedPopups();
         info.log.push("click failed, will try again");
         element = await this._locate(selectors, info, _params);
-        await element.click({ timeout: 10000 });
+        await element.click({ timeout: 10000, force: true });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
@@ -473,6 +484,64 @@ class StableBrowser {
       });
     }
   }
+  async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    const info = {};
+    info.log = [];
+    info.operation = "setCheck";
+    info.checked = checked;
+    info.selectors = selectors;
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    try {
+      let element = await this._locate(selectors, info, _params);
+
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      try {
+        await this._highlightElements(element);
+        await element.setChecked(checked, { timeout: 5000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        await this.closeUnexpectedPopups();
+        info.log.push("setCheck failed, will try again");
+        element = await this._locate(selectors, info, _params);
+        await element.setChecked(checked, { timeout: 5000, force: true });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      await this.waitForPageLoad();
+      return info;
+    } catch (e) {
+      this.logger.error("setCheck failed " + JSON.stringify(info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: checked ? Types.CHECK : Types.UNCHECK,
+        text: checked ? `Check element` : `Uncheck element`,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
+
   async hover(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
@@ -819,16 +888,22 @@ class StableBrowser {
       let climbXpath = "xpath=" + climbArray.join("/");
       element = element.locator(climbXpath);
     }
+    let value = null;
+    try {
+      value = await element.inputValue();
+    } catch (e) {
+      //ignore
+    }
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      return { text: elementText, screenshotId, screenshotPath };
+      return { text: elementText, screenshotId, screenshotPath, value: value };
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
       const elementText = await element.textContent();
-      return { text: elementText, screenshotId, screenshotPath };
+      return { text: elementText, screenshotId, screenshotPath, value: value };
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
@@ -855,7 +930,7 @@ class StableBrowser {
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
-      if (!regex.test(foundObj?.text)) {
+      if (!regex.test(foundObj?.text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         throw new Error("element doesn't contain text " + text);
       }
@@ -910,8 +985,9 @@ class StableBrowser {
     let foundObj = null;
     try {
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
-      if (!foundObj?.text.includes(text)) {
+      if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
+        info.value = foundObj?.value;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
