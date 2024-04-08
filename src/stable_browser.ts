@@ -747,7 +747,7 @@ class StableBrowser {
           await element.fill("");
         }
       } catch (e) {
-        this.logger.error("unable to clear input value");
+        this.info.error("unable to clear input value");
       }
       await element.click();
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -1113,51 +1113,61 @@ class StableBrowser {
         return;
       }
       if (!css) {
-        await scope.evaluate((node) => {
-          if (node && node.style) {
-            let originalBorder = node.style.border;
-            node.style.border = "2px solid red";
-            if (window) {
-              window.addEventListener("beforeunload", function (e) {
-                node.style.border = originalBorder;
-              });
-            }
-            setTimeout(function () {
-              node.style.border = originalBorder;
-            }, 2000);
-          }
-        });
-      } else {
-        await scope.evaluate(
-          ([css]) => {
-            if (!css) {
-              return;
-            }
-            let elements = Array.from(document.querySelectorAll(css));
-            //console.log("found: " + elements.length);
-            for (let i = 0; i < elements.length; i++) {
-              let element = elements[i];
-              if (!element.style) {
-                return;
-              }
-              var originalBorder = element.style.border;
-
-              // Set the new border to be red and 2px solid
-              element.style.border = "2px solid red";
+        scope
+          .evaluate((node) => {
+            if (node && node.style) {
+              let originalBorder = node.style.border;
+              node.style.border = "2px solid red";
               if (window) {
                 window.addEventListener("beforeunload", function (e) {
-                  element.style.border = originalBorder;
+                  node.style.border = originalBorder;
                 });
               }
-              // Set a timeout to revert to the original border after 2 seconds
               setTimeout(function () {
-                element.style.border = originalBorder;
+                node.style.border = originalBorder;
               }, 2000);
             }
-            return;
-          },
-          [css]
-        );
+          })
+          .then(() => {})
+          .catch((e) => {
+            // ignore
+          });
+      } else {
+        scope
+          .evaluate(
+            ([css]) => {
+              if (!css) {
+                return;
+              }
+              let elements = Array.from(document.querySelectorAll(css));
+              //console.log("found: " + elements.length);
+              for (let i = 0; i < elements.length; i++) {
+                let element = elements[i];
+                if (!element.style) {
+                  return;
+                }
+                var originalBorder = element.style.border;
+
+                // Set the new border to be red and 2px solid
+                element.style.border = "2px solid red";
+                if (window) {
+                  window.addEventListener("beforeunload", function (e) {
+                    element.style.border = originalBorder;
+                  });
+                }
+                // Set a timeout to revert to the original border after 2 seconds
+                setTimeout(function () {
+                  element.style.border = originalBorder;
+                }, 2000);
+              }
+              return;
+            },
+            [css]
+          )
+          .then(() => {})
+          .catch((e) => {
+            // ignore
+          });
       }
     } catch (error) {
       console.debug(error);
