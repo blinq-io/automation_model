@@ -230,8 +230,9 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params) {
+  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, info) {
     let locatorSearch = selectorHierarchy[index];
+    info.log.push("searching for locator " + JSON.stringify(locatorSearch));
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
       let locatorString = await this._locateElmentByTextClimbCss(
@@ -264,6 +265,7 @@ class StableBrowser {
     }
 
     let count = await locator.count();
+    info.log.push("total elements found " + count);
     //let visibleCount = 0;
     let visibleLocator = null;
     if (locatorSearch.index && locatorSearch.index < count) {
@@ -272,7 +274,10 @@ class StableBrowser {
     }
 
     for (let j = 0; j < count; j++) {
-      if ((await locator.nth(j).isVisible()) && (await locator.nth(j).isEnabled())) {
+      const visible = await locator.nth(j).isVisible();
+      const enabled = await locator.nth(j).isEnabled();
+      info.log.push("element " + j + " visible " + visible + " enabled " + enabled);
+      if (visible && enabled) {
         foundLocators.push(locator.nth(j));
       }
     }
@@ -344,12 +349,15 @@ class StableBrowser {
     while (true) {
       locatorsCount = 0;
       let result = [];
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params);
+      info.log.push("scanning locators in priority 1");
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info);
       if (result.foundElements.length === 0) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params);
+        info.log.push("scanning locators in priority 2");
+        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info);
       }
       if (result.foundElements.length === 0 && !highPriorityOnly) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params);
+        info.log.push("scanning locators in priority 3");
+        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info);
       }
       let foundElements = result.foundElements;
 
@@ -399,7 +407,7 @@ class StableBrowser {
 
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -407,12 +415,12 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params);
+        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info);
       } catch (e) {
         this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params);
+          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info);
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
