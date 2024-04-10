@@ -232,7 +232,7 @@ class StableBrowser {
 
   async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, info) {
     let locatorSearch = selectorHierarchy[index];
-    info.log.push("searching for locator " + JSON.stringify(locatorSearch));
+    info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
       let locatorString = await this._locateElmentByTextClimbCss(
@@ -263,9 +263,12 @@ class StableBrowser {
     } else {
       locator = this._getLocator(locatorSearch, scope, _params);
     }
-
+    let cssHref = false;
+    if (locatorSearch.css && locatorSearch.css.includes("href=")) {
+      cssHref = true;
+    }
     let count = await locator.count();
-    info.log.push("total elements found " + count);
+    info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
     if (locatorSearch.index && locatorSearch.index < count) {
@@ -276,9 +279,13 @@ class StableBrowser {
     for (let j = 0; j < count; j++) {
       const visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
-      info.log.push("element " + j + " visible " + visible + " enabled " + enabled);
+      info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
+        if (cssHref) {
+          info.log += "css href locator found, will ignore all others" + "\n";
+          break;
+        }
       }
     }
   }
@@ -305,7 +312,7 @@ class StableBrowser {
           scope = this.page.frame({ url: selectors.iframe_src });
         }
         if (!scope) {
-          info.log.push("unable to locate iframe " + selectors.iframe_src);
+          info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (performance.now() - startTime > timeout) {
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
@@ -349,14 +356,14 @@ class StableBrowser {
     while (true) {
       locatorsCount = 0;
       let result = [];
-      info.log.push("scanning locators in priority 1");
+      info.log += "scanning locators in priority 1" + "\n";
       result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info);
       if (result.foundElements.length === 0) {
-        info.log.push("scanning locators in priority 2");
+        info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info);
       }
       if (result.foundElements.length === 0 && !highPriorityOnly) {
-        info.log.push("scanning locators in priority 3");
+        info.log += "scanning locators in priority 3" + "\n";
         result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info);
       }
       let foundElements = result.foundElements;
@@ -365,7 +372,7 @@ class StableBrowser {
         info.box = foundElements[0].box;
         return foundElements[0].locator;
       }
-      //info.log.push("total elements found " + foundElements.length);
+      //info.log += "total elements found " + foundElements.length);
       if (foundElements.length > 1) {
         let electionResult = {};
         for (let i = 0; i < foundElements.length; i++) {
@@ -403,7 +410,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
-    info.log.push("failed to locate unique element, total elements found " + locatorsCount);
+    info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
 
     throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
   }
@@ -440,7 +447,7 @@ class StableBrowser {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "click";
     info.selectors = selectors;
     let error = null;
@@ -456,7 +463,7 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("click failed, will try again");
+        info.log += "click failed, will try again" + "\n";
         element = await this._locate(selectors, info, _params);
         await element.click({ timeout: 10000, force: true });
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -496,7 +503,7 @@ class StableBrowser {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "setCheck";
     info.checked = checked;
     info.selectors = selectors;
@@ -516,7 +523,7 @@ class StableBrowser {
           this.logger.info("element did not change its state, ignoring...");
         } else {
           await this.closeUnexpectedPopups();
-          info.log.push("setCheck failed, will try again");
+          info.log += "setCheck failed, will try again" + "\n";
           element = await this._locate(selectors, info, _params);
           await element.setChecked(checked, { timeout: 5000, force: true });
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -558,7 +565,7 @@ class StableBrowser {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "hover";
     info.selectors = selectors;
     let error = null;
@@ -574,7 +581,7 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("hover failed, will try again");
+        info.log += "hover failed, will try again" + "\n";
         element = await this._locate(selectors, info, _params);
         await element.hover({ timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -621,7 +628,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "selectOptions";
     info.selectors = selectors;
 
@@ -634,7 +641,7 @@ class StableBrowser {
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("selectOption failed, will try force");
+        info.log += "selectOption failed, will try force" + "\n";
         await element.selectOption(values, { timeout: 10000, force: true });
       }
       await this.waitForPageLoad();
@@ -677,7 +684,7 @@ class StableBrowser {
     let screenshotPath = null;
 
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "type";
     _value = this._fixUsingParams(_value, _params);
     info.value = _value;
@@ -740,7 +747,7 @@ class StableBrowser {
     let screenshotPath = null;
 
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "clickType";
     info.selectors = selectors;
     info.value = _value;
@@ -832,7 +839,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "fill";
     info.selectors = selectors;
     info.value = value;
@@ -887,7 +894,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     if (!info.log) {
-      info.log = [];
+      info.log = "";
     }
     info.operation = "getText";
     info.selectors = selectors;
@@ -931,7 +938,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "containsPattern";
     info.selectors = selectors;
     info.value = text;
@@ -990,7 +997,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "containsText";
     info.selectors = selectors;
     info.value = text;
@@ -1076,7 +1083,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "verify";
     info.selectors = selectors;
     try {
@@ -1188,7 +1195,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "verifyPagePath";
     info.pathPart = pathPart;
     try {
@@ -1241,7 +1248,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
     try {
@@ -1319,7 +1326,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "analyzeTable";
     info.selectors = selectors;
     info.query = query;
