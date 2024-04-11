@@ -412,7 +412,7 @@ class StableBrowser {
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
 
-    throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
+    throw new Error("failed to locate first element no elements found, " + info.log);
   }
   async _scanLocatorsGroup(locatorsGroup, scope, _params, info) {
     let foundElements = [];
@@ -471,7 +471,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("click failed " + JSON.stringify(info));
+      this.logger.error("click failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -532,7 +532,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("setCheck failed " + JSON.stringify(info));
+      this.logger.error("setCheck failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -589,7 +589,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("hover failed " + JSON.stringify(info));
+      this.logger.error("hover failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -647,7 +647,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("selectOption failed " + JSON.stringify(info));
+      this.logger.error("selectOption failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -711,7 +711,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("type failed " + JSON.stringify(info));
+      this.logger.error("type failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -801,7 +801,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("fill failed " + JSON.stringify(info));
+      this.logger.error("fill failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -857,7 +857,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("fill failed " + JSON.stringify(info));
+      this.logger.error("fill failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -956,7 +956,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this.logger.error("verify element contains text failed " + info.log);
       this.logger.error("found text " + foundObj?.text + " pattern " + pattern);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
@@ -1012,7 +1012,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this.logger.error("verify element contains text failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1094,7 +1094,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify failed " + JSON.stringify(info));
+      this.logger.error("verify failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1213,7 +1213,7 @@ class StableBrowser {
       }
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify page path failed " + JSON.stringify(info));
+      this.logger.error("verify page path failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1283,7 +1283,7 @@ class StableBrowser {
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify text exist in page failed " + JSON.stringify(info));
+      this.logger.error("verify text exist in page failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1424,7 +1424,7 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
-      this.logger.error("analyzeTable failed " + JSON.stringify(info));
+      this.logger.error("analyzeTable failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
