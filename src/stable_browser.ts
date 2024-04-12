@@ -26,6 +26,8 @@ const Types = {
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
   HOVER: "hover_element",
+  CHECK: "check_element",
+  UNCHECK: "uncheck_element",
 };
 
 class StableBrowser {
@@ -166,7 +168,10 @@ class StableBrowser {
           let regexpSearch = new RegExp(text, "im");
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
-            if (element.innerText && regexpSearch.test(element.innerText)) {
+            if (
+              (element.innerText && regexpSearch.test(element.innerText)) ||
+              (element.value && regexpSearch.test(element.value))
+            ) {
               foundElements.push(element);
             }
           }
@@ -175,11 +180,17 @@ class StableBrowser {
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (partial) {
-              if (element.innerText && element.innerText.trim().includes(text)) {
+              if (
+                (element.innerText && element.innerText.trim().includes(text)) ||
+                (element.value && element.value.includes(text))
+              ) {
                 foundElements.push(element);
               }
             } else {
-              if (element.innerText && element.innerText.trim() === text) {
+              if (
+                (element.innerText && element.innerText.trim() === text) ||
+                (element.value && element.value === text)
+              ) {
                 foundElements.push(element);
               }
             }
@@ -219,8 +230,9 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params) {
+  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, info) {
     let locatorSearch = selectorHierarchy[index];
+    info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
       let locatorString = await this._locateElmentByTextClimbCss(
@@ -251,8 +263,12 @@ class StableBrowser {
     } else {
       locator = this._getLocator(locatorSearch, scope, _params);
     }
-
+    let cssHref = false;
+    if (locatorSearch.css && locatorSearch.css.includes("href=")) {
+      cssHref = true;
+    }
     let count = await locator.count();
+    info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
     if (locatorSearch.index && locatorSearch.index < count) {
@@ -261,8 +277,15 @@ class StableBrowser {
     }
 
     for (let j = 0; j < count; j++) {
-      if ((await locator.nth(j).isVisible()) && (await locator.nth(j).isEnabled())) {
+      const visible = await locator.nth(j).isVisible();
+      const enabled = await locator.nth(j).isEnabled();
+      info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
+      if (visible && enabled) {
         foundLocators.push(locator.nth(j));
+        if (cssHref) {
+          info.log += "css href locator found, will ignore all others" + "\n";
+          break;
+        }
       }
     }
   }
@@ -289,7 +312,7 @@ class StableBrowser {
           scope = this.page.frame({ url: selectors.iframe_src });
         }
         if (!scope) {
-          info.log.push("unable to locate iframe " + selectors.iframe_src);
+          info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (performance.now() - startTime > timeout) {
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
@@ -333,12 +356,15 @@ class StableBrowser {
     while (true) {
       locatorsCount = 0;
       let result = [];
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params);
+      info.log += "scanning locators in priority 1" + "\n";
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info);
       if (result.foundElements.length === 0) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params);
+        info.log += "scanning locators in priority 2" + "\n";
+        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info);
       }
       if (result.foundElements.length === 0 && !highPriorityOnly) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params);
+        info.log += "scanning locators in priority 3" + "\n";
+        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info);
       }
       let foundElements = result.foundElements;
 
@@ -346,7 +372,7 @@ class StableBrowser {
         info.box = foundElements[0].box;
         return foundElements[0].locator;
       }
-      //info.log.push("total elements found " + foundElements.length);
+      //info.log += "total elements found " + foundElements.length);
       if (foundElements.length > 1) {
         let electionResult = {};
         for (let i = 0; i < foundElements.length; i++) {
@@ -384,11 +410,11 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
-    info.log.push("failed to locate unique element, total elements found " + locatorsCount);
+    info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
 
-    throw new Error("failed to locate first element no elements found, " + JSON.stringify(info));
+    throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -396,12 +422,12 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params);
+        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info);
       } catch (e) {
         this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params);
+          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info);
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
@@ -421,7 +447,7 @@ class StableBrowser {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "click";
     info.selectors = selectors;
     let error = null;
@@ -437,15 +463,15 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("click failed, will try again");
+        info.log += "click failed, will try again" + "\n";
         element = await this._locate(selectors, info, _params);
-        await element.click({ timeout: 10000 });
+        await element.click({ timeout: 10000, force: true });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("click failed " + JSON.stringify(info));
+      this.logger.error("click failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -473,11 +499,73 @@ class StableBrowser {
       });
     }
   }
+  async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    const info = {};
+    info.log = "";
+    info.operation = "setCheck";
+    info.checked = checked;
+    info.selectors = selectors;
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    try {
+      let element = await this._locate(selectors, info, _params);
+
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      try {
+        await this._highlightElements(element);
+        await element.setChecked(checked, { timeout: 5000 });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        if (e.message && e.message.includes("did not change its state")) {
+          this.logger.info("element did not change its state, ignoring...");
+        } else {
+          await this.closeUnexpectedPopups();
+          info.log += "setCheck failed, will try again" + "\n";
+          element = await this._locate(selectors, info, _params);
+          await element.setChecked(checked, { timeout: 5000, force: true });
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+      await this.waitForPageLoad();
+      return info;
+    } catch (e) {
+      this.logger.error("setCheck failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: checked ? Types.CHECK : Types.UNCHECK,
+        text: checked ? `Check element` : `Uncheck element`,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+      });
+    }
+  }
+
   async hover(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "hover";
     info.selectors = selectors;
     let error = null;
@@ -493,7 +581,7 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("hover failed, will try again");
+        info.log += "hover failed, will try again" + "\n";
         element = await this._locate(selectors, info, _params);
         await element.hover({ timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -501,7 +589,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("hover failed " + JSON.stringify(info));
+      this.logger.error("hover failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -540,7 +628,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "selectOptions";
     info.selectors = selectors;
 
@@ -553,13 +641,13 @@ class StableBrowser {
         await element.selectOption(values, { timeout: 5000 });
       } catch (e) {
         await this.closeUnexpectedPopups();
-        info.log.push("selectOption failed, will try force");
+        info.log += "selectOption failed, will try force" + "\n";
         await element.selectOption(values, { timeout: 10000, force: true });
       }
       await this.waitForPageLoad();
       return info;
     } catch (e) {
-      this.logger.error("selectOption failed " + JSON.stringify(info));
+      this.logger.error("selectOption failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -596,7 +684,7 @@ class StableBrowser {
     let screenshotPath = null;
 
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "type";
     _value = this._fixUsingParams(_value, _params);
     info.value = _value;
@@ -623,7 +711,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("type failed " + JSON.stringify(info));
+      this.logger.error("type failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -659,7 +747,7 @@ class StableBrowser {
     let screenshotPath = null;
 
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "clickType";
     info.selectors = selectors;
     info.value = _value;
@@ -674,7 +762,7 @@ class StableBrowser {
           await element.fill("");
         }
       } catch (e) {
-        this.logger.error("unable to clear input value");
+        this.info.error("unable to clear input value");
       }
       await element.click();
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -713,7 +801,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("fill failed " + JSON.stringify(info));
+      this.logger.error("fill failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -751,7 +839,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "fill";
     info.selectors = selectors;
     info.value = value;
@@ -769,7 +857,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("fill failed " + JSON.stringify(info));
+      this.logger.error("fill failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -806,7 +894,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     if (!info.log) {
-      info.log = [];
+      info.log = "";
     }
     info.operation = "getText";
     info.selectors = selectors;
@@ -819,16 +907,22 @@ class StableBrowser {
       let climbXpath = "xpath=" + climbArray.join("/");
       element = element.locator(climbXpath);
     }
+    let value = null;
+    try {
+      value = await element.inputValue();
+    } catch (e) {
+      //ignore
+    }
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      return { text: elementText, screenshotId, screenshotPath };
+      return { text: elementText, screenshotId, screenshotPath, value: value };
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
       const elementText = await element.textContent();
-      return { text: elementText, screenshotId, screenshotPath };
+      return { text: elementText, screenshotId, screenshotPath, value: value };
     }
   }
   async containsPattern(selectors, pattern, text, _params = null, options = {}, world = null) {
@@ -844,7 +938,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "containsPattern";
     info.selectors = selectors;
     info.value = text;
@@ -855,14 +949,14 @@ class StableBrowser {
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
-      if (!regex.test(foundObj?.text)) {
+      if (!regex.test(foundObj?.text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this.logger.error("verify element contains text failed " + info.log);
       this.logger.error("found text " + foundObj?.text + " pattern " + pattern);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
@@ -903,21 +997,22 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "containsText";
     info.selectors = selectors;
     info.value = text;
     let foundObj = null;
     try {
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
-      if (!foundObj?.text.includes(text)) {
+      if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
+        info.value = foundObj?.value;
         throw new Error("element doesn't contain text " + text);
       }
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify element contains text failed " + JSON.stringify(info));
+      this.logger.error("verify element contains text failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -988,7 +1083,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "verify";
     info.selectors = selectors;
     try {
@@ -999,7 +1094,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify failed " + JSON.stringify(info));
+      this.logger.error("verify failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1033,51 +1128,61 @@ class StableBrowser {
         return;
       }
       if (!css) {
-        await scope.evaluate((node) => {
-          if (node && node.style) {
-            let originalBorder = node.style.border;
-            node.style.border = "2px solid red";
-            if (window) {
-              window.addEventListener("beforeunload", function (e) {
-                node.style.border = originalBorder;
-              });
-            }
-            setTimeout(function () {
-              node.style.border = originalBorder;
-            }, 2000);
-          }
-        });
-      } else {
-        await scope.evaluate(
-          ([css]) => {
-            if (!css) {
-              return;
-            }
-            let elements = Array.from(document.querySelectorAll(css));
-            //console.log("found: " + elements.length);
-            for (let i = 0; i < elements.length; i++) {
-              let element = elements[i];
-              if (!element.style) {
-                return;
-              }
-              var originalBorder = element.style.border;
-
-              // Set the new border to be red and 2px solid
-              element.style.border = "2px solid red";
+        scope
+          .evaluate((node) => {
+            if (node && node.style) {
+              let originalBorder = node.style.border;
+              node.style.border = "2px solid red";
               if (window) {
                 window.addEventListener("beforeunload", function (e) {
-                  element.style.border = originalBorder;
+                  node.style.border = originalBorder;
                 });
               }
-              // Set a timeout to revert to the original border after 2 seconds
               setTimeout(function () {
-                element.style.border = originalBorder;
+                node.style.border = originalBorder;
               }, 2000);
             }
-            return;
-          },
-          [css]
-        );
+          })
+          .then(() => {})
+          .catch((e) => {
+            // ignore
+          });
+      } else {
+        scope
+          .evaluate(
+            ([css]) => {
+              if (!css) {
+                return;
+              }
+              let elements = Array.from(document.querySelectorAll(css));
+              //console.log("found: " + elements.length);
+              for (let i = 0; i < elements.length; i++) {
+                let element = elements[i];
+                if (!element.style) {
+                  return;
+                }
+                var originalBorder = element.style.border;
+
+                // Set the new border to be red and 2px solid
+                element.style.border = "2px solid red";
+                if (window) {
+                  window.addEventListener("beforeunload", function (e) {
+                    element.style.border = originalBorder;
+                  });
+                }
+                // Set a timeout to revert to the original border after 2 seconds
+                setTimeout(function () {
+                  element.style.border = originalBorder;
+                }, 2000);
+              }
+              return;
+            },
+            [css]
+          )
+          .then(() => {})
+          .catch((e) => {
+            // ignore
+          });
       }
     } catch (error) {
       console.debug(error);
@@ -1090,7 +1195,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "verifyPagePath";
     info.pathPart = pathPart;
     try {
@@ -1108,7 +1213,7 @@ class StableBrowser {
       }
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify page path failed " + JSON.stringify(info));
+      this.logger.error("verify page path failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1143,7 +1248,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
     try {
@@ -1178,7 +1283,7 @@ class StableBrowser {
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("verify text exist in page failed " + JSON.stringify(info));
+      this.logger.error("verify text exist in page failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1221,7 +1326,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = [];
+    info.log = "";
     info.operation = "analyzeTable";
     info.selectors = selectors;
     info.query = query;
@@ -1319,7 +1424,7 @@ class StableBrowser {
       }
       return info;
     } catch (e) {
-      this.logger.error("analyzeTable failed " + JSON.stringify(info));
+      this.logger.error("analyzeTable failed " + info.log);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
