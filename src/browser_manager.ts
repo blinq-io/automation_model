@@ -66,6 +66,7 @@ class Browser {
         this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
           headless: headless,
           timeout: 0,
+          bypassCSP: true,
         args: ["--ignore-https-errors", "--disable-extensions-except=" + extensionPath, "--load-extension=" + extensionPath, "--no-incognito"],
         });
       } else {
@@ -75,7 +76,7 @@ class Browser {
           args: ["--ignore-https-errors"],
         });
         
-        const contextOptions = !!storageState ? {storageState} : undefined
+        const contextOptions = !!storageState ? {storageState, bypassCSP: true} : undefined
         this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
       }
     // }
