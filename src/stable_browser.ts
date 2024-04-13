@@ -745,7 +745,6 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
-
     const info = {};
     info.log = "";
     info.operation = "clickType";
@@ -753,8 +752,12 @@ class StableBrowser {
     info.value = _value;
     try {
       let element = await this._locate(selectors, info, _params);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       //insert red border around the element
+      let didScroll = await this.scrollIfNeeded(element);
+      if (didScroll === true) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
       try {
         let currentValue = await element.inputValue();
@@ -782,6 +785,7 @@ class StableBrowser {
           await this.page.keyboard.press(value);
         } else {
           await this.page.keyboard.type(value);
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
       if (enter === true) {
@@ -797,11 +801,10 @@ class StableBrowser {
           await this.waitForPageLoad();
         }
       }
-
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("fill failed " + info.log);
+      this.logger.error("fill failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -820,7 +823,7 @@ class StableBrowser {
               status: "FAILED",
               startTime,
               endTime,
-              message: error?.message,
+              message: error === null || error === void 0 ? void 0 : error.message,
             }
           : {
               status: "PASSED",
@@ -830,7 +833,6 @@ class StableBrowser {
       });
     }
   }
-
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
 
@@ -1565,6 +1567,26 @@ class StableBrowser {
               endTime,
             },
       });
+    }
+  }
+  async scrollIfNeeded(element) {
+    try {
+      await element.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        if (
+          rect &&
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        ) {
+          return;
+        } else {
+          node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        }
+      });
+    } catch (e) {
+      console.log("scroll failed");
     }
   }
   _reportToWorld(world, properties: JsonCommandReport) {
