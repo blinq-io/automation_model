@@ -496,6 +496,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -557,6 +558,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -614,6 +616,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -674,6 +677,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -736,6 +740,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -830,6 +835,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -885,6 +891,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -985,6 +992,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1135,6 +1143,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1253,6 +1262,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1323,6 +1333,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1465,6 +1476,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1547,6 +1559,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1580,6 +1593,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
