@@ -954,6 +954,7 @@ class StableBrowser {
     info.pattern = pattern;
     let foundObj = null;
     try {
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, 0, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
@@ -1013,6 +1014,7 @@ class StableBrowser {
     info.value = text;
     let foundObj = null;
     try {
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
       if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
@@ -1055,15 +1057,19 @@ class StableBrowser {
   async _screenShot(options = {}, world = null, info = null) {
     // collect url/path/title
     if (info) {
-      try {
-        info.title = await this.page.title();
-      } catch (e) {
-        // ignore
+      if (!info.title) {
+        try {
+          info.title = await this.page.title();
+        } catch (e) {
+          // ignore
+        }
       }
-      try {
-        info.url = this.page.url();
-      } catch (e) {
-        // ignore
+      if (!info.url) {
+        try {
+          info.url = this.page.url();
+        } catch (e) {
+          // ignore
+        }
       }
     }
     let result = {};
@@ -1233,13 +1239,13 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
       }
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.error("verify page path failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
@@ -1559,7 +1565,6 @@ class StableBrowser {
               startTime,
               endTime,
             },
-        info: info,
       });
     }
   }
@@ -1568,6 +1573,7 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
+    const info = {};
 
     try {
       await this.page.reload();
@@ -1575,7 +1581,7 @@ class StableBrowser {
       console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
