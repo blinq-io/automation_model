@@ -1040,10 +1040,24 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
   async _screenShot(options = {}, world = null, info = null) {
+    // collect url/path/title
+    if (info) {
+      try {
+        info.title = await this.page.title();
+      } catch (e) {
+        // ignore
+      }
+      try {
+        info.url = this.page.url();
+      } catch (e) {
+        // ignore
+      }
+    }
     let result = {};
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
