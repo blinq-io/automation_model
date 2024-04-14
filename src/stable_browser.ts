@@ -28,6 +28,7 @@ const Types = {
   HOVER: "hover_element",
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
+  EXTRACT: "extract_attribute",
 };
 
 class StableBrowser {
@@ -1153,6 +1154,74 @@ class StableBrowser {
       });
     }
   }
+  async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = "";
+    info.operation = "extract";
+    info.selectors = selectors;
+    try {
+      const element = await this._locate(selectors, info, _params);
+      await this._highlightElements(element);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      switch (attribute) {
+        case "innerText":
+          info.value = await element.innerText();
+          break;
+        case "href":
+          info.value = await element.getAttribute("href");
+          break;
+        case "value":
+          info.value = await element.inputValue();
+          break;
+        default:
+          info.value = await element.getAttribute(attribute);
+          break;
+      }
+      this[variable] = info.value;
+      if (world) {
+        world[variable] = info.value;
+      }
+      return info;
+    } catch (e) {
+      await this.closeUnexpectedPopups();
+      this.logger.error("extract failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.EXTRACT_ATTRIBUTE,
+        variable: variable,
+        value: info.value,
+        text: "Extract attribute from element",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async _highlightElements(scope, css) {
     try {
       if (!scope) {
