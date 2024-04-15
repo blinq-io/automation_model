@@ -1170,7 +1170,7 @@ class StableBrowser {
       await this._highlightElements(element);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       switch (attribute) {
-        case "innerText":
+        case "inner_text":
           info.value = await element.innerText();
           break;
         case "href":
@@ -1187,6 +1187,7 @@ class StableBrowser {
       if (world) {
         world[variable] = info.value;
       }
+      this.logger.info("world." + variable + "=" + info.value);
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
