@@ -28,6 +28,7 @@ const Types = {
   HOVER: "hover_element",
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
+  EXTRACT: "extract_attribute",
 };
 
 class StableBrowser {
@@ -496,6 +497,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -557,6 +559,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -614,6 +617,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -674,6 +678,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -736,6 +741,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -745,7 +751,6 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
-
     const info = {};
     info.log = "";
     info.operation = "clickType";
@@ -753,8 +758,12 @@ class StableBrowser {
     info.value = _value;
     try {
       let element = await this._locate(selectors, info, _params);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       //insert red border around the element
+      let didScroll = await this.scrollIfNeeded(element);
+      if (didScroll === true) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
       try {
         let currentValue = await element.inputValue();
@@ -782,6 +791,7 @@ class StableBrowser {
           await this.page.keyboard.press(value);
         } else {
           await this.page.keyboard.type(value);
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
       if (enter === true) {
@@ -797,11 +807,10 @@ class StableBrowser {
           await this.waitForPageLoad();
         }
       }
-
       return info;
     } catch (e) {
       await this.closeUnexpectedPopups();
-      this.logger.error("fill failed " + info.log);
+      this.logger.error("fill failed " + JSON.stringify(info));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -820,17 +829,17 @@ class StableBrowser {
               status: "FAILED",
               startTime,
               endTime,
-              message: error?.message,
+              message: error === null || error === void 0 ? void 0 : error.message,
             }
           : {
               status: "PASSED",
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
-
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
 
@@ -883,6 +892,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -945,6 +955,7 @@ class StableBrowser {
     info.pattern = pattern;
     let foundObj = null;
     try {
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, 0, _params, options, info, world);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
@@ -983,6 +994,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1003,6 +1015,7 @@ class StableBrowser {
     info.value = text;
     let foundObj = null;
     try {
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
       if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
@@ -1038,10 +1051,28 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
   async _screenShot(options = {}, world = null, info = null) {
+    // collect url/path/title
+    if (info) {
+      if (!info.title) {
+        try {
+          info.title = await this.page.title();
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (!info.url) {
+        try {
+          info.url = this.page.url();
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
     let result = {};
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
@@ -1119,9 +1150,79 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
+  async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = "";
+    info.operation = "extract";
+    info.selectors = selectors;
+    try {
+      const element = await this._locate(selectors, info, _params);
+      await this._highlightElements(element);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      switch (attribute) {
+        case "inner_text":
+          info.value = await element.innerText();
+          break;
+        case "href":
+          info.value = await element.getAttribute("href");
+          break;
+        case "value":
+          info.value = await element.inputValue();
+          break;
+        default:
+          info.value = await element.getAttribute(attribute);
+          break;
+      }
+      this[variable] = info.value;
+      if (world) {
+        world[variable] = info.value;
+      }
+      this.logger.info("world." + variable + "=" + info.value);
+      return info;
+    } catch (e) {
+      await this.closeUnexpectedPopups();
+      this.logger.error("extract failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.EXTRACT_ATTRIBUTE,
+        variable: variable,
+        value: info.value,
+        text: "Extract attribute from element",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async _highlightElements(scope, css) {
     try {
       if (!scope) {
@@ -1208,13 +1309,13 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
       }
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.error("verify page path failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
@@ -1237,6 +1338,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1307,6 +1409,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1449,6 +1552,7 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
     }
   }
@@ -1539,6 +1643,7 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
+    const info = {};
 
     try {
       await this.page.reload();
@@ -1546,7 +1651,7 @@ class StableBrowser {
       console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const endTime = Date.now();
       this._reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
@@ -1564,7 +1669,28 @@ class StableBrowser {
               startTime,
               endTime,
             },
+        info: info,
       });
+    }
+  }
+  async scrollIfNeeded(element) {
+    try {
+      await element.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        if (
+          rect &&
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        ) {
+          return;
+        } else {
+          node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        }
+      });
+    } catch (e) {
+      console.log("scroll failed");
     }
   }
   _reportToWorld(world, properties: JsonCommandReport) {
