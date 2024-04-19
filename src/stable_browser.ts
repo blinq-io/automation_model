@@ -16,7 +16,7 @@ const Types = {
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
   OPEN: "open_environment", //
-  COMPLETE: "task_complete",
+  COMPLETE: "step_complete",
   ASK: "information_needed",
   GET_PAGE_STATUS: "get_page_status", ///
   CLICK_ROW_ACTION: "click_row_action", //
@@ -456,7 +456,10 @@ class StableBrowser {
     let screenshotPath = null;
     try {
       let element = await this._locate(selectors, info, _params);
-
+      let didScroll = await this.scrollIfNeeded(element);
+      if (didScroll === true) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
