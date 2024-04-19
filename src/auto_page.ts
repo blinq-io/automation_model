@@ -45,7 +45,7 @@ const initContext = async (
     world.context = context;
     world.screenshot = true;
     if (!reportFolder) {
-      const reportFolder = _findEmptyFolder();
+      reportFolder = _findEmptyFolder();
       if (world.attach) {
         world.attach(reportFolder, { mediaType: "text/plain" });
       }
