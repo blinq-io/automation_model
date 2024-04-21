@@ -231,7 +231,15 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, info) {
+  async _collectLocatorInformation(
+    selectorHierarchy,
+    index = 0,
+    scope,
+    foundLocators,
+    _params: Params,
+    inf,
+    visibleOnly = true
+  ) {
     let locatorSearch = selectorHierarchy[index];
     info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
@@ -278,9 +286,12 @@ class StableBrowser {
     }
 
     for (let j = 0; j < count; j++) {
-      const visible = await locator.nth(j).isVisible();
+      let visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
       info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
+      if (!visibleOnly) {
+        visible = true;
+      }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
         if (cssHref) {
@@ -292,6 +303,7 @@ class StableBrowser {
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     let highPriorityTimeout = 5000;
+    let visibleOnlyTimeout = 6000;
     let startTime = performance.now();
     let locatorsCount = 0;
     let arrayMode = Array.isArray(selectors);
@@ -354,18 +366,19 @@ class StableBrowser {
     }
 
     let highPriorityOnly = true;
+    let visibleOnly = true;
     while (true) {
       locatorsCount = 0;
       let result = [];
       info.log += "scanning locators in priority 1" + "\n";
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info);
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
       if (result.foundElements.length === 0) {
         info.log += "scanning locators in priority 2" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info);
+        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
       }
       if (result.foundElements.length === 0 && !highPriorityOnly) {
         info.log += "scanning locators in priority 3" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info);
+        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
       }
       let foundElements = result.foundElements;
 
@@ -408,6 +421,9 @@ class StableBrowser {
       if (performance.now() - startTime > highPriorityTimeout) {
         highPriorityOnly = false;
       }
+      if (performance.now() - startTime > visibleOnlyTimeout) {
+        visibleOnly = false;
+      }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
@@ -415,7 +431,7 @@ class StableBrowser {
 
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -423,12 +439,12 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info);
+        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly);
       } catch (e) {
         this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info);
+          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly);
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
