@@ -472,10 +472,7 @@ class StableBrowser {
     let screenshotPath = null;
     try {
       let element = await this._locate(selectors, info, _params);
-      let didScroll = await this.scrollIfNeeded(element);
-      if (didScroll === true) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      await this.scrollIfNeeded(element, info);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
@@ -778,7 +775,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
       //insert red border around the element
-      let didScroll = await this.scrollIfNeeded(element);
+      await this.scrollIfNeeded(element, info);
       if (didScroll === true) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
@@ -946,7 +943,7 @@ class StableBrowser {
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      return { text: elementText, screenshotId, screenshotPath, value: value };
+      return { text: elementText, screenshotId, screenshotPath, value: value, element: element };
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
@@ -974,8 +971,11 @@ class StableBrowser {
     info.pattern = pattern;
     let foundObj = null;
     try {
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, 0, _params, options, info, world);
+      if (foundObj && foundObj.element) {
+        await this.scrollIfNeeded(foundObj.element, info);
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -1034,8 +1034,12 @@ class StableBrowser {
     info.value = text;
     let foundObj = null;
     try {
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
+      if (foundObj && foundObj.element) {
+        await this.scrollIfNeeded(foundObj.element, info);
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+
       if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         info.value = foundObj?.value;
@@ -1138,6 +1142,9 @@ class StableBrowser {
     info.selectors = selectors;
     try {
       const element = await this._locate(selectors, info, _params);
+      if (element) {
+        await this.scrollIfNeeded(element, info);
+      }
       await this._highlightElements(element);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await expect(element).toHaveCount(1, { timeout: 10000 });
@@ -1692,9 +1699,9 @@ class StableBrowser {
       });
     }
   }
-  async scrollIfNeeded(element) {
+  async scrollIfNeeded(element, info) {
     try {
-      await element.evaluate((node) => {
+      let didScroll = await element.evaluate((node) => {
         const rect = node.getBoundingClientRect();
         if (
           rect &&
@@ -1703,11 +1710,18 @@ class StableBrowser {
           rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
           rect.right <= (window.innerWidth || document.documentElement.clientWidth)
         ) {
-          return;
+          return null;
         } else {
           node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          return true;
         }
       });
+      if (didScroll) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (info) {
+          info.box = await element.boundingBox();
+        }
+      }
     } catch (e) {
       console.log("scroll failed");
     }
