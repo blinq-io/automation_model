@@ -5,7 +5,7 @@ const name = "login";
 const path = "/";
 const elements = {
   loginButton: {
-    locators: [{ role: ["button", { name: "{signin}" }] }],
+    locators: [{ role: ["button", { name: "{signin}" }] }, { css: "button" }],
   },
   username: {
     locators: [{ css: 'input[name="username"]' }],
