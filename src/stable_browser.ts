@@ -253,7 +253,7 @@ class StableBrowser {
     scope,
     foundLocators,
     _params: Params,
-    inf,
+    info,
     visibleOnly = true
   ) {
     let locatorSearch = selectorHierarchy[index];
