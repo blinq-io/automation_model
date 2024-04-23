@@ -29,6 +29,7 @@ const Types = {
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
+  CLOSE_PAGE: "close_page",
 };
 
 class StableBrowser {
@@ -36,11 +37,13 @@ class StableBrowser {
     if (!this.logger) {
       this.logger = console;
     }
+    context.pages = [this.page];
     context.pageLoading = false;
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
       this.page = page;
       context.page = page;
+      context.pages.push(page);
 
       try {
         await this.waitForPageLoad();
@@ -49,6 +52,19 @@ class StableBrowser {
         this.logger.error("error on page load " + e);
       }
       context.pageLoading.status = false;
+    });
+    context.playContext.on("close", async () => {
+      if (context.pages.length > 1) {
+        // remove the last page
+        context.pages.pop();
+        this.page = context.pages[context.pages.length - 1];
+        context.page = this.page;
+        try {
+          console.log("Switch page: " + (await this.page.title()));
+        } catch (e) {
+          this.logger.error("error on page load " + e);
+        }
+      }
     });
   }
   async closeUnexpectedPopups() {
@@ -1661,6 +1677,40 @@ class StableBrowser {
               startTime,
               endTime,
             },
+      });
+    }
+  }
+  async closePage(options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    try {
+      await this.page.close();
+    } catch (e) {
+      console.log(".");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.CLOSE_PAGE,
+        text: "close page",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
       });
     }
   }
