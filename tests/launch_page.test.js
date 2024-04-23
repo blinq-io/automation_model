@@ -35,7 +35,14 @@ const login = async function () {
   });
   console.log("info verify", JSON.stringify(info, null, 2));
 };
-await login();
+try {
+  await login();
+} catch (e) {
+  if (e.info) {
+    console.log("error", JSON.stringify(e.info, null, 2));
+  }
+  throw e;
+}
 
 await new Promise((resolve) => setTimeout(resolve, 1000));
 await closeBrowser();
