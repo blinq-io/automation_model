@@ -33,7 +33,7 @@ const Types = {
 };
 
 class StableBrowser {
-  constructor(public browser: Browser, public page: Page, public logger: any = null, context: any = null) {
+  constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
     if (!this.logger) {
       this.logger = console;
     }
@@ -53,19 +53,19 @@ class StableBrowser {
       }
       context.pageLoading.status = false;
     });
-    context.playContext.on("close", async () => {
-      if (context.pages.length > 1) {
-        // remove the last page
-        context.pages.pop();
-        this.page = context.pages[context.pages.length - 1];
-        context.page = this.page;
-        try {
-          console.log("Switch page: " + (await this.page.title()));
-        } catch (e) {
-          this.logger.error("error on page load " + e);
-        }
-      }
-    });
+    // context.playContext.on("close", async () => {
+    //   if (context.pages.length > 1) {
+    //     // remove the last page
+    //     context.pages.pop();
+    //     this.page = context.pages[context.pages.length - 1];
+    //     context.page = this.page;
+    //     try {
+    //       console.log("Switch page: " + (await this.page.title()));
+    //     } catch (e) {
+    //       this.logger.error("error on page load " + e);
+    //     }
+    //   }
+    // });
   }
   async closeUnexpectedPopups() {
     await closeUnexpectedPopups(this.page);
@@ -1689,6 +1689,13 @@ class StableBrowser {
     const info = {};
     try {
       await this.page.close();
+      if (this.context && this.context.pages && this.context.pages.length > 0) {
+        this.context.pages.pop();
+        this.page = context.pages[context.pages.length - 1];
+        this.context.page = this.page;
+        let title = await this.page.title();
+        console.log("Switched to page " + title);
+      }
     } catch (e) {
       console.log(".");
     } finally {
