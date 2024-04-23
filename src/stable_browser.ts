@@ -458,6 +458,7 @@ class StableBrowser {
         await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly);
       } catch (e) {
         this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
+        this.logger.debug(e);
         foundLocators = [];
         try {
           await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly);
