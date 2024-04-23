@@ -38,6 +38,9 @@ const login = async function () {
 try {
   await login();
 } catch (e) {
+  if (e.info) {
+    console.log("info", JSON.stringify(e.info, null, 2));
+  }
   try {
     const html = await context.stable.page.content();
     console.log("html content", html);
