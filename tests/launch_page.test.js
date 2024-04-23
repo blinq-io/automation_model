@@ -42,7 +42,8 @@ try {
     const html = await context.stable.page.content();
     info.html = html;
   } catch (e) {
-    this.logger.error("unable to get html content");
+    console.log(e);
+    console.log("unable to get html content");
   }
   const buffer = await context.stable.page.screenshot({ timeout: 4000 });
   const base64 = buffer.toString("base64");
