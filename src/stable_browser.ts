@@ -505,12 +505,6 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("click failed " + info.log);
-      try {
-        const html = await page.content();
-        info.html = html;
-      } catch (e) {
-        this.logger.error("unable to get html content");
-      }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });

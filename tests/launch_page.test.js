@@ -38,9 +38,15 @@ const login = async function () {
 try {
   await login();
 } catch (e) {
-  if (e.info) {
-    console.log("error", JSON.stringify(e.info, null, 2));
+  try {
+    const html = await context.stable.page.content();
+    info.html = html;
+  } catch (e) {
+    this.logger.error("unable to get html content");
   }
+  const buffer = await context.stable.page.screenshot({ timeout: 4000 });
+  const base64 = buffer.toString("base64");
+  console.log("screenshot", base64);
   throw e;
 }
 
