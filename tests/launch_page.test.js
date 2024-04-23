@@ -40,7 +40,7 @@ try {
 } catch (e) {
   try {
     const html = await context.stable.page.content();
-    info.html = html;
+    console.log("html content", html);
   } catch (e) {
     console.log(e);
     console.log("unable to get html content");
