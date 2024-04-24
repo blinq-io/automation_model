@@ -793,9 +793,6 @@ class StableBrowser {
       let element = await this._locate(selectors, info, _params);
       //insert red border around the element
       await this.scrollIfNeeded(element, info);
-      if (didScroll === true) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
       try {
@@ -1691,7 +1688,7 @@ class StableBrowser {
       await this.page.close();
       if (this.context && this.context.pages && this.context.pages.length > 0) {
         this.context.pages.pop();
-        this.page = context.pages[context.pages.length - 1];
+        this.page = this.context.pages[this.context.pages.length - 1];
         this.context.page = this.page;
         let title = await this.page.title();
         console.log("Switched to page " + title);
@@ -1768,7 +1765,7 @@ class StableBrowser {
           rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
           rect.right <= (window.innerWidth || document.documentElement.clientWidth)
         ) {
-          return null;
+          return false;
         } else {
           node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
           return true;
