@@ -28,12 +28,7 @@ const _findEmptyFolder = (folder?: string) => {
   }
   return path.join(folder, nextIndex.toString());
 };
-const initContext = async (
-  path: string,
-  doNavigate = true,
-  headless = false,
-  world: any = null
-) => {
+const initContext = async (path: string, doNavigate = true, headless = false, world: any = null) => {
   if (context) {
     return context;
   }
