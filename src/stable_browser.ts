@@ -38,7 +38,7 @@ class StableBrowser {
       this.logger = console;
     }
     context.pages = [this.page];
-    context.pageLoading = false;
+    context.pageLoading = { status: false };
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
       this.page = page;
