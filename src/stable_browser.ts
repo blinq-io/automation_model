@@ -522,16 +522,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -584,16 +584,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -642,16 +642,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -703,16 +703,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -766,21 +766,21 @@ class StableBrowser {
         text: `type value: ${_value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
   }
-  async setDateTime(selectors, value, enter=false, _params = null, options = {}, world = null) {
+  async setDateTime(selectors, value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     let error = null;
@@ -806,34 +806,34 @@ class StableBrowser {
       // } catch (error) {
       //   this.info.error("unable to clear input value");
       // }
-      
+
       try {
         await element.click();
-      await new Promise((resolve) => setTimeout(resolve, 500));
-        const valueSegments = await getDateTimeSegments({element, value});
-        /** length - 1 to avoid the last tab*/ 
-        const l_1 = valueSegments.length-1;
-        for(let i = 0; i < valueSegments.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const valueSegments = await getDateTimeSegments({ element, value });
+        /** length - 1 to avoid the last tab*/
+        const l_1 = valueSegments.length - 1;
+        for (let i = 0; i < valueSegments.length; i++) {
           const segment = valueSegments[i];
           await element.type(segment);
-          if(i<l_1) await element.press("Tab");
+          if (i < l_1) await element.press("Tab");
         }
       } catch (error) {
         await this.closeUnexpectedPopups();
         this.logger.error("setting date time input failed " + JSON.stringify(info));
         this.logger.info("Tring again")
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         await element.click();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         info.screenshotPath = screenshotPath;
         Object.assign(error, { info: info });
-        const valueSegments = await getDateTimeSegments({element, value});
-        /** length - 1 to avoid the last tab*/ 
-        const l_1 = valueSegments.length-1;
-        for(let i = 0; i < valueSegments.length; i++) {
+        const valueSegments = await getDateTimeSegments({ element, value });
+        /** length - 1 to avoid the last tab*/
+        const l_1 = valueSegments.length - 1;
+        for (let i = 0; i < valueSegments.length; i++) {
           const segment = valueSegments[i];
           await element.type(segment);
-          if(i<l_1) await element.press("Tab");
+          if (i < l_1) await element.press("Tab");
         }
       }
     } catch (error) {
@@ -848,16 +848,16 @@ class StableBrowser {
         text: `setDateTime input with value: ${value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error === null || error === void 0 ? void 0 : error.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error === null || error === void 0 ? void 0 : error.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -940,16 +940,16 @@ class StableBrowser {
         text: `clickType input with value: ${_value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error === null || error === void 0 ? void 0 : error.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error === null || error === void 0 ? void 0 : error.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -996,16 +996,16 @@ class StableBrowser {
         text: `Fill input with value: ${value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1101,16 +1101,16 @@ class StableBrowser {
         screenshotId: foundObj?.screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1162,16 +1162,16 @@ class StableBrowser {
         screenshotId: foundObj?.screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1264,16 +1264,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1332,16 +1332,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1368,7 +1368,7 @@ class StableBrowser {
               }, 2000);
             }
           })
-          .then(() => {})
+          .then(() => { })
           .catch((e) => {
             // ignore
           });
@@ -1404,7 +1404,7 @@ class StableBrowser {
             },
             [css]
           )
-          .then(() => {})
+          .then(() => { })
           .catch((e) => {
             // ignore
           });
@@ -1452,16 +1452,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1523,16 +1523,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1666,16 +1666,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1749,16 +1749,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
       });
     }
   }
@@ -1789,16 +1789,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1824,16 +1824,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
