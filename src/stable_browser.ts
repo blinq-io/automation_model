@@ -7,6 +7,7 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
+import { findDateAlternatives } from "./date_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -1053,8 +1054,15 @@ class StableBrowser {
         await this.scrollIfNeeded(foundObj.element, info);
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-
-      if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
+      if (options && options.date === true) {
+        const dateAlternatives = findDateAlternatives(text);
+        for (let i = 0; i < dateAlternatives.length; i++) {
+          if (foundObj?.text.includes(dateAlternatives[i]) || foundObj?.value?.includes(dateAlternatives[i])) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         info.value = foundObj?.value;
         throw new Error("element doesn't contain text " + text);
@@ -1393,14 +1401,27 @@ class StableBrowser {
     info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
+    const dateSearch = options && options.date === true;
+    let dateAlternatives = [];
+    if (dateSearch) {
+      dateAlternatives = findDateAlternatives(text);
+    }
     try {
       while (true) {
         const frames = this.page.frames();
         let results = [];
         for (let i = 0; i < frames.length; i++) {
-          const result = await this._locateElementByText(frames[i], text, "*", true, {});
-          result.frame = frames[i];
-          results.push(result);
+          if (dateSearch) {
+            for (let j = 0; j < dateAlternatives.length; j++) {
+              const result = await this._locateElementByText(frames[i], dateAlternatives[j], "*", true, {});
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else {
+            const result = await this._locateElementByText(frames[i], text, "*", true, {});
+            result.frame = frames[i];
+            results.push(result);
+          }
         }
         info.results = results;
         const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
