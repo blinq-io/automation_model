@@ -28,8 +28,8 @@ const login = async function () {
   let info = null;
   //await context.stable.reloadPage();
   //await context.stable.verifyTextExistInPage("github", {});
-  await context.stable.goto("https://page-app-970.my.salesforce.com/");
-  await context.stable.verifyTextExistInPage("Start your free trial", {});
+  await context.stable.goto("https://todaysdate365.com/");
+  await context.stable.verifyTextExistInPage("25/04/2024", { date: true });
 };
 await login();
 

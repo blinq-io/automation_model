@@ -2,18 +2,17 @@ import { chromium, Browser as PlaywrightBrowser, BrowserContext, Page, BrowserCo
 import type { Cookie, LocalStorage } from "./environment.js";
 
 type StorageState = {
-  cookies: Cookie[],
-  origins: {origin: string, localStorage: LocalStorage}[]
-}
+  cookies: Cookie[];
+  origins: { origin: string; localStorage: LocalStorage }[];
+};
 class BrowserManager {
-  constructor(public browsers: Browser[] = []) {
-  }
+  constructor(public browsers: Browser[] = []) {}
 
   async closeAll() {
     await Promise.all(this.browsers.map((browser) => browser.close()));
     this.browsers = [];
   }
-  async closeBrowser(browser?: PlaywrightBrowser |Browser) {
+  async closeBrowser(browser?: PlaywrightBrowser | Browser) {
     if (!browser && this.browsers.length > 0) {
       browser = this.browsers[0];
     }
@@ -30,13 +29,13 @@ class BrowserManager {
     }
   }
 
-  async createBrowser(headless = false, storageState?:StorageState, extensionPath?: string, userDataDirPath?: string) {
+  async createBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
     const browser = new Browser();
     await browser.init(headless, storageState, extensionPath, userDataDirPath);
     this.browsers.push(browser);
     return browser;
   }
-  async getBrowser(headless = false, storageState?:StorageState, extensionPath?: string, userDataDirPath?: string) {
+  async getBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
     if (this.browsers.length === 0) {
       return await this.createBrowser(headless, storageState, extensionPath, userDataDirPath);
     }
@@ -44,17 +43,16 @@ class BrowserManager {
   }
 }
 class Browser {
-  browser : PlaywrightBrowser|null;
-  context : BrowserContext | null;
-  page : Page | null;
+  browser: PlaywrightBrowser | null;
+  context: BrowserContext | null;
+  page: Page | null;
   constructor() {
     this.browser = null;
     this.context = null;
     this.page = null;
   }
 
-  async init(headless = false, storageState?:StorageState, extensionPath?: string, userDataDirPath?: string) {
-
+  async init(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
     // if(userDataDirPath) {
     //   this.browser = await chromium.connectOverCDP(userDataDirPath, {
 
@@ -62,23 +60,31 @@ class Browser {
     //   const contextOptions:BrowserContextOptions |undefined = !!storageState ? {storageState, } : undefined
     //   this.context = await this.browser.newContext({});
     // } else {
-      if (extensionPath) {
-        this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
-          headless: headless,
-          timeout: 0,
-          bypassCSP: true,
-        args: ["--ignore-https-errors", "--disable-extensions-except=" + extensionPath, "--load-extension=" + extensionPath, "--no-incognito"],
-        });
-      } else {
-        this.browser = await chromium.launch({
-          headless: headless,
-          timeout: 0,
-          args: ["--ignore-https-errors"],
-        });
-        
-        const contextOptions = !!storageState ? {storageState, bypassCSP: true} : undefined
-        this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
-      }
+    if (process.env.HEADLESS === "true") {
+      headless = true;
+    }
+    if (extensionPath) {
+      this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
+        headless: headless,
+        timeout: 0,
+        bypassCSP: true,
+        args: [
+          "--ignore-https-errors",
+          "--disable-extensions-except=" + extensionPath,
+          "--load-extension=" + extensionPath,
+          "--no-incognito",
+        ],
+      });
+    } else {
+      this.browser = await chromium.launch({
+        headless: headless,
+        timeout: 0,
+        args: ["--ignore-https-errors"],
+      });
+
+      const contextOptions = !!storageState ? { storageState, bypassCSP: true } : undefined;
+      this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+    }
     // }
     this.page = await this.context.newPage();
   }
@@ -95,7 +101,7 @@ class Browser {
 const browserManager = new BrowserManager();
 
 export { browserManager };
-export type {BrowserManager, Browser}
+export type { BrowserManager, Browser };
 // let browser = await browserManager.createBrowser();
 // browser.page.goto("https://www.cnn.com");
 // let browser2 = await browserManager.createBrowser();

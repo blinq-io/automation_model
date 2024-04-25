@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 let context: TestContext | null = null;
+let reportFolder = "";
 const navigate = async (path = "") => {
   let url = null;
   if (path === null) {
@@ -38,9 +39,11 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
   if (world) {
     world.context = context;
     world.screenshot = true;
-    const reportFolder = _findEmptyFolder();
-    if (world.attach) {
-      world.attach(reportFolder, { mediaType: "text/plain" });
+    if (!reportFolder) {
+      reportFolder = _findEmptyFolder();
+      if (world.attach) {
+        world.attach(reportFolder, { mediaType: "text/plain" });
+      }
     }
     world.screenshotPath = reportFolder + "/screenshots/";
     if (!fs.existsSync(world.screenshotPath)) {

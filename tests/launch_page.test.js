@@ -4,41 +4,52 @@ import { closeBrowser } from "../build/lib/init_browser.js";
 const name = "login";
 const path = "/";
 const elements = {
-  sign_in: {
-    locators: [{ role: ["link", { name: "{signin}" }] }, { css: "a[href='/login']" }],
+  loginButton: {
+    locators: [{ role: ["button", { name: "{signin}" }] }, { css: "button" }],
   },
   username: {
-    locators: [{ css: 'input[name="login"]' }],
+    locators: [{ css: 'input[name="username"]' }],
   },
   password: {
-    locators: [{ css: 'input[name="password"]' }],
-  },
-  loginButton: {
-    locators: [{ role: ["button", { name: "Sign in" }] }],
+    locators: [{ css: "#password" }],
   },
 };
 const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
-  info = await context.stable.verifyTextExistInPage("github", {});
-  info = await context.stable.click(elements.sign_in, { signin: "Sign in" });
+  info = await context.stable.verifyTextExistInPage("Accepted usernames are:", {});
+  info = await context.stable.click(elements.loginButton, { signin: "Login" });
   console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
   console.log("info fill username", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.password, "guy");
   console.log("info fill password", JSON.stringify(info, null, 2));
-  info = await context.stable.click(elements.loginButton);
+  info = await context.stable.click(elements.loginButton, { signin: "Login" });
   console.log("info click login", JSON.stringify(info, null, 2));
   info = await context.stable.verifyElementExistInPage({
     locators: [
       {
-        text: "Incorrect username or password.",
+        text: "Invalid username or password",
       },
     ],
   });
   console.log("info verify", JSON.stringify(info, null, 2));
 };
-await login();
+try {
+  await login();
+} catch (e) {
+  try {
+    const html = await context.stable.page.content();
+    console.log("html", html);
+  } catch (e) {
+    console.log(e);
+    console.log("unable to get html content");
+  }
+  const buffer = await context.stable.page.screenshot({ timeout: 4000 });
+  const base64 = buffer.toString("base64");
+  console.log("screenshot", base64);
+  throw e;
+}
 
 await new Promise((resolve) => setTimeout(resolve, 1000));
 await closeBrowser();

@@ -7,6 +7,7 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
+import { findDateAlternatives } from "./date_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -16,7 +17,7 @@ const Types = {
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
   OPEN: "open_environment", //
-  COMPLETE: "task_complete",
+  COMPLETE: "step_complete",
   ASK: "information_needed",
   GET_PAGE_STATUS: "get_page_status", ///
   CLICK_ROW_ACTION: "click_row_action", //
@@ -29,18 +30,21 @@ const Types = {
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
+  CLOSE_PAGE: "close_page",
 };
 
 class StableBrowser {
-  constructor(public browser: Browser, public page: Page, public logger: any = null, context: any = null) {
+  constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
     if (!this.logger) {
       this.logger = console;
     }
-    context.pageLoading = false;
+    context.pages = [this.page];
+    context.pageLoading = { status: false };
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
       this.page = page;
       context.page = page;
+      context.pages.push(page);
 
       try {
         await this.waitForPageLoad();
@@ -50,6 +54,19 @@ class StableBrowser {
       }
       context.pageLoading.status = false;
     });
+    // context.playContext.on("close", async () => {
+    //   if (context.pages.length > 1) {
+    //     // remove the last page
+    //     context.pages.pop();
+    //     this.page = context.pages[context.pages.length - 1];
+    //     context.page = this.page;
+    //     try {
+    //       console.log("Switch page: " + (await this.page.title()));
+    //     } catch (e) {
+    //       this.logger.error("error on page load " + e);
+    //     }
+    //   }
+    // });
   }
   async closeUnexpectedPopups() {
     await closeUnexpectedPopups(this.page);
@@ -231,7 +248,15 @@ class StableBrowser {
     );
   }
 
-  async _collectLocatorInformation(selectorHierarchy, index = 0, scope, foundLocators, _params: Params, info) {
+  async _collectLocatorInformation(
+    selectorHierarchy,
+    index = 0,
+    scope,
+    foundLocators,
+    _params: Params,
+    info,
+    visibleOnly = true
+  ) {
     let locatorSearch = selectorHierarchy[index];
     info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
@@ -278,9 +303,12 @@ class StableBrowser {
     }
 
     for (let j = 0; j < count; j++) {
-      const visible = await locator.nth(j).isVisible();
+      let visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
       info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
+      if (!visibleOnly) {
+        visible = true;
+      }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
         if (cssHref) {
@@ -292,6 +320,7 @@ class StableBrowser {
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     let highPriorityTimeout = 5000;
+    let visibleOnlyTimeout = 6000;
     let startTime = performance.now();
     let locatorsCount = 0;
     let arrayMode = Array.isArray(selectors);
@@ -354,18 +383,19 @@ class StableBrowser {
     }
 
     let highPriorityOnly = true;
+    let visibleOnly = true;
     while (true) {
       locatorsCount = 0;
       let result = [];
       info.log += "scanning locators in priority 1" + "\n";
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info);
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
       if (result.foundElements.length === 0) {
         info.log += "scanning locators in priority 2" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info);
+        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
       }
       if (result.foundElements.length === 0 && !highPriorityOnly) {
         info.log += "scanning locators in priority 3" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info);
+        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
       }
       let foundElements = result.foundElements;
 
@@ -408,6 +438,9 @@ class StableBrowser {
       if (performance.now() - startTime > highPriorityTimeout) {
         highPriorityOnly = false;
       }
+      if (performance.now() - startTime > visibleOnlyTimeout) {
+        visibleOnly = false;
+      }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
@@ -415,7 +448,7 @@ class StableBrowser {
 
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -423,12 +456,13 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info);
+        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly);
       } catch (e) {
         this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
+        this.logger.debug(e);
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info);
+          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly);
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
@@ -456,7 +490,7 @@ class StableBrowser {
     let screenshotPath = null;
     try {
       let element = await this._locate(selectors, info, _params);
-
+      await this.scrollIfNeeded(element, info);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
@@ -759,10 +793,7 @@ class StableBrowser {
     try {
       let element = await this._locate(selectors, info, _params);
       //insert red border around the element
-      let didScroll = await this.scrollIfNeeded(element);
-      if (didScroll === true) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      await this.scrollIfNeeded(element, info);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
       try {
@@ -927,7 +958,7 @@ class StableBrowser {
     try {
       await this._highlightElements(element);
       const elementText = await element.innerText();
-      return { text: elementText, screenshotId, screenshotPath, value: value };
+      return { text: elementText, screenshotId, screenshotPath, value: value, element: element };
     } catch (e) {
       await this.closeUnexpectedPopups();
       this.logger.info("no innerText will use textContent");
@@ -955,8 +986,11 @@ class StableBrowser {
     info.pattern = pattern;
     let foundObj = null;
     try {
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, 0, _params, options, info, world);
+      if (foundObj && foundObj.element) {
+        await this.scrollIfNeeded(foundObj.element, info);
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -1015,9 +1049,20 @@ class StableBrowser {
     info.value = text;
     let foundObj = null;
     try {
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       foundObj = await this._getText(selectors, climb, _params, options, info, world);
-      if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
+      if (foundObj && foundObj.element) {
+        await this.scrollIfNeeded(foundObj.element, info);
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      if (options && options.date === true) {
+        const dateAlternatives = findDateAlternatives(text);
+        for (let i = 0; i < dateAlternatives.length; i++) {
+          if (foundObj?.text.includes(dateAlternatives[i]) || foundObj?.value?.includes(dateAlternatives[i])) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         info.value = foundObj?.value;
         throw new Error("element doesn't contain text " + text);
@@ -1119,6 +1164,9 @@ class StableBrowser {
     info.selectors = selectors;
     try {
       const element = await this._locate(selectors, info, _params);
+      if (element) {
+        await this.scrollIfNeeded(element, info);
+      }
       await this._highlightElements(element);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await expect(element).toHaveCount(1, { timeout: 10000 });
@@ -1353,14 +1401,27 @@ class StableBrowser {
     info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
+    const dateSearch = options && options.date === true;
+    let dateAlternatives = [];
+    if (dateSearch) {
+      dateAlternatives = findDateAlternatives(text);
+    }
     try {
       while (true) {
         const frames = this.page.frames();
         let results = [];
         for (let i = 0; i < frames.length; i++) {
-          const result = await this._locateElementByText(frames[i], text, "*", true, {});
-          result.frame = frames[i];
-          results.push(result);
+          if (dateSearch) {
+            for (let j = 0; j < dateAlternatives.length; j++) {
+              const result = await this._locateElementByText(frames[i], dateAlternatives[j], "*", true, {});
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else {
+            const result = await this._locateElementByText(frames[i], text, "*", true, {});
+            result.frame = frames[i];
+            results.push(result);
+          }
         }
         info.results = results;
         const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
@@ -1638,6 +1699,47 @@ class StableBrowser {
       });
     }
   }
+  async closePage(options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    try {
+      await this.page.close();
+      if (this.context && this.context.pages && this.context.pages.length > 0) {
+        this.context.pages.pop();
+        this.page = this.context.pages[this.context.pages.length - 1];
+        this.context.page = this.page;
+        let title = await this.page.title();
+        console.log("Switched to page " + title);
+      }
+    } catch (e) {
+      console.log(".");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.CLOSE_PAGE,
+        text: "close page",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
   async reloadPage(options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -1673,9 +1775,9 @@ class StableBrowser {
       });
     }
   }
-  async scrollIfNeeded(element) {
+  async scrollIfNeeded(element, info) {
     try {
-      await element.evaluate((node) => {
+      let didScroll = await element.evaluate((node) => {
         const rect = node.getBoundingClientRect();
         if (
           rect &&
@@ -1684,11 +1786,18 @@ class StableBrowser {
           rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
           rect.right <= (window.innerWidth || document.documentElement.clientWidth)
         ) {
-          return;
+          return false;
         } else {
           node.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          return true;
         }
       });
+      if (didScroll) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (info) {
+          info.box = await element.boundingBox();
+        }
+      }
     } catch (e) {
       console.log("scroll failed");
     }
