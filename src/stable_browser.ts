@@ -7,6 +7,7 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
+import { getDateTimeSegments } from "./date_time.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -30,6 +31,7 @@ const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  SET_DATE_TIME: "set_date_time",
 };
 
 class StableBrowser {
@@ -768,6 +770,88 @@ class StableBrowser {
               startTime,
               endTime,
               message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+  async setDateTime(selectors, value, enter=false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = Types.SET_DATE_TIME;
+    info.selectors = selectors;
+    info.value = value;
+    try {
+      let element = await this._locate(selectors, info, _params);
+      //insert red border around the element
+      await this.scrollIfNeeded(element, info);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await this._highlightElements(element);
+
+      // try {
+      //   let currentValue = await element.inputValue();
+      //   if (currentValue) {
+      //     await element.fill("");
+      //   }
+      // } catch (error) {
+      //   this.info.error("unable to clear input value");
+      // }
+      
+      try {
+        await element.click();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+        const valueSegments = await getDateTimeSegments({element, value});
+        /** length - 1 to avoid the last tab*/ 
+        const l_1 = valueSegments.length-1;
+        for(let i = 0; i < valueSegments.length; i++) {
+          const segment = valueSegments[i];
+          await element.type(segment);
+          if(i<l_1) await element.press("Tab");
+        }
+      } catch (error) {
+        await this.closeUnexpectedPopups();
+        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.info("Tring again")
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+        await element.click();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+        info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: info });
+        const valueSegments = await getDateTimeSegments({element, value});
+        /** length - 1 to avoid the last tab*/ 
+        const l_1 = valueSegments.length-1;
+        for(let i = 0; i < valueSegments.length; i++) {
+          const segment = valueSegments[i];
+          await element.type(segment);
+          if(i<l_1) await element.press("Tab");
+        }
+      }
+    } catch (error) {
+      error = e;
+      throw e;
+    } finally {
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.SET_DATE_TIME,
+        screenshotId,
+        value: value,
+        text: `setDateTime input with value: ${value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error === null || error === void 0 ? void 0 : error.message,
             }
           : {
               status: "PASSED",
