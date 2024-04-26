@@ -24,4 +24,26 @@ const getDateTimeSegments = async (input: {
   }
 }
 
-export { getDateTimeSegments}
+const getDateTimeValue = async (input: {
+  element: Locator
+  value: string
+}) => {
+  const type = await input.element.getAttribute("type")
+  const parsedValue = dayjs(input.value)
+  switch (type) {
+    case "date":
+      return parsedValue.format("YYYY-MM-DD")
+    case "time":
+      return parsedValue.format("HH:mm")
+    case "datetime-local":
+      return parsedValue.format("YYYY-MM-DD[T]HH:mm")
+    case "month":
+      return parsedValue.format("YYYY-MM")
+    case "week":
+      return parsedValue.format("YYYY-[W]WW")
+    default:
+      return parsedValue.format("YYYY-MM-DD[T]HH:mm")
+  }
+}
+
+export { getDateTimeSegments, getDateTimeValue}

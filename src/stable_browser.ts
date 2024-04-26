@@ -7,7 +7,7 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
-import { getDateTimeSegments } from "./date_time.js";
+import { getDateTimeValue } from "./date_time.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -810,36 +810,30 @@ class StableBrowser {
       try {
         await element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
-        const valueSegments = await getDateTimeSegments({ element, value });
-        /** length - 1 to avoid the last tab*/
-        const l_1 = valueSegments.length - 1;
-        for (let i = 0; i < valueSegments.length; i++) {
-          const segment = valueSegments[i];
-          await element.type(segment);
-          if (i < l_1) await element.press("Tab");
-        }
+        const dateTimeValue = await getDateTimeValue({ value, element });
+        await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = dateTimeValue
+        }, dateTimeValue)
       } catch (error) {
         await this.closeUnexpectedPopups();
         this.logger.error("setting date time input failed " + JSON.stringify(info));
-        this.logger.info("Tring again")
+        this.logger.info("Trying again")
           ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        await element.click();
-        await new Promise((resolve) => setTimeout(resolve, 500));
         info.screenshotPath = screenshotPath;
         Object.assign(error, { info: info });
-        const valueSegments = await getDateTimeSegments({ element, value });
-        /** length - 1 to avoid the last tab*/
-        const l_1 = valueSegments.length - 1;
-        for (let i = 0; i < valueSegments.length; i++) {
-          const segment = valueSegments[i];
-          await element.type(segment);
-          if (i < l_1) await element.press("Tab");
-        }
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const dateTimeValue = await getDateTimeValue({ value, element });
+        await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = dateTimeValue
+        }, dateTimeValue)
+       
       }
     } catch (error) {
       error = e;
       throw e;
     } finally {
+      const endTime = Date.now();
       this._reportToWorld(world, {
         element_name: selectors.element_name,
         type: Types.SET_DATE_TIME,
