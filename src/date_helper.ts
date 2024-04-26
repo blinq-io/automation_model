@@ -13,7 +13,6 @@ const findDateAlternatives = (dateString: string) => {
   let year = null;
   let month = null;
   let day = null;
-
   if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
     year = dateString.substring(0, 4);
     month = dateString.substring(5, 7);
@@ -43,7 +42,7 @@ const findDateAlternatives = (dateString: string) => {
     }
   }
   if (!day || !month) {
-    return [dateString];
+    return { dates: [dateString], date: false };
   }
   // check if month is greater than 12
   if (parseInt(month) > 12) {
@@ -65,7 +64,7 @@ const findDateAlternatives = (dateString: string) => {
     alternatives.push(`${day} ${monthShort}`);
     alternatives.push(`${day} ${monthFull}`);
   }
-  return alternatives;
+  return { dates: alternatives, date: true };
 };
 const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const monthsFull = [

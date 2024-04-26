@@ -1054,10 +1054,13 @@ class StableBrowser {
         await this.scrollIfNeeded(foundObj.element, info);
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      if (options && options.date === true) {
-        const dateAlternatives = findDateAlternatives(text);
-        for (let i = 0; i < dateAlternatives.length; i++) {
-          if (foundObj?.text.includes(dateAlternatives[i]) || foundObj?.value?.includes(dateAlternatives[i])) {
+      const dateAlternatives = findDateAlternatives(text);
+      if (dateAlternatives.date) {
+        for (let i = 0; i < dateAlternatives.dates.length; i++) {
+          if (
+            foundObj?.text.includes(dateAlternatives.dates[i]) ||
+            foundObj?.value?.includes(dateAlternatives.dates[i])
+          ) {
             return info;
           }
         }
@@ -1401,19 +1404,15 @@ class StableBrowser {
     info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
-    const dateSearch = options && options.date === true;
-    let dateAlternatives = [];
-    if (dateSearch) {
-      dateAlternatives = findDateAlternatives(text);
-    }
+    let dateAlternatives = findDateAlternatives(text);
     try {
       while (true) {
         const frames = this.page.frames();
         let results = [];
         for (let i = 0; i < frames.length; i++) {
-          if (dateSearch) {
-            for (let j = 0; j < dateAlternatives.length; j++) {
-              const result = await this._locateElementByText(frames[i], dateAlternatives[j], "*", true, {});
+          if (dateAlternatives.date) {
+            for (let j = 0; j < dateAlternatives.dates.length; j++) {
+              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, {});
               result.frame = frames[i];
               results.push(result);
             }
