@@ -798,20 +798,13 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
 
-      // try {
-      //   let currentValue = await element.inputValue();
-      //   if (currentValue) {
-      //     await element.fill("");
-      //   }
-      // } catch (error) {
-      //   this.info.error("unable to clear input value");
-      // }
 
       try {
         await element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
         const dateTimeValue = await getDateTimeValue({ value, element });
         await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = "" // clear input
           el.value = dateTimeValue
         }, dateTimeValue)
       } catch (error) {
@@ -825,6 +818,7 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 500));
         const dateTimeValue = await getDateTimeValue({ value, element });
         await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = "" // clear input
           el.value = dateTimeValue
         }, dateTimeValue)
        
