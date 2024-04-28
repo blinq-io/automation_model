@@ -1,4 +1,12 @@
-import { chromium, Browser as PlaywrightBrowser, BrowserContext, Page, BrowserContextOptions } from "playwright";
+import {
+  chromium,
+  firefox,
+  webkit,
+  Browser as PlaywrightBrowser,
+  BrowserContext,
+  Page,
+  BrowserContextOptions,
+} from "playwright";
 import type { Cookie, LocalStorage } from "./environment.js";
 
 type StorageState = {
@@ -53,15 +61,15 @@ class Browser {
   }
 
   async init(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
-    // if(userDataDirPath) {
-    //   this.browser = await chromium.connectOverCDP(userDataDirPath, {
-
-    //   });
-    //   const contextOptions:BrowserContextOptions |undefined = !!storageState ? {storageState, } : undefined
-    //   this.context = await this.browser.newContext({});
-    // } else {
+    let viewport = null;
     if (process.env.HEADLESS === "true") {
       headless = true;
+    } else if (process.env.HEADLESS === "false") {
+      headless = false;
+    }
+    if (process.env.VIEWPORT) {
+      let viewportParts = process.env.VIEWPORT.split(",");
+      viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     }
     if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
@@ -76,13 +84,32 @@ class Browser {
         ],
       });
     } else {
-      this.browser = await chromium.launch({
-        headless: headless,
-        timeout: 0,
-        args: ["--ignore-https-errors"],
-      });
+      if (process.env.BROWSER === "firefox") {
+        this.browser = await firefox.launch({
+          headless: headless,
+          timeout: 0,
+          args: ["--ignore-https-errors"],
+        });
+      } else if (process.env.BROWSER === "webkit") {
+        this.browser = await webkit.launch({
+          headless: headless,
+          timeout: 0,
+          args: ["--ignore-https-errors"],
+        });
+      } else {
+        this.browser = await chromium.launch({
+          headless: headless,
+          timeout: 0,
+          args: ["--ignore-https-errors"],
+        });
+      }
 
-      const contextOptions = !!storageState ? { storageState, bypassCSP: true } : undefined;
+      let contextOptions = {} as BrowserContextOptions;
+      if (storageState) {
+        contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
+        contextOptions.bypassCSP = true;
+      }
+      contextOptions.viewport = viewport;
       this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
     }
     // }
