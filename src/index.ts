@@ -5,3 +5,4 @@ export * from "./environment.js";
 export * from "./auto_page.js";
 export * from "./browser_manager.js";
 export * from "./date_helper.js";
+export * from "./find_function.js";

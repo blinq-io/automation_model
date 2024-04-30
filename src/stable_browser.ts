@@ -31,6 +31,7 @@ const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  SET_VIEWPORT: "set_viewport",
 };
 
 class StableBrowser {
@@ -1722,6 +1723,46 @@ class StableBrowser {
       this._reportToWorld(world, {
         type: Types.CLOSE_PAGE,
         text: "close page",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+  async setViewportSize(width: number, hight: number, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    try {
+      if (width <= 0) {
+        width = 1920;
+      }
+      if (hight <= 0) {
+        hight = 1080;
+      }
+      await this.page.setViewportSize({ width: width, height: hight });
+    } catch (e) {
+      console.log(".");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.SET_VIEWPORT,
+        text: "set viewport size to " + width + "x" + hight,
         screenshotId,
         result: error
           ? {
