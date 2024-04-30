@@ -109,7 +109,9 @@ class Browser {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
       }
-      contextOptions.viewport = viewport;
+      if (viewport) {
+        contextOptions.viewport = viewport;
+      }
       this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
     }
     // }
