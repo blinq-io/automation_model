@@ -66,6 +66,69 @@ const findDateAlternatives = (dateString: string) => {
   }
   return { dates: alternatives, date: true };
 };
+
+const findNumberAlternatives = (numberText: string) => {
+  // check if the input contains only digits, dots, commas, $ or €
+  if (!numberText.match(/^[\d.,€$]+$/)) {
+    return { numbers: [numberText], number: false };
+  }
+  // support all of the following formats:
+  // 1,000,000
+  // 1,000,000.00
+  // 1000000
+  // 1000000.00
+  // $1,000,000
+  // $1,000,000.00
+  // $1000000
+  // $1000000.00
+  // €1,000,000
+  // €1,000,000.00
+  // €1000000
+  // €1000000.00
+  // clean the input from $ and €
+  let number = numberText.replace(/[$€]/g, "").trim();
+  // extract the decimal part
+  let decimal = null;
+  let parts = number.split("[.,]");
+  // check if the last part length is 1 or 2
+  if (parts.length > 1 && (parts[parts.length - 1].length === 1 || parts[parts.length - 1].length === 2)) {
+    decimal = parts.pop();
+  }
+  // check that all the parts that are not the first as 3 digits
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i].length !== 3) {
+      return { numbers: [numberText], number: false };
+    }
+  }
+  // remove all commas and dots
+  number = parts.join("");
+  const alternatives = [numberText];
+  alternatives.push(number);
+  if (decimal) {
+    alternatives.push(`${number}.${decimal}`);
+  }
+  // enter , every 3 digits from the right so 1000000 becomes 1,000,000
+  let formattedComma = "";
+  let formattedDot = "";
+  let counter = 0;
+  for (let i = number.length - 1; i >= 0; i--) {
+    if (counter === 3) {
+      formattedComma = "," + formattedComma;
+      formattedDot = "." + formattedDot;
+      counter = 0;
+    }
+    formattedComma = number[i] + formattedComma;
+    formattedDot = number[i] + formattedDot;
+    counter++;
+  }
+  alternatives.push(formattedComma);
+  alternatives.push(formattedDot);
+  if (decimal) {
+    alternatives.push(`${formattedComma}.${decimal}`);
+    alternatives.push(`${formattedDot},${decimal}`);
+  }
+  return { numbers: alternatives, number: true };
+};
 const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const monthsFull = [
   "january",
@@ -91,4 +154,4 @@ const monthTextToNumber = (monthText: string) => {
   }
   return null;
 };
-export { findDateAlternatives };
+export { findDateAlternatives, findNumberAlternatives };

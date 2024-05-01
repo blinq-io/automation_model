@@ -4,5 +4,5 @@ export * from "./stable_browser.js";
 export * from "./environment.js";
 export * from "./auto_page.js";
 export * from "./browser_manager.js";
-export * from "./date_helper.js";
+export * from "./analyze_helper.js";
 export * from "./find_function.js";

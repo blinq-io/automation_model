@@ -7,7 +7,7 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
-import { findDateAlternatives } from "./date_helper.js";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -1056,11 +1056,22 @@ class StableBrowser {
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const dateAlternatives = findDateAlternatives(text);
+      const numberAlternatives = findNumberAlternatives(text);
       if (dateAlternatives.date) {
         for (let i = 0; i < dateAlternatives.dates.length; i++) {
           if (
             foundObj?.text.includes(dateAlternatives.dates[i]) ||
             foundObj?.value?.includes(dateAlternatives.dates[i])
+          ) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (numberAlternatives.number) {
+        for (let i = 0; i < numberAlternatives.numbers.length; i++) {
+          if (
+            foundObj?.text.includes(numberAlternatives.numbers[i]) ||
+            foundObj?.value?.includes(numberAlternatives.numbers[i])
           ) {
             return info;
           }
@@ -1406,6 +1417,7 @@ class StableBrowser {
     info.operation = "verifyTextExistInPage";
     info.text = text;
     let dateAlternatives = findDateAlternatives(text);
+    let numberAlternatives = findNumberAlternatives(text);
     try {
       while (true) {
         const frames = this.page.frames();
@@ -1414,6 +1426,12 @@ class StableBrowser {
           if (dateAlternatives.date) {
             for (let j = 0; j < dateAlternatives.dates.length; j++) {
               const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, {});
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else if (numberAlternatives.number) {
+            for (let j = 0; j < numberAlternatives.numbers.length; j++) {
+              const result = await this._locateElementByText(frames[i], numberAlternatives.numbers[j], "*", true, {});
               result.frame = frames[i];
               results.push(result);
             }
