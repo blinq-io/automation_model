@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import type { Page, ElementHandle } from "playwright";
+import { fileURLToPath } from "url";
 // import type {TprocessTableQuery} from "./locator.js"
 // type Change = {css:string, changes:{role:string}};
 // declare const document: Document & { selectors: Change[] ; tableSelector: string; processTableQuery: TprocessTableQuery };
@@ -36,7 +37,7 @@ function stringifyObject(obj: unknown, indentation = 0) {
   }
   return result;
 }
-const __filename = new URL(import.meta.url).pathname;
+const __filename = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(__filename);
 const getTableCells = async (page: Page, element: ElementHandle, tableSelector: any, info: any = {}) => {
   let script = fs.readFileSync(path.join(currentDir, "locator.js"), "utf8");

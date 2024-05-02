@@ -1146,7 +1146,11 @@ class StableBrowser {
       try {
         await this.page.screenshot({ path: screenshotPath, timeout: 5000 });
       } catch (e) {
-        this.logger.info("unable to take screenshot, ignored");
+        try {
+          await this.page.screenshot({ path: screenshotPath, timeout: 5000, animations: "disabled" });
+        } catch (ex) {
+          this.logger.info("unable to take screenshot, ignored");
+        }
       }
       result.screenshotId = nextIndex;
       result.screenshotPath = screenshotPath;
@@ -1158,7 +1162,11 @@ class StableBrowser {
       try {
         await this.page.screenshot({ path: options.screenshotPath, timeout: 5000 });
       } catch (e) {
-        this.logger.info("unable to take screenshot, ignored");
+        try {
+          await this.page.screenshot({ path: options.screenshotPath, timeout: 5000, animations: "disabled" });
+        } catch (ex) {
+          this.logger.info("unable to take screenshot, ignored");
+        }
       }
       if (info && info.box) {
         await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
@@ -1607,6 +1615,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("analyzeTable failed " + info.log);
+      this.logger.error(e);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
