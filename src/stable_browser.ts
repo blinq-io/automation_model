@@ -7,7 +7,7 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
-import { findDateAlternatives } from "./date_helper.js";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -31,6 +31,7 @@ const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  SET_VIEWPORT: "set_viewport",
 };
 
 class StableBrowser {
@@ -1054,10 +1055,24 @@ class StableBrowser {
         await this.scrollIfNeeded(foundObj.element, info);
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      if (options && options.date === true) {
-        const dateAlternatives = findDateAlternatives(text);
-        for (let i = 0; i < dateAlternatives.length; i++) {
-          if (foundObj?.text.includes(dateAlternatives[i]) || foundObj?.value?.includes(dateAlternatives[i])) {
+      const dateAlternatives = findDateAlternatives(text);
+      const numberAlternatives = findNumberAlternatives(text);
+      if (dateAlternatives.date) {
+        for (let i = 0; i < dateAlternatives.dates.length; i++) {
+          if (
+            foundObj?.text.includes(dateAlternatives.dates[i]) ||
+            foundObj?.value?.includes(dateAlternatives.dates[i])
+          ) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (numberAlternatives.number) {
+        for (let i = 0; i < numberAlternatives.numbers.length; i++) {
+          if (
+            foundObj?.text.includes(numberAlternatives.numbers[i]) ||
+            foundObj?.value?.includes(numberAlternatives.numbers[i])
+          ) {
             return info;
           }
         }
@@ -1131,7 +1146,11 @@ class StableBrowser {
       try {
         await this.page.screenshot({ path: screenshotPath, timeout: 5000 });
       } catch (e) {
-        this.logger.info("unable to take screenshot, ignored");
+        try {
+          await this.page.screenshot({ path: screenshotPath, timeout: 5000, animations: "disabled" });
+        } catch (ex) {
+          this.logger.info("unable to take screenshot, ignored");
+        }
       }
       result.screenshotId = nextIndex;
       result.screenshotPath = screenshotPath;
@@ -1143,7 +1162,11 @@ class StableBrowser {
       try {
         await this.page.screenshot({ path: options.screenshotPath, timeout: 5000 });
       } catch (e) {
-        this.logger.info("unable to take screenshot, ignored");
+        try {
+          await this.page.screenshot({ path: options.screenshotPath, timeout: 5000, animations: "disabled" });
+        } catch (ex) {
+          this.logger.info("unable to take screenshot, ignored");
+        }
       }
       if (info && info.box) {
         await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
@@ -1401,19 +1424,22 @@ class StableBrowser {
     info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
-    const dateSearch = options && options.date === true;
-    let dateAlternatives = [];
-    if (dateSearch) {
-      dateAlternatives = findDateAlternatives(text);
-    }
+    let dateAlternatives = findDateAlternatives(text);
+    let numberAlternatives = findNumberAlternatives(text);
     try {
       while (true) {
         const frames = this.page.frames();
         let results = [];
         for (let i = 0; i < frames.length; i++) {
-          if (dateSearch) {
-            for (let j = 0; j < dateAlternatives.length; j++) {
-              const result = await this._locateElementByText(frames[i], dateAlternatives[j], "*", true, {});
+          if (dateAlternatives.date) {
+            for (let j = 0; j < dateAlternatives.dates.length; j++) {
+              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, {});
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else if (numberAlternatives.number) {
+            for (let j = 0; j < numberAlternatives.numbers.length; j++) {
+              const result = await this._locateElementByText(frames[i], numberAlternatives.numbers[j], "*", true, {});
               result.frame = frames[i];
               results.push(result);
             }
@@ -1589,6 +1615,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("analyzeTable failed " + info.log);
+      this.logger.error(e);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1723,6 +1750,46 @@ class StableBrowser {
       this._reportToWorld(world, {
         type: Types.CLOSE_PAGE,
         text: "close page",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+  async setViewportSize(width: number, hight: number, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    try {
+      if (width <= 0) {
+        width = 1920;
+      }
+      if (hight <= 0) {
+        hight = 1080;
+      }
+      await this.page.setViewportSize({ width: width, height: hight });
+    } catch (e) {
+      console.log(".");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.SET_VIEWPORT,
+        text: "set viewport size to " + width + "x" + hight,
         screenshotId,
         result: error
           ? {
