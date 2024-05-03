@@ -805,7 +805,11 @@ class StableBrowser {
       } catch (e) {
         this.info.error("unable to clear input value");
       }
-      await element.click();
+      try {
+        await element.click();
+      } catch (e) {
+        await element.dispatchEvent("click");
+      }
       await new Promise((resolve) => setTimeout(resolve, 500));
       const valueSegment = _value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
@@ -1144,13 +1148,9 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       try {
-        await this.page.screenshot({ path: screenshotPath, timeout: 5000 });
+        await this.page.screenshot({ path: screenshotPath, timeout: 3000 });
       } catch (e) {
-        try {
-          await this.page.screenshot({ path: screenshotPath, timeout: 5000, animations: "disabled" });
-        } catch (ex) {
-          this.logger.info("unable to take screenshot, ignored");
-        }
+        this.logger.info("unable to take screenshot, ignored");
       }
       result.screenshotId = nextIndex;
       result.screenshotPath = screenshotPath;
@@ -1160,13 +1160,9 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        await this.page.screenshot({ path: options.screenshotPath, timeout: 5000 });
+        await this.page.screenshot({ path: options.screenshotPath, timeout: 3000 });
       } catch (e) {
-        try {
-          await this.page.screenshot({ path: options.screenshotPath, timeout: 5000, animations: "disabled" });
-        } catch (ex) {
-          this.logger.info("unable to take screenshot, ignored");
-        }
+        this.logger.info("unable to take screenshot, ignored");
       }
       if (info && info.box) {
         await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
