@@ -71,7 +71,35 @@ class Browser {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     }
-    if (extensionPath) {
+
+    if (!extensionPath && userDataDirPath) {
+      this.context = await chromium.launchPersistentContext(userDataDirPath, {
+        headless: false,
+        timeout: 0,
+        bypassCSP: true,
+        args: ["--ignore-https-errors", "--no-incognito"],
+      });
+      // this.browser = await chromium.connectOverCDP({
+      //   endpointURL: `http://localhost:${cdpPort}`,
+      // });
+      // if (!this.browser) {
+      //   throw new Error("Could not connect to browser");
+      // }
+      // this.context = await this.browser.newContext();
+      //this.page = await this.context.newPage();
+      // if (this.browser.contexts?.length > 0) {
+      //   this.context =  (this.browser.contexts as BrowserContext[])[0];
+      //   //this.context = await this.browser.contexts[0];
+      //   if (this.context.pages.length > 0) {
+      //     this.page = await this.context.pages[0];
+      //   } else {
+      //     this.page = await this.context.newPage();
+      //   }
+      // } else {
+      //   this.context = await this.browser.newContext();
+      //   this.page = await this.context.newPage();
+      // }
+    } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
         headless: headless,
         timeout: 0,
@@ -115,7 +143,7 @@ class Browser {
       this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
     }
     // }
-    this.page = await this.context.newPage();
+    this.page = await this.context!.newPage();
   }
 
   async close() {
