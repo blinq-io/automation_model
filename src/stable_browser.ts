@@ -495,7 +495,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 10000 });
+        await element.click({ timeout: 5000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
@@ -806,7 +806,7 @@ class StableBrowser {
         this.info.error("unable to clear input value");
       }
       try {
-        await element.click();
+        await element.click({ timeout: 5000 });
       } catch (e) {
         await element.dispatchEvent("click");
       }
