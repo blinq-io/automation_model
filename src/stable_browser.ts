@@ -1149,7 +1149,7 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       try {
-        this.takeScreenshot(screenshotPath);
+        await this.takeScreenshot(screenshotPath);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(screenshotPath, buffer, (err) => {
@@ -1168,7 +1168,7 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        this.takeScreenshot(options.screenshotPath);
+        await this.takeScreenshot(options.screenshotPath);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(options.screenshotPath, buffer, (err) => {
