@@ -1149,13 +1149,14 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       try {
-        let buffer = await this.page.screenshot({ timeout: 4000 });
-        // save the buffer to the screenshot path asynchrously
-        fs.writeFile(screenshotPath, buffer, (err) => {
-          if (err) {
-            this.logger.info("unable to save screenshot " + screenshotPath);
-          }
-        });
+        this.takeScreenshot(screenshotPath);
+        // let buffer = await this.page.screenshot({ timeout: 4000 });
+        // // save the buffer to the screenshot path asynchrously
+        // fs.writeFile(screenshotPath, buffer, (err) => {
+        //   if (err) {
+        //     this.logger.info("unable to save screenshot " + screenshotPath);
+        //   }
+        // });
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
@@ -1167,13 +1168,14 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        let buffer = await this.page.screenshot({ timeout: 4000 });
-        // save the buffer to the screenshot path asynchrously
-        fs.writeFile(options.screenshotPath, buffer, (err) => {
-          if (err) {
-            this.logger.info("unable to save screenshot " + options.screenshotPath);
-          }
-        });
+        this.takeScreenshot(options.screenshotPath);
+        // let buffer = await this.page.screenshot({ timeout: 4000 });
+        // // save the buffer to the screenshot path asynchrously
+        // fs.writeFile(options.screenshotPath, buffer, (err) => {
+        //   if (err) {
+        //     this.logger.info("unable to save screenshot " + options.screenshotPath);
+        //   }
+        // });
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
@@ -1182,6 +1184,15 @@ class StableBrowser {
       }
     }
     return result;
+  }
+  async takeScreenshot(screenshotPath) {
+    const playContext = this.context.playContext;
+    const client = await playContext.newCDPSession(this.page);
+    // Using CDP to capture the screenshot
+    const { data } = await client.send("Page.captureScreenshot", { format: "png" });
+    const screenshotBuffer = Buffer.from(data, "base64");
+    fs.writeFileSync("screenshot.png", screenshotPath);
+    client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);

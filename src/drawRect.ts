@@ -5,7 +5,7 @@ const drawRectangle = async (inputFilePath: string, x: number, y: number, width:
   try {
     // check if the input file exists on the disk
     if (!existsSync(inputFilePath)) {
-      console.error("Input file does not exist on the disk");
+      console.info("~");
       return;
     }
 
