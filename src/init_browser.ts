@@ -25,11 +25,17 @@ const getContext = async function (environment: Environment | null, headless = f
   }
   let extensionPath = undefined;
   let userDataDirPath = undefined;
-  if(fs.existsSync("ai_config.json")) {
-    const configuration = JSON.parse(fs.readFileSync("ai_config.json", "utf8"));
+  let aiConfigFile = "ai_config.json";
+  if (process.env.PROJECT_PATH) {
+    aiConfigFile = path.join(process.env.PROJECT_PATH, "ai_config.json");
+  }
+  if (fs.existsSync(aiConfigFile)) {
+    const configuration = JSON.parse(fs.readFileSync(aiConfigFile, "utf8"));
+    if (configuration.userDataDirPath) {
+      userDataDirPath = configuration.userDataDirPath;
+    }
     if (configuration.extensionPath) {
       extensionPath = configuration.extensionPath;
-      userDataDirPath = configuration.userDataDirPath;
     }
   }
   const storageState = { cookies, origins };

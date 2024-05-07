@@ -495,7 +495,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 10000 });
+        await element.click({ timeout: 5000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
@@ -806,7 +806,7 @@ class StableBrowser {
         this.info.error("unable to clear input value");
       }
       try {
-        await element.click();
+        await element.click({ timeout: 5000 });
       } catch (e) {
         await element.dispatchEvent("click");
       }
@@ -1138,6 +1138,7 @@ class StableBrowser {
       }
     }
     let result = {};
+
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
@@ -1148,7 +1149,13 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       try {
-        await this.page.screenshot({ path: screenshotPath, timeout: 3000 });
+        let buffer = await this.page.screenshot({ timeout: 4000 });
+        // save the buffer to the screenshot path asynchrously
+        fs.writeFile(screenshotPath, buffer, (err) => {
+          if (err) {
+            this.logger.info("unable to save screenshot " + screenshotPath);
+          }
+        });
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
@@ -1160,7 +1167,13 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        await this.page.screenshot({ path: options.screenshotPath, timeout: 3000 });
+        let buffer = await this.page.screenshot({ timeout: 4000 });
+        // save the buffer to the screenshot path asynchrously
+        fs.writeFile(options.screenshotPath, buffer, (err) => {
+          if (err) {
+            this.logger.info("unable to save screenshot " + options.screenshotPath);
+          }
+        });
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
