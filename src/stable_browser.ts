@@ -1191,7 +1191,7 @@ class StableBrowser {
     // Using CDP to capture the screenshot
     const { data } = await client.send("Page.captureScreenshot", { format: "png" });
     const screenshotBuffer = Buffer.from(data, "base64");
-    fs.writeFileSync("screenshot.png", screenshotPath);
+    fs.writeFileSync(screenshotPath, screenshotBuffer);
     client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
