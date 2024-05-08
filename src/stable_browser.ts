@@ -1192,7 +1192,7 @@ class StableBrowser {
     const { data } = await client.send("Page.captureScreenshot", { format: "png" });
     const screenshotBuffer = Buffer.from(data, "base64");
     fs.writeFileSync(screenshotPath, screenshotBuffer);
-    client.detach();
+    await client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
