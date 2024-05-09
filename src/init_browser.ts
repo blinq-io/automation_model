@@ -6,6 +6,7 @@ import { TestContext } from "./test_context.js";
 import { StableBrowser } from "./stable_browser.js";
 import { Browser as PlaywrightBrowser } from "playwright";
 import { Browser } from "./browser_manager.js";
+import { Api } from "./api.js";
 
 // let environment = null;
 
@@ -47,6 +48,7 @@ const getContext = async function (environment: Environment | null, headless = f
   context.environment = environment;
 
   context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
+  context.api = new Api(logger);
   // await _initCookies(context);
   return context;
 };
