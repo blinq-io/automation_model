@@ -11,6 +11,7 @@ import { getDateTimeValue } from "./date_time.js";
 import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 import { getDateTimeValue } from "./date_time.js";
 import dayjs from "dayjs";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -35,6 +36,7 @@ const Types = {
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
   SET_DATE_TIME: "set_date_time",
+  SET_VIEWPORT: "set_viewport",
 };
 
 class StableBrowser {
@@ -498,7 +500,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 10000 });
+        await element.click({ timeout: 5000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         await this.closeUnexpectedPopups();
@@ -968,7 +970,11 @@ class StableBrowser {
       } catch (e) {
         this.info.error("unable to clear input value");
       }
-      await element.click();
+      try {
+        await element.click({ timeout: 5000 });
+      } catch (e) {
+        await element.dispatchEvent("click");
+      }
       await new Promise((resolve) => setTimeout(resolve, 500));
       const valueSegment = _value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
@@ -1218,8 +1224,29 @@ class StableBrowser {
         await this.scrollIfNeeded(foundObj.element, info);
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-
-      if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
+      const dateAlternatives = findDateAlternatives(text);
+      const numberAlternatives = findNumberAlternatives(text);
+      if (dateAlternatives.date) {
+        for (let i = 0; i < dateAlternatives.dates.length; i++) {
+          if (
+            foundObj?.text.includes(dateAlternatives.dates[i]) ||
+            foundObj?.value?.includes(dateAlternatives.dates[i])
+          ) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (numberAlternatives.number) {
+        for (let i = 0; i < numberAlternatives.numbers.length; i++) {
+          if (
+            foundObj?.text.includes(numberAlternatives.numbers[i]) ||
+            foundObj?.value?.includes(numberAlternatives.numbers[i])
+          ) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
         info.foundText = foundObj?.text;
         info.value = foundObj?.value;
         throw new Error("element doesn't contain text " + text);
@@ -1276,6 +1303,7 @@ class StableBrowser {
       }
     }
     let result = {};
+
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
@@ -1286,7 +1314,14 @@ class StableBrowser {
       }
       const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
       try {
-        await this.page.screenshot({ path: screenshotPath, timeout: 5000 });
+        await this.takeScreenshot(screenshotPath);
+        // let buffer = await this.page.screenshot({ timeout: 4000 });
+        // // save the buffer to the screenshot path asynchrously
+        // fs.writeFile(screenshotPath, buffer, (err) => {
+        //   if (err) {
+        //     this.logger.info("unable to save screenshot " + screenshotPath);
+        //   }
+        // });
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
@@ -1298,7 +1333,14 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        await this.page.screenshot({ path: options.screenshotPath, timeout: 5000 });
+        await this.takeScreenshot(options.screenshotPath);
+        // let buffer = await this.page.screenshot({ timeout: 4000 });
+        // // save the buffer to the screenshot path asynchrously
+        // fs.writeFile(options.screenshotPath, buffer, (err) => {
+        //   if (err) {
+        //     this.logger.info("unable to save screenshot " + options.screenshotPath);
+        //   }
+        // });
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
@@ -1307,6 +1349,15 @@ class StableBrowser {
       }
     }
     return result;
+  }
+  async takeScreenshot(screenshotPath) {
+    const playContext = this.context.playContext;
+    const client = await playContext.newCDPSession(this.page);
+    // Using CDP to capture the screenshot
+    const { data } = await client.send("Page.captureScreenshot", { format: "png" });
+    const screenshotBuffer = Buffer.from(data, "base64");
+    fs.writeFileSync(screenshotPath, screenshotBuffer);
+    await client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
@@ -1558,14 +1609,30 @@ class StableBrowser {
     info.log = "";
     info.operation = "verifyTextExistInPage";
     info.text = text;
+    let dateAlternatives = findDateAlternatives(text);
+    let numberAlternatives = findNumberAlternatives(text);
     try {
       while (true) {
         const frames = this.page.frames();
         let results = [];
         for (let i = 0; i < frames.length; i++) {
-          const result = await this._locateElementByText(frames[i], text, "*", true, {});
-          result.frame = frames[i];
-          results.push(result);
+          if (dateAlternatives.date) {
+            for (let j = 0; j < dateAlternatives.dates.length; j++) {
+              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, {});
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else if (numberAlternatives.number) {
+            for (let j = 0; j < numberAlternatives.numbers.length; j++) {
+              const result = await this._locateElementByText(frames[i], numberAlternatives.numbers[j], "*", true, {});
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else {
+            const result = await this._locateElementByText(frames[i], text, "*", true, {});
+            result.frame = frames[i];
+            results.push(result);
+          }
         }
         info.results = results;
         const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
@@ -1733,6 +1800,7 @@ class StableBrowser {
       return info;
     } catch (e) {
       this.logger.error("analyzeTable failed " + info.log);
+      this.logger.error(e);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
@@ -1880,6 +1948,46 @@ class StableBrowser {
             startTime,
             endTime,
           },
+        info: info,
+      });
+    }
+  }
+  async setViewportSize(width: number, hight: number, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    try {
+      if (width <= 0) {
+        width = 1920;
+      }
+      if (hight <= 0) {
+        hight = 1080;
+      }
+      await this.page.setViewportSize({ width: width, height: hight });
+    } catch (e) {
+      console.log(".");
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.SET_VIEWPORT,
+        text: "set viewport size to " + width + "x" + hight,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
         info: info,
       });
     }
