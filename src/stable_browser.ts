@@ -32,6 +32,7 @@ const Types = {
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
   SET_VIEWPORT: "set_viewport",
+  VERIFY_VISUAL: "verify_visual",
 };
 
 class StableBrowser {
@@ -790,6 +791,11 @@ class StableBrowser {
     info.log = "";
     info.operation = "clickType";
     info.selectors = selectors;
+    const newValue = this._replaceWithLocalData(_value, world);
+    if (newValue !== _value) {
+      this.logger.info(_value + "=" + newValue);
+      _value = newValue;
+    }
     info.value = _value;
     try {
       let element = await this._locate(selectors, info, _params);
@@ -979,6 +985,11 @@ class StableBrowser {
     if (!text) {
       throw new Error("text is null");
     }
+    const newValue = this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -1051,6 +1062,11 @@ class StableBrowser {
     info.log = "";
     info.operation = "containsText";
     info.selectors = selectors;
+    const newValue = this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
     info.value = text;
     let foundObj = null;
     try {
@@ -1191,6 +1207,9 @@ class StableBrowser {
     // Using CDP to capture the screenshot
     const { data } = await client.send("Page.captureScreenshot", { format: "png" });
     const screenshotBuffer = Buffer.from(data, "base64");
+    if (!screenshotPath) {
+      return data;
+    }
     fs.writeFileSync(screenshotPath, screenshotBuffer);
     await client.detach();
   }
@@ -1389,6 +1408,12 @@ class StableBrowser {
     const info = {};
     info.log = "";
     info.operation = "verifyPagePath";
+
+    const newValue = this._replaceWithLocalData(pathPart, world);
+    if (newValue !== pathPart) {
+      this.logger.info(pathPart + "=" + newValue);
+      pathPart = newValue;
+    }
     info.pathPart = pathPart;
     try {
       for (let i = 0; i < 30; i++) {
@@ -1443,6 +1468,13 @@ class StableBrowser {
     const info = {};
     info.log = "";
     info.operation = "verifyTextExistInPage";
+
+    const newValue = this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
+
     info.text = text;
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
@@ -1520,6 +1552,79 @@ class StableBrowser {
       });
     }
   }
+  async visualVerification(text, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = "";
+    info.operation = "visualVerification";
+    info.text = text;
+    if (!process.env.TOKEN) {
+      throw new Error("TOKEN is not set");
+    }
+    try {
+      let serviceUrl = "https://api.blinq.io";
+      if (process.env.NODE_ENV_BLINQ === "dev") {
+        serviceUrl = "https://dev.api.blinq.io";
+      }
+      const screenshot = await this.takeScreenshot();
+      const request = {
+        method: "POST",
+        url: `${serviceUrl}/api/runs/screenshots/validate-screenshot`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.TOKEN}`,
+        },
+        body: JSON.stringify({
+          validationText: text,
+          screenshot: screenshot,
+        }),
+      };
+      let result = await this.context.api.request(request);
+      if (result.data.status !== true) {
+        throw new Error("Visual validation failed");
+      }
+      info.reasoning = result.data.result.reasoning;
+      if (result.data.result.success === true) {
+        return info;
+      } else {
+        throw Error("Visual validation failed: " + info.reasoning);
+      }
+      console.log(result);
+    } catch (e) {
+      await this.closeUnexpectedPopups();
+      this.logger.error("visual verification failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.VERIFY_VISUAL,
+        text: "Visual verification",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async analyzeTable(selectors, query, operator, value, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     if (!query) {
@@ -1530,6 +1635,11 @@ class StableBrowser {
     }
     if (!value) {
       throw new Error("value is null");
+    }
+    const newValue = this._replaceWithLocalData(value, world);
+    if (newValue !== value) {
+      this.logger.info(value + "=" + newValue);
+      value = newValue;
     }
     const startTime = Date.now();
     let error = null;
@@ -1663,6 +1773,45 @@ class StableBrowser {
         info: info,
       });
     }
+  }
+  _replaceWithLocalData(value, world) {
+    if (!value) {
+      return value;
+    }
+    if (!value.startsWith("{{") || !value.endsWith("}}")) {
+      return value;
+    }
+    // remove {{}}
+    let validate = value.substring(2, value.length - 2);
+
+    if (validate.startsWith("this.")) {
+      validate = validate.substring(5);
+    }
+    // split by .
+    let values = validate.split(".");
+    let contexts = [this];
+    if (this.data) {
+      contexts.push(this.data);
+    }
+    if (world) {
+      contexts.push(world);
+    }
+    for (let i = 0; i < contexts.length; i++) {
+      const context = contexts[i];
+      let match = true;
+      let foundValue = null;
+      for (let j = 0; j < values.length; j++) {
+        foundValue = context[values[j]];
+        if (!foundValue) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return foundValue;
+      }
+    }
+    return value;
   }
   _getLoadTimeout(options) {
     let timeout = 15000;
