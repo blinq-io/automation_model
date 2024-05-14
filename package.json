@@ -21,6 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@playwright/test": "^1.40.0",
+    "dayjs": "^1.11.10",
     "axios": "^1.6.8",
     "playwright": "^1.39.0",
     "pureimage": "^0.4.13",

@@ -7,6 +7,10 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
+import { getDateTimeValue } from "./date_time.js";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { getDateTimeValue } from "./date_time.js";
+import dayjs from "dayjs";
 import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
@@ -31,6 +35,7 @@ const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  SET_DATE_TIME: "set_date_time",
   SET_VIEWPORT: "set_viewport",
 };
 
@@ -99,7 +104,7 @@ class StableBrowser {
       return text;
     }
     for (let key in _params) {
-      text = text.replaceAll(new RegExp("{" + key + "}", "g"), _params[key]);
+      text = text.replaceAll(new RegExp("{_" + key + "}", "g"), _params[key]);
     }
     return text;
   }
@@ -522,16 +527,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -584,16 +589,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -642,16 +647,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -703,16 +708,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -766,16 +771,176 @@ class StableBrowser {
         text: `type value: ${_value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
+        info: info,
+      });
+    }
+  }
+  async setDateTime(selectors, value, format=null, enter = false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = Types.SET_DATE_TIME;
+    info.selectors = selectors;
+    info.value = value;
+    try {
+      let element = await this._locate(selectors, info, _params);
+      //insert red border around the element
+      await this.scrollIfNeeded(element, info);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await this._highlightElements(element);
+
+
+      try {
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if(format) {
+          value = dayjs(value).format(format);
+          await element.fill(value);
+        } else {
+          const dateTimeValue = await getDateTimeValue({ value, element });
+          await element.evaluateHandle((el, dateTimeValue) => {
+            el.value = "" // clear input
+            el.value = dateTimeValue
+          }, dateTimeValue)
+        }
+        if(enter){
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await this.page.keyboard.press("Enter");
+          await this.waitForPageLoad();
+        }
+      } catch (error) {
+        await this.closeUnexpectedPopups();
+        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.info("Trying again")
+          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+        info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: info });
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if(format) {
+          value = dayjs(value).format(format);
+          await element.fill(value);
+        } else {
+          const dateTimeValue = await getDateTimeValue({ value, element });
+          await element.evaluateHandle((el, dateTimeValue) => {
+            el.value = "" // clear input
+            el.value = dateTimeValue
+          }, dateTimeValue)
+          
+        }
+        if(enter){
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await this.page.keyboard.press("Enter");
+          await this.waitForPageLoad();
+        }
+      }
+    } catch (error) {
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.SET_DATE_TIME,
+        screenshotId,
+        value: value,
+        text: `setDateTime input with value: ${value}`,
+        result: error
+          ? {
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error === null || error === void 0 ? void 0 : error.message,
+          }
+          : {
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
+        info: info,
+      });
+    }
+  }
+  async setDateTime(selectors, value, enter = false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = Types.SET_DATE_TIME;
+    info.selectors = selectors;
+    info.value = value;
+    try {
+      let element = await this._locate(selectors, info, _params);
+      //insert red border around the element
+      await this.scrollIfNeeded(element, info);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await this._highlightElements(element);
+
+
+      try {
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const dateTimeValue = await getDateTimeValue({ value, element });
+        await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = "" // clear input
+          el.value = dateTimeValue
+        }, dateTimeValue)
+      } catch (error) {
+        await this.closeUnexpectedPopups();
+        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.info("Trying again")
+          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+        info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: info });
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const dateTimeValue = await getDateTimeValue({ value, element });
+        await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = "" // clear input
+          el.value = dateTimeValue
+        }, dateTimeValue)
+       
+      }
+    } catch (error) {
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.SET_DATE_TIME,
+        screenshotId,
+        value: value,
+        text: `setDateTime input with value: ${value}`,
+        result: error
+          ? {
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error === null || error === void 0 ? void 0 : error.message,
+          }
+          : {
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -862,16 +1027,16 @@ class StableBrowser {
         text: `clickType input with value: ${_value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error === null || error === void 0 ? void 0 : error.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error === null || error === void 0 ? void 0 : error.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -918,16 +1083,16 @@ class StableBrowser {
         text: `Fill input with value: ${value}`,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1023,16 +1188,16 @@ class StableBrowser {
         screenshotId: foundObj?.screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1105,16 +1270,16 @@ class StableBrowser {
         screenshotId: foundObj?.screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1231,16 +1396,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1299,16 +1464,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1335,7 +1500,7 @@ class StableBrowser {
               }, 2000);
             }
           })
-          .then(() => {})
+          .then(() => { })
           .catch((e) => {
             // ignore
           });
@@ -1371,7 +1536,7 @@ class StableBrowser {
             },
             [css]
           )
-          .then(() => {})
+          .then(() => { })
           .catch((e) => {
             // ignore
           });
@@ -1419,16 +1584,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1506,16 +1671,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1650,16 +1815,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1733,16 +1898,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
       });
     }
   }
@@ -1773,16 +1938,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
@@ -1848,16 +2013,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
+            status: "FAILED",
+            startTime,
+            endTime,
+            message: error?.message,
+          }
           : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
+            status: "PASSED",
+            startTime,
+            endTime,
+          },
         info: info,
       });
     }
