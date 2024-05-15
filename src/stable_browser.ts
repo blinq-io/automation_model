@@ -105,7 +105,7 @@ class StableBrowser {
       return text;
     }
     for (let key in _params) {
-      text = text.replaceAll(new RegExp("{_" + key + "}", "g"), _params[key]);
+      text = text.replaceAll(new RegExp("{" + key + "}", "g"), _params[key]);
     }
     return text;
   }
