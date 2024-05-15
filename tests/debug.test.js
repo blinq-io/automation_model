@@ -29,6 +29,7 @@ const login = async function () {
   //await context.stable.reloadPage();
   //await context.stable.verifyTextExistInPage("github", {});
   await context.stable.goto("https://price.com/");
+  await context.stable.visualVerification("Nike icon exists");
   await context.stable.verifyTextExistInPage("100000", {});
   await context.stable.goto("https://todaysdate365.com/");
   await context.stable.verifyTextExistInPage("25/04/2024", {});

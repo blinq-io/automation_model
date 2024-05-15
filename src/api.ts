@@ -7,8 +7,10 @@ class Api {
       this.logger = console;
     }
     const agent = this.getProxyObject(process.env.PROXY);
-    this.logger.debug("proxy object");
-    this.logger.debug(agent);
+    if (agent) {
+      this.logger.debug("proxy object");
+      this.logger.debug(agent);
+    }
     this.axiosClient = axios.create({
       httpsAgent: agent,
       proxy: false,

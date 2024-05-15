@@ -7,6 +7,10 @@ import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
 import { closeUnexpectedPopups } from "./popups.js";
 import drawRectangle from "./drawRect.js";
+import { getDateTimeValue } from "./date_time.js";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { getDateTimeValue } from "./date_time.js";
+import dayjs from "dayjs";
 import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 let configuration = null;
 type Params = Record<string, string>;
@@ -31,7 +35,9 @@ const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  SET_DATE_TIME: "set_date_time",
   SET_VIEWPORT: "set_viewport",
+  VERIFY_VISUAL: "verify_visual",
 };
 
 class StableBrowser {
@@ -99,7 +105,7 @@ class StableBrowser {
       return text;
     }
     for (let key in _params) {
-      text = text.replaceAll(new RegExp("{" + key + "}", "g"), _params[key]);
+      text = text.replaceAll(new RegExp("{_" + key + "}", "g"), _params[key]);
     }
     return text;
   }
@@ -780,6 +786,164 @@ class StableBrowser {
       });
     }
   }
+  async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = Types.SET_DATE_TIME;
+    info.selectors = selectors;
+    info.value = value;
+    try {
+      let element = await this._locate(selectors, info, _params);
+      //insert red border around the element
+      await this.scrollIfNeeded(element, info);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await this._highlightElements(element);
+
+      try {
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (format) {
+          value = dayjs(value).format(format);
+          await element.fill(value);
+        } else {
+          const dateTimeValue = await getDateTimeValue({ value, element });
+          await element.evaluateHandle((el, dateTimeValue) => {
+            el.value = ""; // clear input
+            el.value = dateTimeValue;
+          }, dateTimeValue);
+        }
+        if (enter) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await this.page.keyboard.press("Enter");
+          await this.waitForPageLoad();
+        }
+      } catch (error) {
+        await this.closeUnexpectedPopups();
+        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.info("Trying again")(
+          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info))
+        );
+        info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: info });
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (format) {
+          value = dayjs(value).format(format);
+          await element.fill(value);
+        } else {
+          const dateTimeValue = await getDateTimeValue({ value, element });
+          await element.evaluateHandle((el, dateTimeValue) => {
+            el.value = ""; // clear input
+            el.value = dateTimeValue;
+          }, dateTimeValue);
+        }
+        if (enter) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await this.page.keyboard.press("Enter");
+          await this.waitForPageLoad();
+        }
+      }
+    } catch (error) {
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.SET_DATE_TIME,
+        screenshotId,
+        value: value,
+        text: `setDateTime input with value: ${value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error === null || error === void 0 ? void 0 : error.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+  async setDateTime(selectors, value, enter = false, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = Types.SET_DATE_TIME;
+    info.selectors = selectors;
+    info.value = value;
+    try {
+      let element = await this._locate(selectors, info, _params);
+      //insert red border around the element
+      await this.scrollIfNeeded(element, info);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await this._highlightElements(element);
+
+      try {
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const dateTimeValue = await getDateTimeValue({ value, element });
+        await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = ""; // clear input
+          el.value = dateTimeValue;
+        }, dateTimeValue);
+      } catch (error) {
+        await this.closeUnexpectedPopups();
+        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.info("Trying again")(
+          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info))
+        );
+        info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: info });
+        await element.click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const dateTimeValue = await getDateTimeValue({ value, element });
+        await element.evaluateHandle((el, dateTimeValue) => {
+          el.value = ""; // clear input
+          el.value = dateTimeValue;
+        }, dateTimeValue);
+      }
+    } catch (error) {
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.SET_DATE_TIME,
+        screenshotId,
+        value: value,
+        text: `setDateTime input with value: ${value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error === null || error === void 0 ? void 0 : error.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
@@ -790,6 +954,11 @@ class StableBrowser {
     info.log = "";
     info.operation = "clickType";
     info.selectors = selectors;
+    const newValue = this._replaceWithLocalData(_value, world);
+    if (newValue !== _value) {
+      this.logger.info(_value + "=" + newValue);
+      _value = newValue;
+    }
     info.value = _value;
     try {
       let element = await this._locate(selectors, info, _params);
@@ -803,7 +972,7 @@ class StableBrowser {
           await element.fill("");
         }
       } catch (e) {
-        this.info.error("unable to clear input value");
+        this.logger.info("unable to clear input value");
       }
       try {
         await element.click({ timeout: 5000 });
@@ -979,6 +1148,11 @@ class StableBrowser {
     if (!text) {
       throw new Error("text is null");
     }
+    const newValue = this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -1051,6 +1225,11 @@ class StableBrowser {
     info.log = "";
     info.operation = "containsText";
     info.selectors = selectors;
+    const newValue = this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
     info.value = text;
     let foundObj = null;
     try {
@@ -1191,6 +1370,9 @@ class StableBrowser {
     // Using CDP to capture the screenshot
     const { data } = await client.send("Page.captureScreenshot", { format: "png" });
     const screenshotBuffer = Buffer.from(data, "base64");
+    if (!screenshotPath) {
+      return data;
+    }
     fs.writeFileSync(screenshotPath, screenshotBuffer);
     await client.detach();
   }
@@ -1389,6 +1571,12 @@ class StableBrowser {
     const info = {};
     info.log = "";
     info.operation = "verifyPagePath";
+
+    const newValue = this._replaceWithLocalData(pathPart, world);
+    if (newValue !== pathPart) {
+      this.logger.info(pathPart + "=" + newValue);
+      pathPart = newValue;
+    }
     info.pathPart = pathPart;
     try {
       for (let i = 0; i < 30; i++) {
@@ -1443,6 +1631,13 @@ class StableBrowser {
     const info = {};
     info.log = "";
     info.operation = "verifyTextExistInPage";
+
+    const newValue = this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
+
     info.text = text;
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
@@ -1520,6 +1715,79 @@ class StableBrowser {
       });
     }
   }
+  async visualVerification(text, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = "";
+    info.operation = "visualVerification";
+    info.text = text;
+    if (!process.env.TOKEN) {
+      throw new Error("TOKEN is not set");
+    }
+    try {
+      let serviceUrl = "https://api.blinq.io";
+      if (process.env.NODE_ENV_BLINQ === "dev") {
+        serviceUrl = "https://dev.api.blinq.io";
+      }
+      const screenshot = await this.takeScreenshot();
+      const request = {
+        method: "POST",
+        url: `${serviceUrl}/api/runs/screenshots/validate-screenshot`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.TOKEN}`,
+        },
+        body: JSON.stringify({
+          validationText: text,
+          screenshot: screenshot,
+        }),
+      };
+      let result = await this.context.api.request(request);
+      if (result.data.status !== true) {
+        throw new Error("Visual validation failed");
+      }
+      info.reasoning = result.data.result.reasoning;
+      if (result.data.result.success === true) {
+        return info;
+      } else {
+        throw Error("Visual validation failed: " + info.reasoning);
+      }
+      console.log(result);
+    } catch (e) {
+      await this.closeUnexpectedPopups();
+      this.logger.error("visual verification failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.VERIFY_VISUAL,
+        text: "Visual verification",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async analyzeTable(selectors, query, operator, value, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     if (!query) {
@@ -1530,6 +1798,11 @@ class StableBrowser {
     }
     if (!value) {
       throw new Error("value is null");
+    }
+    const newValue = this._replaceWithLocalData(value, world);
+    if (newValue !== value) {
+      this.logger.info(value + "=" + newValue);
+      value = newValue;
     }
     const startTime = Date.now();
     let error = null;
@@ -1663,6 +1936,45 @@ class StableBrowser {
         info: info,
       });
     }
+  }
+  _replaceWithLocalData(value, world) {
+    if (!value) {
+      return value;
+    }
+    if (!value.startsWith("{{") || !value.endsWith("}}")) {
+      return value;
+    }
+    // remove {{}}
+    let validate = value.substring(2, value.length - 2);
+
+    if (validate.startsWith("this.")) {
+      validate = validate.substring(5);
+    }
+    // split by .
+    let values = validate.split(".");
+    let contexts = [this];
+    if (this.data) {
+      contexts.push(this.data);
+    }
+    if (world) {
+      contexts.push(world);
+    }
+    for (let i = 0; i < contexts.length; i++) {
+      const context = contexts[i];
+      let match = true;
+      let foundValue = null;
+      for (let j = 0; j < values.length; j++) {
+        foundValue = context[values[j]];
+        if (!foundValue) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return foundValue;
+      }
+    }
+    return value;
   }
   _getLoadTimeout(options) {
     let timeout = 15000;
