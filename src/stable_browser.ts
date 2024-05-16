@@ -1741,7 +1741,7 @@ class StableBrowser {
           "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.TOKEN}`,
         },
-        body: JSON.stringify({
+        data: JSON.stringify({
           validationText: text,
           screenshot: screenshot,
         }),
