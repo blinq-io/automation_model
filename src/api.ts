@@ -50,8 +50,8 @@ class Api {
     for (let i = 0; i < 2; i++) {
       try {
         const res = this.axiosClient<T>(config);
-        this.logger.info("axios response");
-        this.logger.info(res);
+        // this.logger.info("axios response");
+        // this.logger.info(res);
         return res;
       } catch (error: any) {
         this.logger.info("axios error");
