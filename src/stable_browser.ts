@@ -40,7 +40,6 @@ const Types = {
 };
 
 class StableBrowser {
-  scaleFactor = 1;
   constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
     if (!this.logger) {
       this.logger = console;
