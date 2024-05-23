@@ -21,9 +21,6 @@
       "name": "debug",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/tests/debug.test.js",
-      "env": {
-        "TOKEN": "7a09b643777d638e6cf8ce616708428c"
-      },
       // set default directory to the workspace folder
       "cwd": "${workspaceFolder}",
       "stopOnEntry": false,
