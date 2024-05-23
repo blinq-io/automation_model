@@ -1386,6 +1386,7 @@ class StableBrowser {
     ]))
     const sharpBuffer = sharp(screenshotBuffer);
     const metadata = await sharpBuffer.metadata();
+    //check if you are on retina display and reduce the quality of the image
     if(metadata.width > viewportWidth || metadata.height > viewportHeight){
       screenshotBuffer = await sharpBuffer.resize(viewportWidth,viewportHeight,{
         fit: sharp.fit.inside,
