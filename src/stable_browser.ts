@@ -1,17 +1,16 @@
 // @ts-nocheck
-import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
+import dayjs from "dayjs";
 import fs from "fs";
 import path from "path";
-import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
-import { closeUnexpectedPopups } from "./popups.js";
+import reg_parser from "regex-parser";
+import sharp from "sharp";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { getDateTimeValue } from "./date_time.js";
 import drawRectangle from "./drawRect.js";
-import { getDateTimeValue } from "./date_time.js";
-import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
-import { getDateTimeValue } from "./date_time.js";
-import dayjs from "dayjs";
-import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { closeUnexpectedPopups } from "./popups.js";
+import { getTableCells } from "./table_analyze.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -41,6 +40,7 @@ const Types = {
 };
 
 class StableBrowser {
+  scaleFactor = 1;
   constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
     if (!this.logger) {
       this.logger = console;
@@ -52,7 +52,6 @@ class StableBrowser {
       this.page = page;
       context.page = page;
       context.pages.push(page);
-
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
@@ -60,6 +59,7 @@ class StableBrowser {
         this.logger.error("error on page load " + e);
       }
       context.pageLoading.status = false;
+
     });
     // context.playContext.on("close", async () => {
     //   if (context.pages.length > 1) {
@@ -1317,7 +1317,7 @@ class StableBrowser {
       }
     }
     let result = {};
-
+    this.scaleFactor = this.page.evaluate(() => window.devicePixelRatio);
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
@@ -1369,9 +1369,28 @@ class StableBrowser {
     const client = await playContext.newCDPSession(this.page);
     // Using CDP to capture the screenshot
     const { data } = await client.send("Page.captureScreenshot", { format: "png" });
-    const screenshotBuffer = Buffer.from(data, "base64");
     if (!screenshotPath) {
       return data;
+    }
+    let screenshotBuffer = Buffer.from(data, "base64");
+    
+    const viewportWidth = Math.max(...await this.page.evaluate(()=>[
+      document.body.scrollWidth, document.documentElement.scrollWidth,
+      document.body.offsetWidth, document.documentElement.offsetWidth,
+      document.body.clientWidth, document.documentElement.clientWidth
+    ]) )
+    const viewportHeight = Math.max(...await this.page.evaluate(()=>[
+      document.body.scrollHeight, document.documentElement.scrollHeight,
+      document.body.offsetHeight, document.documentElement.offsetHeight,
+      document.body.clientHeight, document.documentElement.clientHeight
+    ]))
+    const sharpBuffer = sharp(screenshotBuffer);
+    const metadata = await sharpBuffer.metadata();
+    if(metadata.width > viewportWidth || metadata.height > viewportHeight){
+      screenshotBuffer = await sharpBuffer.resize(viewportWidth,viewportHeight,{
+        fit: sharp.fit.inside,
+        withoutEnlargement: true
+      }).toBuffer();
     }
     fs.writeFileSync(screenshotPath, screenshotBuffer);
     await client.detach();

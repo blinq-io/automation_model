@@ -21,11 +21,12 @@
   "license": "ISC",
   "dependencies": {
     "@playwright/test": "^1.40.0",
-    "dayjs": "^1.11.10",
     "axios": "^1.6.8",
+    "dayjs": "^1.11.10",
     "playwright": "^1.39.0",
     "pureimage": "^0.4.13",
     "regex-parser": "^2.2.11",
+    "sharp": "^0.33.4",
     "tunnel": "^0.0.6"
   },
   "devDependencies": {
