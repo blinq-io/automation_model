@@ -1,17 +1,16 @@
 // @ts-nocheck
-import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
+import dayjs from "dayjs";
 import fs from "fs";
 import path from "path";
-import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
-import { closeUnexpectedPopups } from "./popups.js";
+import reg_parser from "regex-parser";
+import sharp from "sharp";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { getDateTimeValue } from "./date_time.js";
 import drawRectangle from "./drawRect.js";
-import { getDateTimeValue } from "./date_time.js";
-import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
-import { getDateTimeValue } from "./date_time.js";
-import dayjs from "dayjs";
-import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { closeUnexpectedPopups } from "./popups.js";
+import { getTableCells } from "./table_analyze.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -1332,7 +1331,7 @@ class StableBrowser {
       }
     }
     let result = {};
-
+    this.scaleFactor = this.page.evaluate(() => window.devicePixelRatio);
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
