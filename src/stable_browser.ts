@@ -80,7 +80,7 @@ class StableBrowser {
       context.webLogger = [];
     }
     page.on("console", (msg) => {
-      webLogger.push({
+      context.webLogger.push({
         type: msg.type(),
         text: msg.text(),
         location: msg.location(),
