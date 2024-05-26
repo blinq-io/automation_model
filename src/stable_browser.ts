@@ -46,13 +46,14 @@ class StableBrowser {
       this.logger = console;
     }
     context.pages = [this.page];
+    this.registerConsoleLogListener(this.page, context);
     context.pageLoading = { status: false };
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
       this.page = page;
       context.page = page;
       context.pages.push(page);
-
+      this.registerConsoleLogListener(page, context);
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
@@ -75,6 +76,20 @@ class StableBrowser {
     //   }
     // });
   }
+  registerConsoleLogListener(page: Page, context: any) {
+    if (!context.webLogger) {
+      context.webLogger = [];
+    }
+    page.on("console", (msg) => {
+      webLogger.push({
+        type: msg.type(),
+        text: msg.text(),
+        location: msg.location(),
+        time: new Date().toISOString(),
+      });
+    });
+  }
+
   async closeUnexpectedPopups() {
     await closeUnexpectedPopups(this.page);
   }

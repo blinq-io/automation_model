@@ -45,8 +45,6 @@ class Api {
   }
 
   public async axiosClientRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
-    this.logger.debug("axios request");
-    this.logger.debug(config);
     for (let i = 0; i < 2; i++) {
       try {
         const res = this.axiosClient<T>(config);
@@ -70,6 +68,8 @@ class Api {
         }
       }
     }
+    this.logger.debug("axios request");
+    this.logger.debug(config);
     throw new Error("Request failed after 2 attempts"); // Throw an error or return a value explicitly here
   }
   public setProxy(proxy?: string) {
