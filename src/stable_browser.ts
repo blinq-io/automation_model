@@ -76,11 +76,11 @@ class StableBrowser {
     // });
   }
   registerConsoleLogListener(page: Page, context: any) {
-    if (!context.webLogger) {
-      context.webLogger = [];
+    if (!this.context.webLogger) {
+      this.context.webLogger = [];
     }
     page.on("console", (msg) => {
-      context.webLogger.push({
+      this.context.webLogger.push({
         type: msg.type(),
         text: msg.text(),
         location: msg.location(),
