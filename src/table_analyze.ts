@@ -72,5 +72,21 @@ const getTableCells = async (page: Page, element: ElementHandle, tableSelector: 
     throw error;
   }
 };
+const getTableData = async (page: Page, element: ElementHandle) => {
+  let script = fs.readFileSync(path.join(currentDir, "locator.js"), "utf8");
+  // run the script inside the element context (iframe)
+  await element.evaluate(script);
+  try {
+    // @ts-ignore
+    let result = await element.evaluate((_node) => {
+      // @ts-ignore
+      return document.getTableData(_node as Element);
+    });
+    return result;
+  } catch (error) {
+    console.log("error", error);
+    throw error;
+  }
+};
 
-export { getTableCells };
+export { getTableCells, getTableData };

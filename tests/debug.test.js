@@ -22,12 +22,22 @@ const elements = {
   ],
   button_login: [[{ role: ["button", { name: "Login" }] }], [{ css: "[name='loginForm'] > button" }]],
   table: [[{ css: "gb-simple-table" }]],
+  table1: {
+    locators: [{ css: "#customers" }],
+  },
 };
 const context = await initContext(path, true, false);
 const login = async function () {
   let info = null;
   //await context.stable.reloadPage();
   //await context.stable.verifyTextExistInPage("github", {});
+  try {
+    await context.stable.goto("https://www.w3schools.com/html/html_tables.asp");
+  } catch (e) {
+    console.log(e);
+  }
+  console.log(JSON.stringify(await context.stable.getTableData(elements.table1), null, 2));
+  await context.stable.verifyTableData(elements.table1, [["Ernst Handel", "Roland Mendel", "Austria"]]);
   await context.stable.goto("https://price.com/");
   await context.stable.visualVerification("Nike icon exists");
   await context.stable.verifyTextExistInPage("100000", {});

@@ -1,5 +1,6 @@
 {
     "page_timeout": 60000,
+    "networkidle": false,
     "changes": [
         {
             "css": "gb-side-navigation-menu-item",
