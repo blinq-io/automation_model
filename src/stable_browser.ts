@@ -1,17 +1,16 @@
 // @ts-nocheck
-import reg_parser from "regex-parser";
 import { expect } from "@playwright/test";
+import dayjs from "dayjs";
 import fs from "fs";
 import path from "path";
-import { getTableCells } from "./table_analyze.js";
 import type { Browser, Page } from "playwright";
-import { closeUnexpectedPopups } from "./popups.js";
+import reg_parser from "regex-parser";
+import sharp from "sharp";
+import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { getDateTimeValue } from "./date_time.js";
 import drawRectangle from "./drawRect.js";
-import { getDateTimeValue } from "./date_time.js";
-import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
-import { getDateTimeValue } from "./date_time.js";
-import dayjs from "dayjs";
-import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
+import { closeUnexpectedPopups } from "./popups.js";
+import { getTableCells, getTableData } from "./table_analyze.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -46,13 +45,14 @@ class StableBrowser {
       this.logger = console;
     }
     context.pages = [this.page];
+    this.registerConsoleLogListener(this.page, context);
     context.pageLoading = { status: false };
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
       this.page = page;
       context.page = page;
       context.pages.push(page);
-
+      this.registerConsoleLogListener(page, context);
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
@@ -75,6 +75,20 @@ class StableBrowser {
     //   }
     // });
   }
+  registerConsoleLogListener(page: Page, context: any) {
+    if (!this.context.webLogger) {
+      this.context.webLogger = [];
+    }
+    page.on("console", (msg) => {
+      this.context.webLogger.push({
+        type: msg.type(),
+        text: msg.text(),
+        location: msg.location(),
+        time: new Date().toISOString(),
+      });
+    });
+  }
+
   async closeUnexpectedPopups() {
     await closeUnexpectedPopups(this.page);
   }
@@ -1317,7 +1331,6 @@ class StableBrowser {
       }
     }
     let result = {};
-
     if (world && world.attach && world.screenshot && world.screenshotPath) {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
@@ -1368,10 +1381,51 @@ class StableBrowser {
     const playContext = this.context.playContext;
     const client = await playContext.newCDPSession(this.page);
     // Using CDP to capture the screenshot
-    const { data } = await client.send("Page.captureScreenshot", { format: "png" });
-    const screenshotBuffer = Buffer.from(data, "base64");
+    const viewportWidth = Math.max(
+      ...(await this.page.evaluate(() => [
+        document.body.scrollWidth,
+        document.documentElement.scrollWidth,
+        document.body.offsetWidth,
+        document.documentElement.offsetWidth,
+        document.body.clientWidth,
+        document.documentElement.clientWidth,
+      ]))
+    );
+    const viewportHeight = Math.max(
+      ...(await this.page.evaluate(() => [
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight,
+        document.body.clientHeight,
+        document.documentElement.clientHeight,
+      ]))
+    );
+    const { data } = await client.send("Page.captureScreenshot", {
+      format: "png",
+      clip: {
+        x: 0,
+        y: 0,
+        width: viewportWidth,
+        height: viewportHeight,
+        scale: 1,
+      },
+    });
     if (!screenshotPath) {
       return data;
+    }
+    let screenshotBuffer = Buffer.from(data, "base64");
+
+    const sharpBuffer = sharp(screenshotBuffer);
+    const metadata = await sharpBuffer.metadata();
+    //check if you are on retina display and reduce the quality of the image
+    if (metadata.width > viewportWidth || metadata.height > viewportHeight) {
+      screenshotBuffer = await sharpBuffer
+        .resize(viewportWidth, viewportHeight, {
+          fit: sharp.fit.inside,
+          withoutEnlargement: true,
+        })
+        .toBuffer();
     }
     fs.writeFileSync(screenshotPath, screenshotBuffer);
     await client.detach();
@@ -1770,6 +1824,73 @@ class StableBrowser {
       this._reportToWorld(world, {
         type: Types.VERIFY_VISUAL,
         text: "Visual verification",
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+  async verifyTableData(selectors, data, _params = null, options = {}, world = null) {
+    const tableData = await this.getTableData(selectors, _params, options, world);
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowText = JSON.stringify(row);
+      let found = false;
+      for (let j = 0; j < tableData.rows.length; j++) {
+        const tableRow = tableData.rows[j];
+        const tableRowText = JSON.stringify(tableRow);
+        if (tableRowText === rowText) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        throw new Error(`Row not found in table: ${rowText}`);
+      }
+    }
+    this.logger.info("Table data verified");
+  }
+  async getTableData(selectors, _params = null, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = "getTableData";
+    info.selectors = selectors;
+    try {
+      let table = await this._locate(selectors, info, _params);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      const tableData = await getTableData(this.page, table);
+      return tableData;
+    } catch (e) {
+      this.logger.error("getTableData failed " + info.log);
+      this.logger.error(e);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.GET_TABLE_DATA,
+        text: "Get table data",
         screenshotId,
         result: error
           ? {

@@ -10,6 +10,50 @@ document.selectors = selectors;
 const tableSelector = null;
 document.tableSelector = tableSelector;
 
+function getTableData(table: Element) {
+  const tableData = {
+    rowsCount: 0,
+    columnsCount: 0,
+    columnNames: [],
+    rows: [],
+  };
+  let columnheader: HTMLElement[] = [];
+  //const rowheader = rows[0];
+  columnheader = Array.from(table.querySelectorAll("th, [data-blinq-role='columnheader'], [role='columnheader']"));
+  console.log("columnheader length", columnheader.length);
+  let columnsCount = columnheader.length;
+  const columnNames = [];
+  for (let i = 0; i < columnheader.length; i++) {
+    const cell = columnheader[i];
+    const cellText = cell.innerText;
+    columnNames.push(cellText);
+  }
+  tableData.columnNames = columnNames;
+  tableData.columnsCount = columnsCount;
+  const rows = Array.from(table.querySelectorAll("tr, [data-blinq-role='row'], [role='row']"));
+  const rowsCount = rows.length;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const cells: HTMLElement[] = Array.from(row.querySelectorAll("td, [data-blinq-role='cell'], [role='cell']"));
+    const cellsTexts = [];
+    console.log("cells count", cells.length);
+    if (cells.length === 0) {
+      continue;
+    }
+    for (let j = 0; j < cells.length; j++) {
+      const cell = cells[j];
+      const cellText = cell.innerText;
+      cellsTexts.push(cellText);
+    }
+    tableData.rows.push(cellsTexts);
+  }
+  tableData.rowsCount = rowsCount;
+  return tableData;
+}
+// @ts-ignore
+document.getTableData = getTableData;
+
 // locator                        | operator | value
 // table.rows                     | >=       | 1
 // table[1]["Availability"].text  | equals   | 100%
