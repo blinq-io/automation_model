@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.335",
+  "version": "1.0.336",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
@@ -26,7 +26,7 @@
     "playwright": "^1.39.0",
     "pureimage": "^0.4.13",
     "regex-parser": "^2.2.11",
-    "sharp": "^0.33.4",
+    "sharp": "^0.32.6",
     "tunnel": "^0.0.6"
   },
   "devDependencies": {
