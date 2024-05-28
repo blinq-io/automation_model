@@ -2,6 +2,7 @@
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
+
 import path from "path";
 import type { Browser, Page } from "playwright";
 import reg_parser from "regex-parser";
@@ -40,19 +41,31 @@ const Types = {
 };
 
 class StableBrowser {
+
+  project_path = null;
+  webLogFile = null;
   constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
     if (!this.logger) {
       this.logger = console;
     }
+
+    if(process.env.PROJECT_PATH) {
+      this.project_path = process.env.PROJECT_PATH;
+    }else {
+      this.project_path = process.cwd();
+    }
+    const logFolder = path.join(this.project_path, "logs","web");
     context.pages = [this.page];
-    this.registerConsoleLogListener(this.page, context);
+    
     context.pageLoading = { status: false };
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
       this.page = page;
       context.page = page;
       context.pages.push(page);
-      this.registerConsoleLogListener(page, context);
+
+      this.webLogFile = this.getWebLogFile(logFolder); 
+      this.registerConsoleLogListener(page, context,this.webLogFile);
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
@@ -75,17 +88,28 @@ class StableBrowser {
     //   }
     // });
   }
-  registerConsoleLogListener(page: Page, context: any) {
+  getWebLogFile(logFolder: string) {
+    if(!fs.existsSync(logFolder)) {
+      fs.mkdirSync(logFolder, { recursive: true });
+    }
+    let nextIndex = 1;
+    while (fs.existsSync(path.join(logFolder, nextIndex.toString() + ".json"))) {
+      nextIndex++;
+    }
+    return nextIndex + ".json";
+  }
+  registerConsoleLogListener(page: Page, context: any,logFile:string) {
     if (!this.context.webLogger) {
       this.context.webLogger = [];
     }
-    page.on("console", (msg) => {
+    page.on("console", async (msg) => {
       this.context.webLogger.push({
         type: msg.type(),
         text: msg.text(),
         location: msg.location(),
         time: new Date().toISOString(),
       });
+      await fs.promises.writeFile(logFile, JSON.stringify(this.context.webLogger, null, 2));
     });
   }
 

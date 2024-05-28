@@ -5,6 +5,60 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "request": "launch",
+      "type": "node",
+      "name": "Launch cucumber.js",
+      "console": "integratedTerminal",
+      "cwd": "/Users/aviralgupta/Library/Application Support/blinq.io/66448efcb71254e8908c1620",
+      "program": "./node_modules/@dev-blinq/cucumber-js/bin/cucumber.js",
+
+      "args": [
+        "--name",
+        "buy item",
+        "--exit",
+        "--format",
+        "bvt",
+        "--run-name",
+        "buy item@debug"
+      ],
+      "env": {
+        "NODE_ENV_BLINQ": "dev",
+        "REPORT_SERVICE_URL": "https://dev.api.blinq.io/api/runs",
+        "REPORT_SERVICE_TOKEN": "7a09b643777d638e6cf8ce616708428c",
+        "TOKEN": "7a09b643777d638e6cf8ce616708428c",
+        "deviceScaleFactor": "1",
+        // "PW_TEST_SCREENSHOT_NO_FONTS_READY": "1",
+        "VIEWPORT": "1000,1000",
+        "BLINQ_ENV": "/Users/aviralgupta/Library/Application Support/blinq.io/66448efcb71254e8908c1620/environments/prod.json"
+      },
+      "preLaunchTask": "npm: build",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "request": "launch",
+      "type": "node",
+      "name": "Launch cucumber_client",
+      "console": "integratedTerminal",
+      "cwd": "/Users/aviralgupta/Library/Application Support/blinq.io/66448efcb71254e8908c1620",
+      "program": "./node_modules/@dev-blinq/cucumber_client/bin/client/cucumber.js",
+      "args": [
+        "./",
+        "shop.feature",
+        "buy item",
+        "0,1,2,3,4,5,6,7,8,9,10",
+        "--env=./environments/prod.json"
+      ],
+      "env": {
+        "NODE_ENV_BLINQ": "dev",
+        "REPORT_SERVICE_URL": "https://dev.api.blinq.io/api/runs",
+        "REPORT_SERVICE_TOKEN": "7a09b643777d638e6cf8ce616708428c",
+        "TOKEN": "7a09b643777d638e6cf8ce616708428c",
+        // "PW_TEST_SCREENSHOT_NO_FONTS_READY": "1",
+      },
+      "preLaunchTask": "npm: build",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
       "type": "node",
       "request": "launch",
       "name": "launch_page",
