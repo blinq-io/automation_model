@@ -55,6 +55,9 @@ class StableBrowser {
       this.project_path = process.cwd();
     }
     const logFolder = path.join(this.project_path, "logs","web");
+
+      this.webLogFile = this.getWebLogFile(logFolder); 
+      this.registerConsoleLogListener(page, context,this.webLogFile);
     context.pages = [this.page];
     
     context.pageLoading = { status: false };
@@ -96,7 +99,8 @@ class StableBrowser {
     while (fs.existsSync(path.join(logFolder, nextIndex.toString() + ".json"))) {
       nextIndex++;
     }
-    return nextIndex + ".json";
+    const fileName =  nextIndex + ".json";
+    return path.join(logFolder, fileName);
   }
   registerConsoleLogListener(page: Page, context: any,logFile:string) {
     if (!this.context.webLogger) {
