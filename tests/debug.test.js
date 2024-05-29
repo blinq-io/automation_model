@@ -21,7 +21,9 @@ const elements = {
     ],
   ],
   button_login: [[{ role: ["button", { name: "Login" }] }], [{ css: "[name='loginForm'] > button" }]],
-  table: [[{ css: "gb-simple-table" }]],
+  table: {
+    locators: [{ css: "gb-simple-table" }],
+  },
   table1: {
     locators: [{ css: "#customers" }],
   },
@@ -36,8 +38,10 @@ const login = async function () {
   } catch (e) {
     console.log(e);
   }
-  console.log(JSON.stringify(await context.stable.getTableData(elements.table1), null, 2));
+  context.stable.setTestData(await context.stable.getTableData(elements.table1));
+  //console.log(JSON.stringify(await context.stable.getTableData(elements.table1), null, 2));
   await context.stable.verifyTableData(elements.table1, [["Ernst Handel", "Roland Mendel", "Austria"]]);
+  let rowsCount = context.stable._replaceWithLocalData("{{rowsCount}}", null);
   await context.stable.goto("https://price.com/");
   await context.stable.visualVerification("Nike icon exists");
   await context.stable.verifyTextExistInPage("100000", {});
