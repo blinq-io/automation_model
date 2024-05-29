@@ -12,6 +12,7 @@ import { getDateTimeValue } from "./date_time.js";
 import drawRectangle from "./drawRect.js";
 import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
+import objectPath from "object-path";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -1340,6 +1341,40 @@ class StableBrowser {
       });
     }
   }
+  _getDataFile(world = null) {
+    let dataFile = null;
+    if (world && world.reportFolder) {
+      dataFile = path.join(world.reportFolder, "data.json");
+    } else if (this.reportFolder) {
+      dataFile = path.join(this.reportFolder, "data.json");
+    } else if (this.context && this.context.reportFolder) {
+      dataFile = path.join(this.context.reportFolder, "data.json");
+    } else {
+      dataFile = "data.json";
+    }
+    return dataFile;
+  }
+  setTestData(testData, world = null) {
+    if (!testData) {
+      return;
+    }
+    // if data file exists, load it
+    const dataFile = this._getDataFile(world);
+    let data = this.getTestData();
+    // merge the testData with the existing data
+    Object.assign(data, testData);
+    // save the data to the file
+    fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
+  }
+  getTestData() {
+    const dataFile = this._getDataFile();
+    let data = {};
+    if (fs.existsSync(dataFile)) {
+      data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+    }
+    return data;
+  }
+
   async _screenShot(options = {}, world = null, info = null) {
     // collect url/path/title
     if (info) {
@@ -2090,37 +2125,22 @@ class StableBrowser {
     if (!value) {
       return value;
     }
-    if (!value.startsWith("{{") || !value.endsWith("}}")) {
+    // find all the accurance of {{(.*?)}} and replace with the value
+    let regex = /{{(.*?)}}/g;
+    let matches = value.match(regex);
+    if (!matches) {
       return value;
     }
-    // remove {{}}
-    let validate = value.substring(2, value.length - 2);
+    const testData = this.getTestData();
 
-    if (validate.startsWith("this.")) {
-      validate = validate.substring(5);
-    }
-    // split by .
-    let values = validate.split(".");
-    let contexts = [this];
-    if (this.data) {
-      contexts.push(this.data);
-    }
-    if (world) {
-      contexts.push(world);
-    }
-    for (let i = 0; i < contexts.length; i++) {
-      const context = contexts[i];
-      let match = true;
-      let foundValue = null;
-      for (let j = 0; j < values.length; j++) {
-        foundValue = context[values[j]];
-        if (!foundValue) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        return foundValue;
+    for (let i = 0; i < matches.length; i++) {
+      let match = matches[i];
+      let key = match.substring(2, match.length - 2);
+
+      let newValue = objectPath.get(testData, key);
+
+      if (newValue) {
+        value = value.replace(match, newValue);
       }
     }
     return value;
