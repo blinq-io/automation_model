@@ -49,6 +49,7 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
     if (!fs.existsSync(world.screenshotPath)) {
       fs.mkdirSync(world.screenshotPath, { recursive: true });
     }
+    world.reportFolder = reportFolder;
     context.reportFolder = reportFolder;
   }
 
