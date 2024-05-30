@@ -42,7 +42,6 @@ const Types = {
 };
 
 class StableBrowser {
-
   project_path = null;
   webLogFile = null;
   constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
@@ -50,17 +49,17 @@ class StableBrowser {
       this.logger = console;
     }
 
-    if(process.env.PROJECT_PATH) {
+    if (process.env.PROJECT_PATH) {
       this.project_path = process.env.PROJECT_PATH;
-    }else {
+    } else {
       this.project_path = process.cwd();
     }
-    const logFolder = path.join(this.project_path, "logs","web");
+    const logFolder = path.join(this.project_path, "logs", "web");
 
-      this.webLogFile = this.getWebLogFile(logFolder); 
-      this.registerConsoleLogListener(page, context,this.webLogFile);
+    this.webLogFile = this.getWebLogFile(logFolder);
+    this.registerConsoleLogListener(page, context, this.webLogFile);
     context.pages = [this.page];
-    
+
     context.pageLoading = { status: false };
     context.playContext.on("page", async (page) => {
       context.pageLoading.status = true;
@@ -68,8 +67,8 @@ class StableBrowser {
       context.page = page;
       context.pages.push(page);
 
-      this.webLogFile = this.getWebLogFile(logFolder); 
-      this.registerConsoleLogListener(page, context,this.webLogFile);
+      this.webLogFile = this.getWebLogFile(logFolder);
+      this.registerConsoleLogListener(page, context, this.webLogFile);
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
@@ -93,17 +92,17 @@ class StableBrowser {
     // });
   }
   getWebLogFile(logFolder: string) {
-    if(!fs.existsSync(logFolder)) {
+    if (!fs.existsSync(logFolder)) {
       fs.mkdirSync(logFolder, { recursive: true });
     }
     let nextIndex = 1;
     while (fs.existsSync(path.join(logFolder, nextIndex.toString() + ".json"))) {
       nextIndex++;
     }
-    const fileName =  nextIndex + ".json";
+    const fileName = nextIndex + ".json";
     return path.join(logFolder, fileName);
   }
-  registerConsoleLogListener(page: Page, context: any,logFile:string) {
+  registerConsoleLogListener(page: Page, context: any, logFile: string) {
     if (!this.context.webLogger) {
       this.context.webLogger = [];
     }
@@ -1360,14 +1359,14 @@ class StableBrowser {
     }
     // if data file exists, load it
     const dataFile = this._getDataFile(world);
-    let data = this.getTestData();
+    let data = this.getTestData(world);
     // merge the testData with the existing data
     Object.assign(data, testData);
     // save the data to the file
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
   }
-  getTestData() {
-    const dataFile = this._getDataFile();
+  getTestData(world = null) {
+    const dataFile = this._getDataFile(world);
     let data = {};
     if (fs.existsSync(dataFile)) {
       data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -2131,7 +2130,7 @@ class StableBrowser {
     if (!matches) {
       return value;
     }
-    const testData = this.getTestData();
+    const testData = this.getTestData(world);
 
     for (let i = 0; i < matches.length; i++) {
       let match = matches[i];
