@@ -58,6 +58,7 @@ class StableBrowser {
 
     this.webLogFile = this.getWebLogFile(logFolder);
     this.registerConsoleLogListener(page, context, this.webLogFile);
+    this.registerRequestListener();
     context.pages = [this.page];
 
     context.pageLoading = { status: false };
@@ -69,6 +70,7 @@ class StableBrowser {
 
       this.webLogFile = this.getWebLogFile(logFolder);
       this.registerConsoleLogListener(page, context, this.webLogFile);
+      this.registerRequestListener();
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
@@ -101,6 +103,16 @@ class StableBrowser {
     }
     const fileName = nextIndex + ".json";
     return path.join(logFolder, fileName);
+  }
+  registerRequestListener() {
+    this.page.on("request", (data) => {
+      data.url().includes();
+      const pageUrl = new URL(this.page.url());
+      const requestUrl = new URL(data.url());
+      if (pageUrl.hostname === requestUrl.hostname) {
+        this.context.authtoken = request.headerValue("Authorization");
+      }
+    });
   }
   registerConsoleLogListener(page: Page, context: any, logFile: string) {
     if (!this.context.webLogger) {
