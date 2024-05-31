@@ -96,7 +96,7 @@ class Api {
     if (authType === "Auth Header") {
       config.headers = {
         ...config.headers,
-        Authorization: `Bearer ${additionalData.authToken}`,
+        Authorization: additionalData.authToken,
       };
     }
     return await this.axiosClientRequest<T>(config);
