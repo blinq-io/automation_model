@@ -1849,6 +1849,8 @@ class StableBrowser {
       if (process.env.NODE_ENV_BLINQ === "dev") {
         serviceUrl = "https://dev.api.blinq.io";
       }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
       const request = {
         method: "POST",
