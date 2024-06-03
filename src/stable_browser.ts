@@ -2147,9 +2147,9 @@ class StableBrowser {
       let match = matches[i];
       let key = match.substring(2, match.length - 2);
 
-      let newValue = objectPath.get(testData, key);
+      let newValue = objectPath.get(testData, key, null);
 
-      if (newValue) {
+      if (newValue !== null) {
         value = value.replace(match, newValue);
       }
     }
