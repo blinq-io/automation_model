@@ -16,6 +16,7 @@ import drawRectangle from "./drawRect.js";
 import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
+import { decrypt } from "./utils.js";
 let configuration = null;
 type Params = Record<string, string>;
 
@@ -87,19 +88,6 @@ class StableBrowser {
       }
       context.pageLoading.status = false;
     });
-    // context.playContext.on("close", async () => {
-    //   if (context.pages.length > 1) {
-    //     // remove the last page
-    //     context.pages.pop();
-    //     this.page = context.pages[context.pages.length - 1];
-    //     context.page = this.page;
-    //     try {
-    //       console.log("Switch page: " + (await this.page.title()));
-    //     } catch (e) {
-    //       this.logger.error("error on page load " + e);
-    //     }
-    //   }
-    // });
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
@@ -2222,6 +2210,12 @@ class StableBrowser {
       if (process.env.NODE_ENV_BLINQ === "dev") {
         serviceUrl = "https://dev.api.blinq.io";
       }
+      ({ screenshotId, screenshotPath } = await this._screenShot(
+        options,
+        world,
+        info
+      ));
+      info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
       const request = {
         method: "POST",
@@ -2545,6 +2539,9 @@ class StableBrowser {
     if (!value) {
       return value;
     }
+    if (value.startsWith("secret:")) {
+      return decrypt(value.substring(7));
+    }
     // find all the accurance of {{(.*?)}} and replace with the value
     let regex = /{{(.*?)}}/g;
     let matches = value.match(regex);
@@ -2557,9 +2554,9 @@ class StableBrowser {
       let match = matches[i];
       let key = match.substring(2, match.length - 2);
 
-      let newValue = objectPath.get(testData, key);
+      let newValue = objectPath.get(testData, key, null);
 
-      if (newValue) {
+      if (newValue !== null) {
         value = value.replace(match, newValue);
       }
     }
