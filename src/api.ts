@@ -1,5 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 import tunnel, { ProxyOptions } from "tunnel";
+import objectPath from "object-path";
+
 class Api {
   private axiosClient: AxiosInstance;
   constructor(public logger: any) {
@@ -88,18 +92,94 @@ class Api {
   ): Promise<AxiosResponse<T, any>> {
     return await this.axiosClientRequest<T>(config);
   }
-  public async requestWithAuth<T = any>(
-    config: AxiosRequestConfig,
-    authType: string,
-    additionalData?: any
-  ): Promise<AxiosResponse<T, any>> {
-    if (authType === "Auth Header") {
-      config.headers = {
-        ...config.headers,
-        Authorization: additionalData.authToken,
-      };
+  async requestWithAuth(stepName: string, world: any, token: string) {
+    const toMethodName = (str: string) => {
+      // Remove any non-word characters (excluding underscore) and trim spaces
+      let cleanStr = str.trim().replace(/[^\w\s]/gi, "");
+      // Convert to lowercase and replace spaces with underscores
+      return cleanStr.toLowerCase().replace(/\s+/g, "_");
+    };
+    let methodName = toMethodName(stepName);
+    const startTime = Date.now();
+    let error = null,
+      tests: any = {},
+      res: any = null,
+      testsPassed = 0;
+    const apiFilePath = path.join("./features", "apis", methodName + ".json");
+    if (existsSync(apiFilePath)) {
+      try {
+        const apiRequests = JSON.parse(readFileSync(apiFilePath, "utf8"));
+        const useAuthHeaders = apiRequests.useAuthHeaders;
+        const config = JSON.parse(apiRequests.config);
+        if (useAuthHeaders) {
+          config.headers = {
+            ...config.headers,
+            Authorization: token,
+          };
+        }
+        res = await this.axiosClientRequest(JSON.parse(apiRequests.config));
+        if (res.status != 200) {
+          throw new Error("Request failed with status code " + res.status);
+        }
+        tests = apiRequests.tests;
+        tests?.forEach((test: any) => {
+          test.fail = true;
+          const path =
+            test === null || test === void 0 ? void 0 : test.pattern.split(".");
+          let lengthExists = false;
+          if (path[path.length - 1] === "length") {
+            path.pop();
+            lengthExists = true;
+          }
+          const value = objectPath.get(res.data, path.join("."));
+          if (
+            lengthExists &&
+            (value === null || value === void 0 ? void 0 : value.length) ==
+              test.value
+          ) {
+            test.fail = false;
+          }
+          if (Array.isArray(value)) {
+            test.fail = test.value != "exists";
+          }
+          if (value == test.value) {
+            test.fail = false;
+          }
+        });
+        const testsFailed = tests.filter((test: any) => !test.fail);
+        testsPassed = tests.length - testsFailed.length;
+        if (testsFailed.length > 0) {
+          throw new Error("Tests failed");
+        }
+      } catch (e) {
+        error = e;
+        throw error;
+      } finally {
+        const endTime = Date.now();
+        const properties = {
+          element_name: "API",
+          type: "api_test",
+          text: `Api test for ${stepName}`,
+          result: error
+            ? {
+                status: "FAILED",
+                startTime,
+                endTime,
+              }
+            : {
+                status: "PASSED",
+                startTime,
+                endTime,
+              },
+          info: { tests, testsPassed, headers: res.headers },
+        };
+        if (world && world.attach) {
+          world.attach(JSON.stringify(properties), {
+            mediaType: "application/json",
+          });
+        }
+      }
     }
-    return await this.axiosClientRequest<T>(config);
   }
 }
 
