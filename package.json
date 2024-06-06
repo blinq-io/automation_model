@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.345",
+  "version": "1.0.346",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
@@ -34,6 +34,7 @@
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^20.9.3",
+    "@types/object-path": "^0.11.4",
     "@types/tunnel": "^0.0.7",
     "ncp": "^2.0.0",
     "rimraf": "^5.0.5",
