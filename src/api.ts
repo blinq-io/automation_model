@@ -145,6 +145,10 @@ class Api {
           if (value == test.value) {
             test.fail = false;
           }
+          if (test.fail) {
+            test.newValue = value;
+            throw new Error("Test failed");
+          }
         });
         const testsFailed = tests.filter((test: any) => test.fail);
         testsPassed = tests.length - testsFailed.length;
