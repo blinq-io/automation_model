@@ -102,14 +102,21 @@ class StableBrowser {
     const fileName = nextIndex + ".json";
     return path.join(logFolder, fileName);
   }
-  registerRequestListener() {
-    this.page.on("request", (data) => {
-      data.url().includes();
-      const pageUrl = new URL(this.page.url());
-      const requestUrl = new URL(data.url());
-      if (pageUrl.hostname === requestUrl.hostname) {
-        this.context.authtoken = data.headerValue("Authorization");
-      }
+  registerConsoleLogListener(page: Page, context: any, logFile: string) {
+    if (!this.context.webLogger) {
+      this.context.webLogger = [];
+    }
+    page.on("console", async (msg) => {
+      this.context.webLogger.push({
+        type: msg.type(),
+        text: msg.text(),
+        location: msg.location(),
+        time: new Date().toISOString(),
+      });
+      await fs.promises.writeFile(
+        logFile,
+        JSON.stringify(this.context.webLogger, null, 2)
+      );
     });
   }
   registerRequestListener() {
