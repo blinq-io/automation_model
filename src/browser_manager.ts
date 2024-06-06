@@ -136,6 +136,7 @@ class Browser {
       if (storageState) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
+        contextOptions.ignoreHTTPSErrors = true;
       }
       if (viewport) {
         contextOptions.viewport = viewport;
