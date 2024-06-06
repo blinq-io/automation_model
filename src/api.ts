@@ -146,7 +146,7 @@ class Api {
             test.fail = false;
           }
         });
-        const testsFailed = tests.filter((test: any) => !test.fail);
+        const testsFailed = tests.filter((test: any) => test.fail);
         testsPassed = tests.length - testsFailed.length;
         if (testsFailed.length > 0) {
           throw new Error("Tests failed");
