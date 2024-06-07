@@ -132,17 +132,11 @@ class Api {
             lengthExists = true;
           }
           const value = objectPath.get(res.data, path.join("."));
-          if (
-            lengthExists &&
-            (value === null || value === void 0 ? void 0 : value.length) ==
-              test.value
-          ) {
+          if (lengthExists && value?.length == test.value) {
             test.fail = false;
-          }
-          if (Array.isArray(value)) {
+          } else if (Array.isArray(value)) {
             test.fail = test.value != "exists";
-          }
-          if (value == test.value) {
+          } else if (value == test.value) {
             test.fail = false;
           }
           if (test.fail) {
