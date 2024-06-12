@@ -1380,11 +1380,11 @@ class StableBrowser {
     switch (type) {
       case "users":
         // check if file users.json exists
-        if (!fs.existsSync("users.json")) {
+        if (!fs.existsSync(path.join(this.project_path, "users.json"))) {
           throw new Error("users.json file not found");
         }
         // read the file and return the data
-        const users = JSON.parse(fs.readFileSync("users.json", "utf8"));
+        const users = JSON.parse(fs.readFileSync(path.join(this.project_path, "users.json"), "utf8"));
         for (let i = 0; i < users.length; i++) {
           if (users[i].username === dataSelector) {
             const userObj = {
