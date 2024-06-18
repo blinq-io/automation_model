@@ -58,7 +58,11 @@ class StableBrowser {
     }
 
     try {
-      if (fs.existsSync("ai_config.json")) {
+      let aiConfigFile = "ai_config.json";
+      if (process.env.PROJECT_PATH) {
+        aiConfigFile = path.join(process.env.PROJECT_PATH, "ai_config.json");
+      }
+      if (fs.existsSync(aiConfigFile)) {
         this.configuration = JSON.parse(fs.readFileSync("ai_config.json"));
       } else {
         this.configuration = {};
