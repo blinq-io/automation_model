@@ -460,7 +460,7 @@ class StableBrowser {
     while (true) {
       locatorsCount = 0;
       let result = [];
-      if (this.popupHandlers && this.popupHandlers.length > 0) {
+      if (this.configuration.locatorsHandlers && this.popupHandlers.length > 0) {
         info.log += "scan for popup handlers" + "\n";
         const handlerGroup = [];
         for (let i = 0; i < this.popupHandlers.length; i++) {
