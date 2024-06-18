@@ -1,6 +1,7 @@
 import CryptoJS from "crypto-js";
 
 import path from "path";
+import { TOTP } from "totp-generator";
 // Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
@@ -10,9 +11,22 @@ function encrypt(text: string, key: string | null = null) {
 }
 
 // Function to decrypt a string
-function decrypt(encryptedText: string, key: string | null = null) {
+async function decrypt(encryptedText: string, key: string | null = null) {
   if (!key) {
     key = _findKey();
+  }
+  if (encryptedText.startsWith("secret:")) {
+    encryptedText = encryptedText.substring(7);
+  }
+  if (encryptedText.startsWith("totp:")) {
+    encryptedText = encryptedText.substring(5);
+    let { otp, expires } = TOTP.generate(encryptedText);
+    // expires is in unix time, check if we have at least 25 seconds left, if it's less than wait for the expires time
+    if (expires - Date.now() < 25000) {
+      await new Promise((resolve) => setTimeout(resolve, (expires - Date.now() + 1000) % 30000));
+      ({ otp, expires } = TOTP.generate(encryptedText));
+    }
+    return otp;
   }
   const bytes = CryptoJS.AES.decrypt(encryptedText, key);
   return bytes.toString(CryptoJS.enc.Utf8);

@@ -1,6 +1,16 @@
 {
     "page_timeout": 60000,
     "networkidle": false,
+    "locatorsHandlers": [
+        {
+            "locator": {
+                "css": "#onetrust-policy-title"
+            },
+            "close_dialog_locator": {
+                "css": "#onetrust-accept-btn-handler"
+            }
+        }
+    ],
     "changes": [
         {
             "css": "gb-side-navigation-menu-item",
