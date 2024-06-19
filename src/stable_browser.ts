@@ -393,6 +393,30 @@ class StableBrowser {
       }
     }
   }
+  async _handlePopups(info, _params) {
+    if (this.configuration.locatorsHandlers && this.popupHandlers.length > 0) {
+      if (!info) {
+        info = {};
+      }
+      info.log += "scan for popup handlers" + "\n";
+      const handlerGroup = [];
+      for (let i = 0; i < this.popupHandlers.length; i++) {
+        handlerGroup.push(this.popupHandlers[i].locator);
+      }
+      let result = await this._scanLocatorsGroup(handlerGroup, this.page, _params, info, true);
+      if (result.foundElements.length > 0) {
+        // need to handle popup
+        let dialogCloseLocator = this._getLocator(
+          this.popupHandlers[result.locatorIndex].close_dialog_locator,
+          this.page,
+          _params
+        );
+        await dialogCloseLocator.click();
+        return { rerun: true };
+      }
+    }
+    return { rerun: false };
+  }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     for (let i = 0; i < 3; i++) {
       let element = await this._locate_internal(selectors, info, _params, timeout);
@@ -464,24 +488,28 @@ class StableBrowser {
     while (true) {
       locatorsCount = 0;
       let result = [];
-      if (this.configuration.locatorsHandlers && this.popupHandlers.length > 0) {
-        info.log += "scan for popup handlers" + "\n";
-        const handlerGroup = [];
-        for (let i = 0; i < this.popupHandlers.length; i++) {
-          handlerGroup.push(this.popupHandlers[i].locator);
-        }
-        result = await this._scanLocatorsGroup(handlerGroup, this.page, _params, info, true);
-        if (result.foundElements.length > 0) {
-          // need to handle popup
-          let dialogCloseLocator = this._getLocator(
-            this.popupHandlers[result.locatorIndex].close_dialog_locator,
-            this.page,
-            _params
-          );
-          await dialogCloseLocator.click();
-          return { rerun: true };
-        }
+      let popupResult = await this._handlePopups(info, _params);
+      if (popupResult.rerun) {
+        return popupResult;
       }
+      // if (this.configuration.locatorsHandlers && this.popupHandlers.length > 0) {
+      //   info.log += "scan for popup handlers" + "\n";
+      //   const handlerGroup = [];
+      //   for (let i = 0; i < this.popupHandlers.length; i++) {
+      //     handlerGroup.push(this.popupHandlers[i].locator);
+      //   }
+      //   result = await this._scanLocatorsGroup(handlerGroup, this.page, _params, info, true);
+      //   if (result.foundElements.length > 0) {
+      //     // need to handle popup
+      //     let dialogCloseLocator = this._getLocator(
+      //       this.popupHandlers[result.locatorIndex].close_dialog_locator,
+      //       this.page,
+      //       _params
+      //     );
+      //     await dialogCloseLocator.click();
+      //     return { rerun: true };
+      //   }
+      // }
       info.log += "scanning locators in priority 1" + "\n";
       result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
       if (result.foundElements.length === 0) {
