@@ -402,12 +402,21 @@ class StableBrowser {
       for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
         handlerGroup.push(this.configuration.popupHandlers[i].locator);
       }
-      let result = await this._scanLocatorsGroup(handlerGroup, this.page, _params, info, true);
+      const scopes = [this.page, ...this.page.frames()];
+      let result = null;
+      let scope = null;
+      for (let i = 0; i < scopes.length; i++) {
+        result = await this._scanLocatorsGroup(handlerGroup, scopes[i], _params, info, true);
+        if (result.foundElements.length > 0) {
+          scope = scopes[i];
+          break;
+        }
+      }
       if (result.foundElements.length > 0) {
         // need to handle popup
         let dialogCloseLocator = this._getLocator(
           this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator,
-          this.page,
+          scope,
           _params
         );
         await dialogCloseLocator.click();
