@@ -44,7 +44,6 @@ const Types = {
 class StableBrowser {
   project_path = null;
   webLogFile = null;
-  popupHandlers = [];
   configuration = null;
   constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
     if (!this.logger) {
@@ -393,21 +392,21 @@ class StableBrowser {
       }
     }
   }
-  async _handlePopups(info, _params) {
-    if (this.configuration.locatorsHandlers && this.popupHandlers.length > 0) {
+  async closeUnexpectedPopups(info, _params) {
+    if (this.configuration.popupHandlers && this.configuration.popupHandlers.length > 0) {
       if (!info) {
         info = {};
       }
       info.log += "scan for popup handlers" + "\n";
       const handlerGroup = [];
-      for (let i = 0; i < this.popupHandlers.length; i++) {
-        handlerGroup.push(this.popupHandlers[i].locator);
+      for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
+        handlerGroup.push(this.configuration.popupHandlers[i].locator);
       }
       let result = await this._scanLocatorsGroup(handlerGroup, this.page, _params, info, true);
       if (result.foundElements.length > 0) {
         // need to handle popup
         let dialogCloseLocator = this._getLocator(
-          this.popupHandlers[result.locatorIndex].close_dialog_locator,
+          this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator,
           this.page,
           _params
         );
@@ -488,28 +487,10 @@ class StableBrowser {
     while (true) {
       locatorsCount = 0;
       let result = [];
-      let popupResult = await this._handlePopups(info, _params);
+      let popupResult = await this.closeUnexpectedPopups(info, _params);
       if (popupResult.rerun) {
         return popupResult;
       }
-      // if (this.configuration.locatorsHandlers && this.popupHandlers.length > 0) {
-      //   info.log += "scan for popup handlers" + "\n";
-      //   const handlerGroup = [];
-      //   for (let i = 0; i < this.popupHandlers.length; i++) {
-      //     handlerGroup.push(this.popupHandlers[i].locator);
-      //   }
-      //   result = await this._scanLocatorsGroup(handlerGroup, this.page, _params, info, true);
-      //   if (result.foundElements.length > 0) {
-      //     // need to handle popup
-      //     let dialogCloseLocator = this._getLocator(
-      //       this.popupHandlers[result.locatorIndex].close_dialog_locator,
-      //       this.page,
-      //       _params
-      //     );
-      //     await dialogCloseLocator.click();
-      //     return { rerun: true };
-      //   }
-      // }
       info.log += "scanning locators in priority 1" + "\n";
       result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
       if (result.foundElements.length === 0) {
