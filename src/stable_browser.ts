@@ -78,7 +78,7 @@ class StableBrowser {
     context.pages = [this.page];
 
     context.pageLoading = { status: false };
-    context.playContext.on("page", async (page) => {
+    context.playContext.on("page", async function (page) {
       context.pageLoading.status = true;
       this.page = page;
       context.page = page;
