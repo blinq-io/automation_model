@@ -77,7 +77,7 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito"],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors"],
       });
       // this.browser = await chromium.connectOverCDP({
       //   endpointURL: `http://localhost:${cdpPort}`,
@@ -109,6 +109,7 @@ class Browser {
           "--disable-extensions-except=" + extensionPath,
           "--load-extension=" + extensionPath,
           "--no-incognito",
+          "--ignore-certificate-errors",
         ],
       });
     } else {
@@ -116,19 +117,19 @@ class Browser {
         this.browser = await firefox.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors"],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors"],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
         });
       } else {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors"],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
         });
       }
 
