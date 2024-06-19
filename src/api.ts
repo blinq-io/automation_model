@@ -149,6 +149,7 @@ class Api {
         if (testsFailed.length > 0) {
           throw new Error("Tests failed");
         }
+        return res.data;
       } catch (e) {
         error = e;
         throw error;
@@ -176,6 +177,7 @@ class Api {
             mediaType: "application/json",
           });
         }
+        return null;
       }
     }
   }
