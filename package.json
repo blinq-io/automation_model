@@ -15,8 +15,7 @@
     "build": "npm run clean && npm run compile && ncp package.json build/package.json",
     "test": "node tests/launch_page.test.js",
     "debug": "node tests/debug.test.js",
-    "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
-    "prepare": "husky install"
+    "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types"
   },
   "author": "",
   "license": "ISC",
