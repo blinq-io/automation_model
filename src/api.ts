@@ -48,9 +48,7 @@ class Api {
     }
   }
 
-  public async axiosClientRequest<T = any>(
-    config: AxiosRequestConfig
-  ): Promise<AxiosResponse<T, any>> {
+  public async axiosClientRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
     for (let i = 0; i < 2; i++) {
       try {
         const res = this.axiosClient<T>(config);
@@ -66,15 +64,11 @@ class Api {
         }
 
         if (
-          (error.response &&
-            error.response.data.includes("self signed certificate")) ||
+          (error.response && error.response.data.includes("self signed certificate")) ||
           (error.message && error.message.includes("self signed certificate"))
         ) {
           process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-          this.logger.info(
-            "NODE_TLS_REJECT_UNAUTHORIZED = " +
-              process.env.NODE_TLS_REJECT_UNAUTHORIZED
-          );
+          this.logger.info("NODE_TLS_REJECT_UNAUTHORIZED = " + process.env.NODE_TLS_REJECT_UNAUTHORIZED);
         }
       }
     }
@@ -87,9 +81,7 @@ class Api {
     this.logger.info(agent);
     this.axiosClient = axios.create({ proxy: false, httpsAgent: agent });
   }
-  public async request<T = any>(
-    config: AxiosRequestConfig
-  ): Promise<AxiosResponse<T, any>> {
+  public async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
     return await this.axiosClientRequest<T>(config);
   }
   async requestWithAuth(
@@ -122,8 +114,7 @@ class Api {
         tests = apiRequests.tests;
         tests?.forEach((test: any) => {
           test.fail = true;
-          const path =
-            test === null || test === void 0 ? void 0 : test.pattern.split(".");
+          const path = test === null || test === void 0 ? void 0 : test.pattern.split(".");
           let lengthExists = false;
           if (path[path.length - 1] === "length") {
             path.pop();
