@@ -45,7 +45,12 @@ class StableBrowser {
   project_path = null;
   webLogFile = null;
   configuration = null;
-  constructor(public browser: Browser, public page: Page, public logger: any = null, public context: any = null) {
+  constructor(
+    public browser: Browser,
+    public page: Page,
+    public logger: any = null,
+    public context: any = null
+  ) {
     if (!this.logger) {
       this.logger = console;
     }
@@ -1890,10 +1895,12 @@ class StableBrowser {
           continue;
         }
         if (resultWithElementsFound[0].randomToken) {
-          await this._highlightElements(
-            resultWithElementsFound[0].frame,
-            `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`
-          );
+          const frame = resultWithElementsFound[0].frame;
+          const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
+          await this._highlightElements(frame, dataAttribute);
+          const element = await frame.$(dataAttribute);
+          await this.scrollIfNeeded(element, info);
+          await element.dispatchEvent("bvt_verify_page_contains_text");
         }
         ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
