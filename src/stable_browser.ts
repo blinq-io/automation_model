@@ -1070,7 +1070,7 @@ class StableBrowser {
     info.selectors = selectors;
     const newValue = await this._replaceWithLocalData(_value, world);
     if (newValue !== _value) {
-      this.logger.info(_value + "=" + newValue);
+      //this.logger.info(_value + "=" + newValue);
       _value = newValue;
     }
     info.value = _value;
