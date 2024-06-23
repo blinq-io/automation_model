@@ -52,19 +52,6 @@ const getContext = async function (environment: Environment | null, headless = f
   // await _initCookies(context);
   return context;
 };
-// const _initCookies = async function (context) {
-//   if (context.environment.cookies) {
-//     const cookies = [];
-//     for (let i = 0; i < context.environment.cookies.length; i++) {
-//       const cookie = context.environment.cookies[i];
-//       if (cookie.expires && cookie.expires == "undefined") {
-//         delete cookie.expires;
-//       }
-//       cookies.push(cookie);
-//     }
-//     await context.playContext.addCookies(cookies);
-//   }
-// };
 
 const closeBrowser = async function (browser?: Browser | PlaywrightBrowser) {
   await browserManager.closeBrowser(browser);
