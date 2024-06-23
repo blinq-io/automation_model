@@ -2230,7 +2230,7 @@ class StableBrowser {
       });
     }
   }
-  async _replaceWithLocalData(value, world) {
+  async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
     if (!value) {
       return value;
     }
@@ -2252,8 +2252,8 @@ class StableBrowser {
         }
       }
     }
-    if (value.startsWith("secret:") || value.startsWith("totp:")) {
-      return await decrypt(value);
+    if ((value.startsWith("secret:") || value.startsWith("totp:")) && _decrypt) {
+      return await decrypt(value, null, totpWait);
     }
     return value;
   }
