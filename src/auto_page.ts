@@ -48,7 +48,7 @@ const initContext = async (
       reportFolder = _findEmptyFolder();
       if (world.attach) {
         world.attach(reportFolder, { mediaType: "text/plain" });
-        world.attach(context.environment, {
+        world.attach(JSON.stringify(context.environment), {
           mediaType: "application/json+env",
         });
       }
