@@ -20,6 +20,8 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
   }
   if (encryptedText.startsWith("totp:")) {
     encryptedText = encryptedText.substring(5);
+    const bytes = CryptoJS.AES.decrypt(encryptedText, key);
+    encryptedText =  bytes.toString(CryptoJS.enc.Utf8);
     let { otp, expires } = TOTP.generate(encryptedText);
     if(totpWait) {
       // expires is in unix time, check if we have at least 25 seconds left, if it's less than wait for the expires time
