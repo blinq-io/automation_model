@@ -28,7 +28,12 @@ const _findEmptyFolder = (folder?: string) => {
   }
   return path.join(folder, nextIndex.toString());
 };
-const initContext = async (path: string, doNavigate = true, headless = false, world: any = null) => {
+const initContext = async (
+  path: string,
+  doNavigate = true,
+  headless = false,
+  world: any = null
+) => {
   if (context) {
     return context;
   }
@@ -43,6 +48,9 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
       reportFolder = _findEmptyFolder();
       if (world.attach) {
         world.attach(reportFolder, { mediaType: "text/plain" });
+        world.attach(context.environment, {
+          mediaType: "application/json+env",
+        });
       }
     }
     world.screenshotPath = reportFolder + "/screenshots/";
