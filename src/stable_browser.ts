@@ -1177,7 +1177,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "***** fill on " + selectors.element_name + " with value " + _value + "*****\n";
+    info.log = "***** fill on " + selectors.element_name + " with value " + value + "*****\n";
     info.operation = "fill";
     info.selectors = selectors;
     info.value = value;
