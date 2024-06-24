@@ -14,6 +14,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import { decrypt } from "./utils.js";
+import { only } from "node:test";
 type Params = Record<string, string>;
 
 const Types = {
@@ -520,10 +521,12 @@ class StableBrowser {
         // info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
       }
-      let shouldNotTestPriority3 = highPriorityOnly && !onlyPriority3;
-      if (result.foundElements.length === 0 && shouldTestPriority3) {
-        // info.log += "scanning locators in priority 3" + "\n";
+      if(result.foundElements.length === 0 && onlyPriority3) {
         result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+      } else {
+        if(result.foundElements.length === 0 && !highPriorityOnly) {
+          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+        }
       }
       let foundElements = result.foundElements;
 
