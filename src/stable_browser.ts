@@ -14,6 +14,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import { decrypt } from "./utils.js";
+import { only } from "node:test";
 type Params = Record<string, string>;
 
 const Types = {
@@ -419,19 +420,26 @@ class StableBrowser {
       }
       if (result.foundElements.length > 0) {
         // need to handle popup
-        let dialogCloseLocator = this._getLocator(
-          this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator,
-          scope,
-          _params
-        );
-        await dialogCloseLocator.click();
-        return { rerun: true };
+        const closeHandlerGroup = [];
+        closeHandlerGroup.push(this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator);
+        for(let i = 0; i < scopes.length; i++) {
+            result = await this._scanLocatorsGroup(closeHandlerGroup, scopes[i], _params, info, true);
+            if (result.foundElements.length > 0) {
+                break;
+            }
+        }
+        if (result.foundElements.length > 0) {
+            let dialogCloseLocator = result.foundElements[0].locator;
+            await dialogCloseLocator.click();
+            return { rerun: true };
+        }
       }
     }
     return { rerun: false };
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     for (let i = 0; i < 3; i++) {
+      info.log += "attempt " + i +  ": totoal locators " + selectors.locators.length + "\n";
       let element = await this._locate_internal(selectors, info, _params, timeout);
       if (!element.rerun) {
         return element;
@@ -447,6 +455,7 @@ class StableBrowser {
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
     if (selectors.iframe_src || selectors.frameLocators) {
+      info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators +  "\n";
       while (true) {
         let frameFound = false;
         if (selectors.frameLocators) {
@@ -505,15 +514,19 @@ class StableBrowser {
       if (popupResult.rerun) {
         return popupResult;
       }
-      info.log += "scanning locators in priority 1" + "\n";
+      // info.log += "scanning locators in priority 1" + "\n";
+      let onlyPriority3 = selectorsLocators[0].priority === 3;
       result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
       if (result.foundElements.length === 0) {
-        info.log += "scanning locators in priority 2" + "\n";
+        // info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
       }
-      if (result.foundElements.length === 0 && !highPriorityOnly) {
-        info.log += "scanning locators in priority 3" + "\n";
+      if(result.foundElements.length === 0 && onlyPriority3) {
         result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+      } else {
+        if(result.foundElements.length === 0 && !highPriorityOnly) {
+          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+        }
       }
       let foundElements = result.foundElements;
 
@@ -601,7 +614,7 @@ class StableBrowser {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = "";
+    info.log = "***** click on " + selectors.element_name + " *****\n";
     info.operation = "click";
     info.selectors = selectors;
     let error = null;
@@ -1065,12 +1078,12 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** clickType on " + selectors.element_name + " with value " + _value + "*****\n";
     info.operation = "clickType";
     info.selectors = selectors;
     const newValue = await this._replaceWithLocalData(_value, world);
     if (newValue !== _value) {
-      this.logger.info(_value + "=" + newValue);
+      //this.logger.info(_value + "=" + newValue);
       _value = newValue;
     }
     info.value = _value;
@@ -1167,7 +1180,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** fill on " + selectors.element_name + " with value " + value + "*****\n";
     info.operation = "fill";
     info.selectors = selectors;
     info.value = value;
@@ -1278,7 +1291,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** verify element " + selectors.element_name + " contains pattern  " + pattern + "/" + text +" *****\n";
     info.operation = "containsPattern";
     info.selectors = selectors;
     info.value = text;
@@ -1342,7 +1355,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** verify element " + selectors.element_name + " contains text " + text + " *****\n";
     info.operation = "containsText";
     info.selectors = selectors;
     const newValue = await this._replaceWithLocalData(text, world);
@@ -1604,7 +1617,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** verify element " + selectors.element_name + " exists in page *****\n";
     info.operation = "verify";
     info.selectors = selectors;
     try {
@@ -1655,7 +1668,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n";
     info.operation = "extract";
     info.selectors = selectors;
     try {
@@ -1789,7 +1802,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** verify page path " + pathPart + " *****\n";
     info.operation = "verifyPagePath";
 
     const newValue = await this._replaceWithLocalData(pathPart, world);
@@ -1849,7 +1862,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** verify text " + text + " exists in page *****\n";
     info.operation = "verifyTextExistInPage";
 
     const newValue = await this._replaceWithLocalData(text, world);
@@ -2102,7 +2115,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** analyze table " + selectors.element_name + " query " + query + " operator " + operator + " value " + value + " *****\n";
     info.operation = "analyzeTable";
     info.selectors = selectors;
     info.query = query;
@@ -2230,7 +2243,7 @@ class StableBrowser {
       });
     }
   }
-  async _replaceWithLocalData(value, world) {
+  async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
     if (!value) {
       return value;
     }
@@ -2252,8 +2265,8 @@ class StableBrowser {
         }
       }
     }
-    if (value.startsWith("secret:") || value.startsWith("totp:")) {
-      return await decrypt(value);
+    if ((value.startsWith("secret:") || value.startsWith("totp:")) && _decrypt) {
+      return await decrypt(value, null, totpWait);
     }
     return value;
   }
