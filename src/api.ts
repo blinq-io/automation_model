@@ -84,14 +84,12 @@ class Api {
   public async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
     return await this.axiosClientRequest<T>(config);
   }
-  async requestWithAuth(stepName: string, world: any, token: string) {
-    const toMethodName = (str: string) => {
-      // Remove any non-word characters (excluding underscore) and trim spaces
-      let cleanStr = str.trim().replace(/[^\w\s]/gi, "");
-      // Convert to lowercase and replace spaces with underscores
-      return cleanStr.toLowerCase().replace(/\s+/g, "_");
-    };
-    let methodName = toMethodName(stepName);
+  async requestWithAuth(
+    methodName: string,
+    world: any,
+    token: string,
+    params: any
+  ) {
     const startTime = Date.now();
     let error = null,
       tests: any = {},
@@ -149,7 +147,7 @@ class Api {
         const properties = {
           element_name: "API",
           type: "api_test",
-          text: `Api test for ${stepName}`,
+          text: `Api test for ${methodName}`,
           result: error
             ? {
                 status: "FAILED",
