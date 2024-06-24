@@ -352,6 +352,9 @@ class StableBrowser {
         locatorSearch.css,
         _params
       );
+      if (!locatorString) {
+        return;
+      }
       locator = this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
       let result = await this._locateElementByText(
