@@ -177,9 +177,14 @@ class StableBrowser {
       return text;
     }
     for (let key in _params) {
-      text = text.replaceAll(new RegExp("{" + key + "}", "g"), _params[key]);
-    }
-    return text;
+      let regValue = key;
+      if(key.startsWith("_")) {
+          // remove the _ prefix
+          regValue = key.substring(1);
+      }
+      text = text.replaceAll(new RegExp("{" + regValue + "}", "g"), _params[key]);
+  }
+  return text;
   }
   _getLocator(locator, scope, _params: Params) {
     if (locator.role) {
