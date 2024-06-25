@@ -342,7 +342,7 @@ class StableBrowser {
     visibleOnly = true
   ) {
     let locatorSearch = selectorHierarchy[index];
-    info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
+    //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
       let locatorString = await this._locateElmentByTextClimbCss(
@@ -381,7 +381,7 @@ class StableBrowser {
     //   cssHref = true;
     // }
     let count = await locator.count();
-    info.log += "total elements found " + count + "\n";
+    //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
     if (locatorSearch.index && locatorSearch.index < count) {
@@ -392,17 +392,19 @@ class StableBrowser {
     for (let j = 0; j < count; j++) {
       let visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
-      info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
       if (!visibleOnly) {
         visible = true;
       }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
-
-        // if (cssHref) {
-        //   info.log += "css href locator found, will ignore all others" + "\n";
-        //   break;
-        // }
+      } else {
+        if(!info.printMessages) {
+          info.printMessages = {};
+        }
+        if(!info.printMessages[j.toString()]) {
+          info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+          info.printMessages[j.toString()] = true;
+        }
       }
     }
   }
@@ -448,6 +450,10 @@ class StableBrowser {
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     for (let i = 0; i < 3; i++) {
       info.log += "attempt " + i +  ": totoal locators " + selectors.locators.length + "\n";
+      for (let j = 0; j < selectors.locators.length; j++) {
+        let selector = selectors.locators[j];
+        info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
+      }
       let element = await this._locate_internal(selectors, info, _params, timeout);
       if (!element.rerun) {
         return element;
@@ -540,6 +546,7 @@ class StableBrowser {
 
       if (foundElements.length === 1 && foundElements[0].unique) {
         info.box = foundElements[0].box;
+        info.log += "unique element was found, locator: " + foundElements[0].locator + "\n";
         return foundElements[0].locator;
       }
       //info.log += "total elements found " + foundElements.length);
@@ -567,6 +574,7 @@ class StableBrowser {
           }
         }
         if (maxCountElement) {
+          info.log += "unique element was found, locator: " + maxCountElement.locator + "\n";
           info.box = await maxCountElement.locator.boundingBox();
           return maxCountElement.locator;
         }
@@ -575,9 +583,11 @@ class StableBrowser {
         break;
       }
       if (performance.now() - startTime > highPriorityTimeout) {
+        info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
       }
       if (performance.now() - startTime > visibleOnlyTimeout) {
+        info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
