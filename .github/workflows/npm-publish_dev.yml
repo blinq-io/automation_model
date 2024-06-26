@@ -46,9 +46,12 @@ jobs:
       - run: npm run version-bump
         working-directory: ${{ github.workspace }}
 
-      # Push the changes including the version bump
+      # Push the changes including the version bump using PAT
       - name: Push changes
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
           git push origin dev
         working-directory: ${{ github.workspace }}
 
