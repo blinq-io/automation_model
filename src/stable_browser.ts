@@ -1930,8 +1930,10 @@ class StableBrowser {
           const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
           await this._highlightElements(frame, dataAttribute);
           const element = await frame.$(dataAttribute);
-          await this.scrollIfNeeded(element, info);
-          await element.dispatchEvent("bvt_verify_page_contains_text");
+          if(element){
+            await this.scrollIfNeeded(element, info);
+            await element.dispatchEvent("bvt_verify_page_contains_text");
+          }
         }
         ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
