@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.382-dev.0",
+  "version": "1.0.382-dev.1",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
@@ -17,7 +17,6 @@
     "debug": "node tests/debug.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types"
   },
-  
   "author": "",
   "license": "ISC",
   "dependencies": {
