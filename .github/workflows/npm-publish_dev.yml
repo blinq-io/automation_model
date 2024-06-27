@@ -30,6 +30,11 @@ jobs:
         run: npx playwright install
         working-directory: ${{ github.workspace }}
 
+      - run: npm run build
+        working-directory: ${{ github.workspace }}
+      - run: npm test
+        working-directory: ${{ github.workspace }}
+
       - name: Configure git
         run: |
           git config --global user.name "${{ secrets.GIT_USER_NAME}}"
@@ -76,10 +81,7 @@ jobs:
           git push origin 
 
 
-      - run: npm run build
-        working-directory: ${{ github.workspace }}
-      - run: npm test
-        working-directory: ${{ github.workspace }}
+
 
         
       - name: publish automation model to npm
