@@ -70,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
         run: |
-    
+          git remote set-url origin https://${{ secrets.GIT_USER_NAME}}:${{ secrets.TOKEN_GITHUB_WORKFLOW }}@github.com/blinq-io/automation_model.git 
           git push origin AI-987-change-workflows-to-update-ver
 
       - run: npm run build
