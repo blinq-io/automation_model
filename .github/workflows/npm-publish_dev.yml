@@ -70,9 +70,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
-          
-         
-          git commit -m "Bump version to $(jq -r .version < ${{ github.workspace }}/package.json)"
           git push origin AI-987-change-workflows-to-update-ver
 
       - run: npm run build
