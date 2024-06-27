@@ -71,7 +71,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
           
-          git add ${{ github.workspace }}/package.json ${{ github.workspace }}/package-lock.json
+         
           git commit -m "Bump version to $(jq -r .version < ${{ github.workspace }}/package.json)"
           git push origin AI-987-change-workflows-to-update-ver
 
