@@ -5,7 +5,7 @@ name: Javascript client CI
 
 on:
   push:
-    branches: ["dev", "AI-987-change-workflows-to-update-ver"]
+    branches: ["dev","AI-987-change-workflows-to-update-ver"]
 
 jobs:
   build-javascript-client:
@@ -29,51 +29,58 @@ jobs:
 
       - name: Configure git
         run: |
-          git config --global user.name "${{ secrets.GIT_USER_NAME }}"
-          git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
+          git config --global user.name "${{ secrets.GIT_USER_NAME}}"
+          git config --global user.email "${{ secrets.GIT_USER_EMAIL}}"
+          
 
       - name: Fetch current version from npm with tag 'next'
         id: npm_version
         run: |
             version=$(npm show automation_model@next version)
             echo "version=$version" >> $GITHUB_ENV
-
+      
+      - name: Commit local changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        run: |
+                  git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
+                  git commit -m "Temporary commit to allow merge"     
+                  git fetch origin AI-987-change-workflows-to-update-ver
+                  git merge origin/AI-987-change-workflows-to-update-ver 
+      
+              
       - name: Update package.json with current npm version
         run: |
-          current_version=${{ env.version }}
-          jq --arg current_version "$current_version" '.version = $current_version' "${{ github.workspace }}/package.json" > "${{ github.workspace }}/package.json.tmp" && mv "${{ github.workspace }}/package.json.tmp" "${{ github.workspace }}/package.json"
-
+              current_version=${{ env.version }}
+              jq --arg current_version "$current_version" '.version = $current_version' "${{ github.workspace }}/package.json" > "${{ github.workspace }}/package.json.tmp" && mv "${{ github.workspace }}/package.json.tmp" "${{ github.workspace }}/package.json"
+          
       - name: Commit updated version
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
-          git add "${{ github.workspace }}/package.json"
-          git commit -m "Update version to ${{ env.version }}" || echo "No changes to commit"
-
-      - name: Pull latest changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
-        run: |
-          git pull origin AI-987-change-workflows-to-update-ver --rebase
+                git add "${{ github.workspace }}/package.json"
+                git commit -m "Update version to ${{ env.version }}"
+              
 
       - name: Bump version
-        run: npm version prepatch --preid=dev
+        run: npm version prepatch --preid=dev                 
         working-directory: ${{ github.workspace }}
 
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
+          
           git add ${{ github.workspace }}/package.json ${{ github.workspace }}/package-lock.json
-          git commit -m "Bump version to $(jq -r .version < ${{ github.workspace }}/package.json)" || echo "No changes to commit"
+          git commit -m "Bump version to $(jq -r .version < ${{ github.workspace }}/package.json)"
           git push origin AI-987-change-workflows-to-update-ver
 
       - run: npm run build
         working-directory: ${{ github.workspace }}
       - run: npm test
         working-directory: ${{ github.workspace }}
-
-      - name: Publish automation model to npm
+       
+      - name: publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
         with:
           npm-token: ${{ secrets.NPM_PASSWORD }}
