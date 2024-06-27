@@ -60,6 +60,7 @@ jobs:
         run: |
                 git add "${{ github.workspace }}/package.json"
                 git commit -m "Update version to ${{ env.version }}"
+                git pull origin AI-987-change-workflows-to-update-ver
 
       - name: Bump version
         run: npm version prepatch --preid=dev                 
@@ -69,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
-          git pull origin AI-987-change-workflows-to-update-ver
+          
           git add ${{ github.workspace }}/package.json ${{ github.workspace }}/package-lock.json
           git commit -m "Bump version to $(jq -r .version < ${{ github.workspace }}/package.json)"
           git push origin AI-987-change-workflows-to-update-ver
