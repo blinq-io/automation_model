@@ -84,23 +84,26 @@ class StableBrowser {
     context.pages = [this.page];
 
     context.pageLoading = { status: false };
-    context.playContext.on("page", async function (page) {
-      context.pageLoading.status = true;
-      this.page = page;
-      context.page = page;
-      context.pages.push(page);
+    context.playContext.on(
+      "page",
+      async function (page) {
+        context.pageLoading.status = true;
+        this.page = page;
+        context.page = page;
+        context.pages.push(page);
 
-      this.webLogFile = this.getWebLogFile(logFolder);
-      this.registerConsoleLogListener(page, context, this.webLogFile);
-      this.registerRequestListener();
-      try {
-        await this.waitForPageLoad();
-        console.log("Switch page: " + (await page.title()));
-      } catch (e) {
-        this.logger.error("error on page load " + e);
-      }
-      context.pageLoading.status = false;
-    });
+        this.webLogFile = this.getWebLogFile(logFolder);
+        this.registerConsoleLogListener(page, context, this.webLogFile);
+        this.registerRequestListener();
+        try {
+          await this.waitForPageLoad();
+          console.log("Switch page: " + (await page.title()));
+        } catch (e) {
+          this.logger.error("error on page load " + e);
+        }
+        context.pageLoading.status = false;
+      }.bind(this)
+    );
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
@@ -178,13 +181,13 @@ class StableBrowser {
     }
     for (let key in _params) {
       let regValue = key;
-      if(key.startsWith("_")) {
-          // remove the _ prefix
-          regValue = key.substring(1);
+      if (key.startsWith("_")) {
+        // remove the _ prefix
+        regValue = key.substring(1);
       }
       text = text.replaceAll(new RegExp("{" + regValue + "}", "g"), _params[key]);
-  }
-  return text;
+    }
+    return text;
   }
   _getLocator(locator, scope, _params: Params) {
     if (locator.role) {
@@ -342,7 +345,7 @@ class StableBrowser {
     visibleOnly = true
   ) {
     let locatorSearch = selectorHierarchy[index];
-    info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
+    //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
       let locatorString = await this._locateElmentByTextClimbCss(
@@ -352,6 +355,9 @@ class StableBrowser {
         locatorSearch.css,
         _params
       );
+      if (!locatorString) {
+        return;
+      }
       locator = this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
       let result = await this._locateElementByText(
@@ -378,7 +384,7 @@ class StableBrowser {
     //   cssHref = true;
     // }
     let count = await locator.count();
-    info.log += "total elements found " + count + "\n";
+    //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
     if (locatorSearch.index && locatorSearch.index < count) {
@@ -389,17 +395,19 @@ class StableBrowser {
     for (let j = 0; j < count; j++) {
       let visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
-      info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
       if (!visibleOnly) {
         visible = true;
       }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
-
-        // if (cssHref) {
-        //   info.log += "css href locator found, will ignore all others" + "\n";
-        //   break;
-        // }
+      } else {
+        if (!info.printMessages) {
+          info.printMessages = {};
+        }
+        if (!info.printMessages[j.toString()]) {
+          info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+          info.printMessages[j.toString()] = true;
+        }
       }
     }
   }
@@ -427,16 +435,16 @@ class StableBrowser {
         // need to handle popup
         const closeHandlerGroup = [];
         closeHandlerGroup.push(this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator);
-        for(let i = 0; i < scopes.length; i++) {
-            result = await this._scanLocatorsGroup(closeHandlerGroup, scopes[i], _params, info, true);
-            if (result.foundElements.length > 0) {
-                break;
-            }
+        for (let i = 0; i < scopes.length; i++) {
+          result = await this._scanLocatorsGroup(closeHandlerGroup, scopes[i], _params, info, true);
+          if (result.foundElements.length > 0) {
+            break;
+          }
         }
         if (result.foundElements.length > 0) {
-            let dialogCloseLocator = result.foundElements[0].locator;
-            await dialogCloseLocator.click();
-            return { rerun: true };
+          let dialogCloseLocator = result.foundElements[0].locator;
+          await dialogCloseLocator.click();
+          return { rerun: true };
         }
       }
     }
@@ -444,7 +452,11 @@ class StableBrowser {
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     for (let i = 0; i < 3; i++) {
-      info.log += "attempt " + i +  ": totoal locators " + selectors.locators.length + "\n";
+      info.log += "attempt " + i + ": totoal locators " + selectors.locators.length + "\n";
+      for (let j = 0; j < selectors.locators.length; j++) {
+        let selector = selectors.locators[j];
+        info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
+      }
       let element = await this._locate_internal(selectors, info, _params, timeout);
       if (!element.rerun) {
         return element;
@@ -460,7 +472,7 @@ class StableBrowser {
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
     if (selectors.iframe_src || selectors.frameLocators) {
-      info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators +  "\n";
+      info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators + "\n";
       while (true) {
         let frameFound = false;
         if (selectors.frameLocators) {
@@ -526,10 +538,10 @@ class StableBrowser {
         // info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
       }
-      if(result.foundElements.length === 0 && onlyPriority3) {
+      if (result.foundElements.length === 0 && onlyPriority3) {
         result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
       } else {
-        if(result.foundElements.length === 0 && !highPriorityOnly) {
+        if (result.foundElements.length === 0 && !highPriorityOnly) {
           result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
         }
       }
@@ -537,6 +549,7 @@ class StableBrowser {
 
       if (foundElements.length === 1 && foundElements[0].unique) {
         info.box = foundElements[0].box;
+        info.log += "unique element was found, locator: " + foundElements[0].locator + "\n";
         return foundElements[0].locator;
       }
       //info.log += "total elements found " + foundElements.length);
@@ -564,6 +577,7 @@ class StableBrowser {
           }
         }
         if (maxCountElement) {
+          info.log += "unique element was found, locator: " + maxCountElement.locator + "\n";
           info.box = await maxCountElement.locator.boundingBox();
           return maxCountElement.locator;
         }
@@ -572,9 +586,11 @@ class StableBrowser {
         break;
       }
       if (performance.now() - startTime > highPriorityTimeout) {
+        info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
       }
       if (performance.now() - startTime > visibleOnlyTimeout) {
+        info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1296,7 +1312,8 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "***** verify element " + selectors.element_name + " contains pattern  " + pattern + "/" + text +" *****\n";
+    info.log =
+      "***** verify element " + selectors.element_name + " contains pattern  " + pattern + "/" + text + " *****\n";
     info.operation = "containsPattern";
     info.selectors = selectors;
     info.value = text;
@@ -1917,8 +1934,10 @@ class StableBrowser {
           const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
           await this._highlightElements(frame, dataAttribute);
           const element = await frame.$(dataAttribute);
-          await this.scrollIfNeeded(element, info);
-          await element.dispatchEvent("bvt_verify_page_contains_text");
+          if (element) {
+            await this.scrollIfNeeded(element, info);
+            await element.dispatchEvent("bvt_verify_page_contains_text");
+          }
         }
         ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
@@ -2120,7 +2139,16 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "***** analyze table " + selectors.element_name + " query " + query + " operator " + operator + " value " + value + " *****\n";
+    info.log =
+      "***** analyze table " +
+      selectors.element_name +
+      " query " +
+      query +
+      " operator " +
+      operator +
+      " value " +
+      value +
+      " *****\n";
     info.operation = "analyzeTable";
     info.selectors = selectors;
     info.query = query;
