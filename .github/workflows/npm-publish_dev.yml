@@ -54,6 +54,13 @@ jobs:
               current_version=${{ env.version }}
               jq --arg current_version "$current_version" '.version = $current_version' "${{ github.workspace }}/package.json" > "${{ github.workspace }}/package.json.tmp" && mv "${{ github.workspace }}/package.json.tmp" "${{ github.workspace }}/package.json"
           
+      - name: Commit updated version
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        run: |
+                git add "${{ github.workspace }}/package.json"
+                git commit -m "Update version to ${{ env.version }}"
+
       - name: Bump version
         run: npm version prepatch --preid=dev                 
         working-directory: ${{ github.workspace }}
