@@ -51,6 +51,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: |
+          git config --global user.name "dev-blinq"
+          git config --global user.email "guy.arieli@blinq.io"
           git push origin dev
         working-directory: ${{ github.workspace }}
 
