@@ -76,7 +76,8 @@ jobs:
         working-directory: ${{ github.workspace }}
       - run: npm test
         working-directory: ${{ github.workspace }}
-       
+
+        
       - name: publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
         with:
