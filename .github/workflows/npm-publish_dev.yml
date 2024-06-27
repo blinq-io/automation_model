@@ -5,7 +5,7 @@ name: Javascript client CI
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["dev","AI-987-change-workflows-to-update-ver"]
 
 jobs:
   build-javascript-client:
@@ -26,12 +26,52 @@ jobs:
       - name: Install Playwright dependencies
         run: npx playwright install
         working-directory: ${{ github.workspace }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name "${{ secrets.GIT_USER_NAME}}"
+          git config --global user.email "${{ secrets.GIT_USER_EMAIL}}"
+          
+
+      - name: Fetch current version from npm with tag 'next'
+        id: npm_version
+        run: |
+            version=$(npm show automation_model@next version)
+            echo "version=$version" >> $GITHUB_ENV
+      
+      - name: Commit local changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        run: |
+                  git add "${{ github.workspace }}/automation_model/package.json" "${{ github.workspace }}/automation_model/package-lock.json"
+                  git commit -m "Temporary commit to allow merge"     
+                  git fetch origin AI-987-change-workflows-to-update-ver
+                  git merge origin/AI-987-change-workflows-to-update-ver 
+      
+              
+      - name: Update package.json with current npm version
+        run: |
+              current_version=${{ env.version }}
+              jq --arg current_version "$current_version" '.version = $current_version' "${{ github.workspace }}/automation_model/package.json" > "${{ github.workspace }}/automation_model/package.json.tmp" && mv "${{ github.workspace }}/automation_model/package.json.tmp" "${{ github.workspace }}/automation_model/package.json"
+          
+      - name: Bump version
+        run: npm version prepatch --preid=dev                 
+        working-directory: ${{ github.workspace }}/automation_model
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        run: |
+          git pull origin AI-987-change-workflows-to-update-ver
+          git add ${{ github.workspace }}/automation_model/package.json ${{ github.workspace }}/automation_model/package-lock.json
+          git commit -m "Bump version to $(jq -r .version < ${{ github.workspace }}/automation_model/package.json)"
+          git push origin AI-987-change-workflows-to-update-ver
+
       - run: npm run build
         working-directory: ${{ github.workspace }}
       - run: npm test
         working-directory: ${{ github.workspace }}
-      - run: npm run version-bump
-        working-directory: ${{ github.workspace }}
+       
       - name: publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
         with:
