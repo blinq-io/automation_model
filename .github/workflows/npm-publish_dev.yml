@@ -41,7 +41,7 @@ jobs:
       
       - name: Commit local changes
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
         run: |
                   git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
                   git commit -m "Temporary commit to allow merge"     
