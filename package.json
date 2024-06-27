@@ -18,6 +18,7 @@
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
     "version-bump": "npm version patch"
   },
+  
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -33,7 +34,7 @@
     "totp-generator": "^1.0.0",
     "tunnel": "^0.0.6"
   },
-  
+
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^20.9.3",
