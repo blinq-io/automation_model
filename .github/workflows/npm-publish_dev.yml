@@ -53,6 +53,7 @@ jobs:
         run: |
           git config --global user.name "dev-blinq"
           git config --global user.email "guy.arieli@blinq.io"
+          git remote set-url origin https://dev-blinq:${{ secrets.TOKEN_GITHUB }}@github.com/blinq-io/automation_model.git
           git push origin dev
         working-directory: ${{ github.workspace }}
 
