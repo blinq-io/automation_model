@@ -37,8 +37,8 @@ jobs:
       # Ensure changes are committed before version bump
       - name: Commit changes
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "dev-blinq"
+          git config --global user.email "guy.arieli@blinq.io"
           git add .
           git commit -m "Auto-commit changes before version bump [skip ci]" || echo "No changes to commit"
         working-directory: ${{ github.workspace }}
