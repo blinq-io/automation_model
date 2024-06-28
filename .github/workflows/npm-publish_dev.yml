@@ -48,9 +48,16 @@ jobs:
       - name: Increment version
         id: increment-version
         run: |
-          IFS='.' read -r -a version_parts <<< "${{ env.version }}"
-          ((version_parts[2]++))
-          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
+          current_version=${{ env.version }}
+          IFS='.' read -r -a version_parts <<< "$current_version"
+          preid="dev"
+          if [[ "${version_parts[2]}" == *"-dev"* ]]; then
+            patch_version=$(echo ${version_parts[2]} | cut -d'-' -f1)
+            new_patch_version=$((patch_version+1))
+            NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${new_patch_version}-${preid}"
+          else
+            NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}-${preid}"
+          fi
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Update package.json with new version
