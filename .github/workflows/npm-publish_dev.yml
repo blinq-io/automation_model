@@ -56,15 +56,7 @@ jobs:
         run: |
           current_version=${{ env.version }}
           jq --arg current_version "$current_version" '.version = $current_version' "${{ github.workspace }}/package.json" > "${{ github.workspace }}/package.json.tmp" && mv "${{ github.workspace }}/package.json.tmp" "${{ github.workspace }}/package.json"
-
-      - name: Commit updated version
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
-        run: |
-          git pull origin AI-987-change-workflows-to-update-ver
-          git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-          git commit -m "Update version to ${{ env.version }}" || echo "No changes to commit"
-          git push origin AI-987-change-workflows-to-update-ver
+          
 
       - name: Bump version
         run: npm version prepatch --preid=dev
