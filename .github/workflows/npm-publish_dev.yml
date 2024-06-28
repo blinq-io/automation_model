@@ -51,13 +51,9 @@ jobs:
           current_version=${{ env.version }}
           IFS='.' read -r -a version_parts <<< "$current_version"
           preid="dev"
-          if [[ "${version_parts[2]}" == *"-dev"* ]]; then
-            patch_version=$(echo ${version_parts[2]} | cut -d'-' -f1)
-            new_patch_version=$((patch_version+1))
-            NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${new_patch_version}-${preid}.0"
-          else
-            NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}-${preid}.0"
-          fi
+          patch_version=$((version_parts[2]+1))
+          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}-${preid}.0"
+
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Update package.json with new version
@@ -73,8 +69,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
         run: |
           git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-          git commit -m "Bump version to ${{ env.new_version }}"
-          git push origin ${{ github.head_ref }}
+          git commit -m 
+          git push origin AI-987-change-workflows-to-update-ver
 
       - name: Publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
