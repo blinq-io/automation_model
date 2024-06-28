@@ -12,6 +12,7 @@ on:
 permissions:
     contents: write
 
+
 jobs:
   build-javascript-client:
     runs-on: ubuntu-latest
