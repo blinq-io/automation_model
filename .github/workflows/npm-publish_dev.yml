@@ -66,7 +66,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
         run: |
-                git add "${{ github.workspace }}/package.json"
+                git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
                 git commit -m "Update version to ${{ env.version }}"
                 
 
@@ -80,10 +80,6 @@ jobs:
         run: |
           git push origin 
 
-
-
-
-        
       - name: publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
         with:
