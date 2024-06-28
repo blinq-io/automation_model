@@ -69,7 +69,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
         run: |
           git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-          git commit -m 
+          git commit -m "new version commited"
           git push origin AI-987-change-workflows-to-update-ver
 
       - name: Publish automation model to npm
