@@ -76,7 +76,7 @@ jobs:
         run: |
           git pull origin AI-987-change-workflows-to-update-ver
           git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-          git commit -m "Bump version" || echo "No changes to commit"
+          git commit -m "Bump version" 
           git push origin AI-987-change-workflows-to-update-ver
 
       - name: Publish automation model to npm
