@@ -18,6 +18,7 @@
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types"
   },
   
+  
   "author": "",
   "license": "ISC",
   "dependencies": {
