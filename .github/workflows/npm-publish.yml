@@ -71,9 +71,6 @@ jobs:
         working-directory: ${{ github.workspace }}
       - run: npm test
         working-directory: ${{ github.workspace }}
-
-      - run: npm run version-bump
-        working-directory: ${{ github.workspace }}
       - name: publish server to npm
         uses: JS-DevTools/npm-publish@v1
         with:
