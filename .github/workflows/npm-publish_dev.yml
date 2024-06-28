@@ -53,8 +53,7 @@ jobs:
         env:
             GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
         run: |
-            git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-            git commit -m "Temporary commit to allow merge" || echo "No changes to commit"
+ 
             git fetch origin AI-987-change-workflows-to-update-ver
             git merge origin/AI-987-change-workflows-to-update-ver
 
