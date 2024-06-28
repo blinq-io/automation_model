@@ -17,6 +17,10 @@
     "debug": "node tests/debug.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types"
   },
+
+  
+  
+
   "author": "",
   "license": "ISC",
   "dependencies": {
