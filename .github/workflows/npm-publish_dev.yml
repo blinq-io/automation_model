@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: write
-  
+
 
 jobs:
   build-javascript-client:
@@ -29,7 +29,8 @@ jobs:
         run: npx playwright install
         working-directory: ${{ github.workspace }}
 
-      
+      - run: npm test
+        working-directory: ${{ github.workspace }} 
 
       - name: Configure git
         run: |
@@ -73,8 +74,7 @@ jobs:
       - run: npm run build
         working-directory: ${{ github.workspace }}
 
-      - run: npm test
-        working-directory: ${{ github.workspace }}
+
 
       - name: Publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
