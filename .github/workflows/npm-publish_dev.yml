@@ -28,11 +28,7 @@ jobs:
         run: npx playwright install
         working-directory: ${{ github.workspace }}
 
-      - run: npm run build
-        working-directory: ${{ github.workspace }}
-
-      - run: npm test
-        working-directory: ${{ github.workspace }}
+      
 
       - name: Configure git
         run: |
@@ -52,7 +48,7 @@ jobs:
           IFS='.' read -r -a version_parts <<< "$current_version"
           preid="dev"
           patch_version=$((version_parts[2]+1))
-          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}-${preid}.0"
+          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}-${preid}"
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
@@ -71,6 +67,13 @@ jobs:
           git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
           git commit -m "new version commited"
           git push origin AI-987-change-workflows-to-update-ver
+
+
+      - run: npm run build
+        working-directory: ${{ github.workspace }}
+
+      - run: npm test
+        working-directory: ${{ github.workspace }}
 
       - name: Publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
