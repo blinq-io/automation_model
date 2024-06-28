@@ -43,20 +43,20 @@ jobs:
           version=$(npm show automation_model@next version)
           echo "version=$version" >> $GITHUB_ENV
 
-      - name: Commit local changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
-        run: |
-          git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-          git commit -m "Temporary commit to allow merge" || echo "No changes to commit"
-          git fetch origin AI-987-change-workflows-to-update-ver
-          git merge origin/AI-987-change-workflows-to-update-ver
 
       - name: Update package.json with current npm version
         run: |
           current_version=${{ env.version }}
           jq --arg current_version "$current_version" '.version = $current_version' "${{ github.workspace }}/package.json" > "${{ github.workspace }}/package.json.tmp" && mv "${{ github.workspace }}/package.json.tmp" "${{ github.workspace }}/package.json"
-          
+      
+      - name: Commit local changes
+        env:
+            GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
+        run: |
+            git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
+            git commit -m "Temporary commit to allow merge" || echo "No changes to commit"
+            git fetch origin AI-987-change-workflows-to-update-ver
+            git merge origin/AI-987-change-workflows-to-update-ver
 
       - name: Bump version
         run: npm version prepatch --preid=dev

@@ -8,6 +8,7 @@
   "directories": {
     "lib": "lib"
   },
+
   
   "scripts": {
     "compile": "tsc",
