@@ -28,6 +28,10 @@ jobs:
         run: npx playwright install
         working-directory: ${{ github.workspace }}
 
+
+      - run: npm test
+        working-directory: ${{ github.workspace }} 
+
       - name: Configure git
         run: |
           git config --global user.name "${{ secrets.GIT_USER_NAME }}"
@@ -66,8 +70,6 @@ jobs:
           git commit -m "new version commited"
           git push origin AI-987-change-workflows-to-update-ver
 
-      - run: npm test
-        working-directory: ${{ github.workspace }} 
 
       - run: npm run build
         working-directory: ${{ github.workspace }}
