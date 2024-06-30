@@ -190,6 +190,9 @@ class StableBrowser {
     return text;
   }
   _getLocator(locator, scope, _params: Params) {
+    if (locator.type === "pw_selector") {
+      return scope.locator(locator.selector);
+    }
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
