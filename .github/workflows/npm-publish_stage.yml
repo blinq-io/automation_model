@@ -8,7 +8,7 @@ on:
     branches: ["stage"]
 
 permissions:
-    contents: write
+  contents: write
 
 jobs:
   build-javascript-client:
@@ -66,12 +66,11 @@ jobs:
           git commit -m "new version commited"
           git push origin stage
 
-
-
       - run: npm run build
         working-directory: ${{ github.workspace }}
       - run: npm test
         working-directory: ${{ github.workspace }}
+
       - name: publish automation model to npm
         uses: cucumber/action-publish-npm@v1.1.0
         with:
