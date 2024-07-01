@@ -1718,7 +1718,8 @@ class StableBrowser {
       if (world) {
         world[variable] = info.value;
       }
-      this.logger.info("world." + variable + "=" + info.value);
+      this.setTestData({ [variable]: info.value }, world);
+      this.logger.info("set test data: " + variable + "=" + info.value);
       return info;
     } catch (e) {
       //await this.closeUnexpectedPopups();
@@ -1751,6 +1752,83 @@ class StableBrowser {
             },
         info: info,
       });
+    }
+  }
+  async extractEmailData(emailAddress, options, world) {
+    if (!emailAddress) {
+      throw new Error("email address is null");
+    }
+    // check if address contain @
+    if (emailAddress.indexOf("@") === -1) {
+      emailAddress = emailAddress + "@blinq-mail.io";
+    } else {
+      if (!emailAddress.toLowerCase().endsWith("@blinq-mail.io")) {
+        throw new Error("email address should end with @blinq-mail.io");
+      }
+    }
+    const startTime = Date.now();
+    let timeout = 60000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    const serviceUrl = this._getServerUrl() + "/api/mail/createLinkOrCodeFromEmail";
+
+    const request = {
+      method: "POST",
+      url: serviceUrl,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.TOKEN}`,
+      },
+      data: JSON.stringify({
+        email: emailAddress,
+      }),
+    };
+    while (true) {
+      try {
+        let result = await this.context.api.request(request);
+
+        // the response body expected to be the following:
+        // {
+        //  "status": true,
+        //  "content": {
+        //    "url": "",
+        //    "code": "112112",
+        //    "name": "generate_link_or_code"
+        //  }
+        //}
+
+        if ((result && result.data, result.data.status === true)) {
+          let codeOrUrlFound = false;
+          // check if a code is returned
+          if (result.data.content && result.data.content.code) {
+            let code = result.data.content.code;
+            this.setTestData({ emailCode: code }, world);
+            this.logger.info("set test data: emailCode=" + code);
+            codeOrUrlFound = true;
+          }
+          // check if a url is returned
+          if (result.data.content && result.data.content.url) {
+            let url = result.data.content.url;
+            this.setTestData({ emailUrl: url }, world);
+            this.logger.info("set test data: emailUrl=" + url);
+            codeOrUrlFound = true;
+          }
+          if (codeOrUrlFound) {
+            return;
+          } else {
+            this.logger.info("an email received but no code or url found");
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      // check if the timeout is reached
+      if (Date.now() - startTime > timeout) {
+        throw new Error("timeout reached");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 
@@ -1977,6 +2055,15 @@ class StableBrowser {
       });
     }
   }
+  _getServerUrl() {
+    let serviceUrl = "https://api.blinq.io";
+    if (process.env.NODE_ENV_BLINQ === "dev") {
+      serviceUrl = "https://dev.api.blinq.io";
+    } else if (process.env.NODE_ENV_BLINQ === "stage") {
+      serviceUrl = "https://stage.api.blinq.io";
+    }
+    return serviceUrl;
+  }
   async visualVerification(text, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -1991,12 +2078,7 @@ class StableBrowser {
       throw new Error("TOKEN is not set");
     }
     try {
-      let serviceUrl = "https://api.blinq.io";
-      if (process.env.NODE_ENV_BLINQ === "dev") {
-        serviceUrl = "https://dev.api.blinq.io";
-      } else if (process.env.NODE_ENV_BLINQ === "stage") {
-        serviceUrl = "https://stage.api.blinq.io";
-      }
+      let serviceUrl = this._getServerUrl();
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
