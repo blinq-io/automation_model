@@ -14,7 +14,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import { decrypt } from "./utils.js";
-import { only } from "node:test";
+import csv from "csv-parser";
 type Params = Record<string, string>;
 
 const Types = {
@@ -1481,15 +1481,41 @@ class StableBrowser {
     // save the data to the file
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
   }
+  _getDataFilePath(fileName) {
+    let dataFile = path.join(this.project_path, "data", fileName);
+    if (fs.existsSync(dataFile)) {
+      return dataFile;
+    }
+    dataFile = path.join(this.project_path, fileName);
+    if (fs.existsSync(dataFile)) {
+      return dataFile;
+    }
+    throw new Error("data file not found " + fileName);
+  }
+  _parseCSVSync(filePath) {
+    const data = fs.readFileSync(filePath, "utf8");
+    const results = [];
+
+    return new Promise((resolve, reject) => {
+      const readableStream = new stream.Readable();
+      readableStream._read = () => {}; // _read is required but you can noop it
+      readableStream.push(data);
+      readableStream.push(null);
+
+      readableStream
+        .pipe(csv())
+        .on("data", (data) => results.push(data))
+        .on("end", () => resolve(results))
+        .on("error", (error) => reject(error));
+    });
+  }
   loadTestData(type: string, dataSelector: string, world = null) {
     switch (type) {
       case "users":
-        // check if file users.json exists
-        if (!fs.existsSync(path.join(this.project_path, "users.json"))) {
-          throw new Error("users.json file not found");
-        }
+        // get the users.json file path
+        let dataFile = this._getDataFilePath("users.json");
         // read the file and return the data
-        const users = JSON.parse(fs.readFileSync(path.join(this.project_path, "users.json"), "utf8"));
+        const users = JSON.parse(fs.readFileSync(dataFile, "utf8"));
         for (let i = 0; i < users.length; i++) {
           if (users[i].username === dataSelector) {
             const userObj = {
@@ -1502,6 +1528,52 @@ class StableBrowser {
           }
         }
         throw new Error("user not found " + dataSelector);
+      default:
+        throw new Error("unknown type " + type);
+    }
+  }
+  async loadTestDataAsync(type: string, dataSelector: string, world = null) {
+    switch (type) {
+      case "users": {
+        // get the users.json file path
+        let dataFile = this._getDataFilePath("users.json");
+        // read the file and return the data
+        const users = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+        for (let i = 0; i < users.length; i++) {
+          if (users[i].username === dataSelector) {
+            const userObj = {
+              username: users[i].username,
+              password: "secret:" + users[i].password,
+              totp: users[i].secretKey ? "totp:" + users[i].secretKey : null,
+            };
+            this.setTestData(userObj, world);
+            return userObj;
+          }
+        }
+        throw new Error("user not found " + dataSelector);
+      }
+      case "csv": {
+        // the dataSelector should start with the file name followed by the row number: data.csv:1, if no row number is provided, it will default to 1
+        const parts = dataSelector.split(":");
+        let rowNumber = 0;
+        if (parts.length > 1) {
+          rowNumber = parseInt(parts[1]);
+        }
+        let dataFile = this._getDataFilePath(parts[0]);
+        const results = await this._parseCSVSync(dataFile);
+        // result stracture:
+        // [
+        //   { NAME: 'Daffy Duck', AGE: '24' },
+        //   { NAME: 'Bugs Bunny', AGE: '22' }
+        // ]
+        // verify the row number is within the range
+        if (rowNumber >= results.length) {
+          throw new Error("row number is out of range " + rowNumber);
+        }
+        const data = results[rowNumber];
+        this.setTestData(data, world);
+        return data;
+      }
       default:
         throw new Error("unknown type " + type);
     }
