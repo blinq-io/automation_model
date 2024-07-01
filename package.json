@@ -23,6 +23,7 @@
     "@playwright/test": "^1.40.0",
     "axios": "^1.6.8",
     "crypto-js": "^4.2.0",
+    "csv-parser": "^3.0.0",
     "dayjs": "^1.11.10",
     "object-path": "^0.11.8",
     "playwright": "^1.39.0",
