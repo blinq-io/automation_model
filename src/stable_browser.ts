@@ -1856,6 +1856,7 @@ class StableBrowser {
         email: emailAddress,
       }),
     };
+    let errorCount = 0;
     while (true) {
       try {
         let result = await this.context.api.request(request);
@@ -1893,6 +1894,10 @@ class StableBrowser {
           }
         }
       } catch (e) {
+        errorCount++;
+        if (errorCount > 3) {
+          throw e;
+        }
         // ignore
       }
       // check if the timeout is reached
