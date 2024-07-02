@@ -1877,14 +1877,14 @@ class StableBrowser {
           if (result.data.content && result.data.content.code) {
             let code = result.data.content.code;
             this.setTestData({ emailCode: code }, world);
-            this.logger.info("set test data: emailCode=" + code);
+            this.logger.info("set test data: emailCode = " + code);
             codeOrUrlFound = true;
           }
           // check if a url is returned
           if (result.data.content && result.data.content.url) {
             let url = result.data.content.url;
             this.setTestData({ emailUrl: url }, world);
-            this.logger.info("set test data: emailUrl=" + url);
+            this.logger.info("set test data: emailUrl = " + url);
             codeOrUrlFound = true;
           }
           if (codeOrUrlFound) {
