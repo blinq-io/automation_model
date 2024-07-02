@@ -1888,7 +1888,7 @@ class StableBrowser {
             codeOrUrlFound = true;
           }
           if (codeOrUrlFound) {
-            return;
+            return { emailUrl, emailCode };
           } else {
             this.logger.info("an email received but no code or url found");
           }
