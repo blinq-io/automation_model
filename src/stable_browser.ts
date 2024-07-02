@@ -1873,11 +1873,14 @@ class StableBrowser {
 
         if ((result && result.data, result.data.status === true)) {
           let codeOrUrlFound = false;
+          let emailCode = null;
+          let emailUrl = null;
           // check if a code is returned
           if (result.data.content && result.data.content.code) {
             let code = result.data.content.code;
             this.setTestData({ emailCode: code }, world);
             this.logger.info("set test data: emailCode = " + code);
+            emailCode = code;
             codeOrUrlFound = true;
           }
           // check if a url is returned
@@ -1885,6 +1888,7 @@ class StableBrowser {
             let url = result.data.content.url;
             this.setTestData({ emailUrl: url }, world);
             this.logger.info("set test data: emailUrl = " + url);
+            emailUrl = url;
             codeOrUrlFound = true;
           }
           if (codeOrUrlFound) {
