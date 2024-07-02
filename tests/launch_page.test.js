@@ -18,14 +18,19 @@ const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
   info = await context.stable.verifyTextExistInPage("Accepted usernames are:", {});
+  console.log(info.log)
   info = await context.stable.click(elements.loginButton, { signin: "Login" });
-  console.log("info click sign in", JSON.stringify(info, null, 2));
+  console.log(info.log)
+  //console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
-  console.log("info fill username", JSON.stringify(info, null, 2));
+  console.log(info.log);
+  //console.log("info fill username", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.password, "guy");
-  console.log("info fill password", JSON.stringify(info, null, 2));
+  console.log(info.log);
+  //console.log("info fill password", JSON.stringify(info, null, 2));
   info = await context.stable.click(elements.loginButton, { signin: "Login" });
-  console.log("info click login", JSON.stringify(info, null, 2));
+  console.log(info.log);
+  //console.log("info click login", JSON.stringify(info, null, 2));
   info = await context.stable.verifyElementExistInPage({
     locators: [
       {
@@ -33,7 +38,7 @@ const login = async function () {
       },
     ],
   });
-  console.log("info verify", JSON.stringify(info, null, 2));
+  console.log(info.log);
 };
 try {
   await login();

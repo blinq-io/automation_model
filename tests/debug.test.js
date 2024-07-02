@@ -1,6 +1,7 @@
 import { initContext } from "../build/lib/auto_page.js";
 import { closeBrowser } from "../build/lib/init_browser.js";
 
+
 const name = "login";
 const path = "/";
 const elements = {
@@ -12,6 +13,7 @@ const elements = {
     ],
     element_name: "username field",
   },
+  
   textbox_password: {
     locators: [
       { role: ["textbox", { name: "Password" }] },
