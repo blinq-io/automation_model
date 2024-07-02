@@ -69,6 +69,7 @@ jobs:
 
       - run: npm run build
         working-directory: ${{ github.workspace }}
+        
 
       - run: npm test
         working-directory: ${{ github.workspace }}
