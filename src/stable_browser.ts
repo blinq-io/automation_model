@@ -908,7 +908,7 @@ class StableBrowser {
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
-        type: Types.TYPE_PRESS,
+        type: Types.PRESS,
         screenshotId,
         value: _value,
         text: `press key : ${_value}`,
