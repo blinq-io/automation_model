@@ -32,6 +32,7 @@ const Types = {
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
+  PRESS: "press_key",
   HOVER: "hover_element",
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
@@ -872,6 +873,62 @@ class StableBrowser {
       });
     }
   }
+  async press(selectors, _value, _params = null, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    const info = {};
+    info.log = "";
+    info.operation = "press";
+    info.value = _value;
+    try {
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      let element = await this._locate(selectors, info, _params);
+      await this.scrollIfNeeded(element, info);
+      await element.focus();
+
+      let keyEvent = false;
+      KEYBOARD_EVENTS.forEach((event) => {
+        if (_value === event) keyEvent = true;
+      });
+      if (keyEvent) {
+        await this.page.keyboard.press(_value);
+      } else {
+        throw new Error("Not a valid key");
+      }
+      return info;
+    } catch (e) {
+      this.logger.error("Press failed" + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        type: Types.TYPE_PRESS,
+        screenshotId,
+        value: _value,
+        text: `press key : ${_value}`,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async type(_value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
