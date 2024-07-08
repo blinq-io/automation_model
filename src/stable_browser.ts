@@ -32,6 +32,7 @@ const Types = {
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
+  PRESS: "press_key",
   HOVER: "hover_element",
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
@@ -1117,18 +1118,28 @@ class StableBrowser {
       await this.scrollIfNeeded(element, info);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
-      try {
-        let currentValue = await element.inputValue();
-        if (currentValue) {
-          await element.fill("");
+      if (options === null || options === undefined || !options.press) {
+        try {
+          let currentValue = await element.inputValue();
+          if (currentValue) {
+            await element.fill("");
+          }
+        } catch (e) {
+          this.logger.info("unable to clear input value");
         }
-      } catch (e) {
-        this.logger.info("unable to clear input value");
       }
-      try {
-        await element.click({ timeout: 5000 });
-      } catch (e) {
-        await element.dispatchEvent("click");
+      if (options === null || options === undefined || options.press) {
+        try {
+          await element.click({ timeout: 5000 });
+        } catch (e) {
+          await element.dispatchEvent("click");
+        }
+      } else {
+        try {
+          await element.focus();
+        } catch (e) {
+          await element.dispatchEvent("focus");
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
       const valueSegment = _value.split("&&");
