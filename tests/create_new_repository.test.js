@@ -1,6 +1,7 @@
 import { initContext } from "../build/auto_page.js";
 import { closeBrowser } from "../build/init_browser.js";
 
+
 const path = "https://github.com/login";
 const elements = {
   textbox_username: [

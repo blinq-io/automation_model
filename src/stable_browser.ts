@@ -14,7 +14,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import { decrypt } from "./utils.js";
-import { only } from "node:test";
+import csv from "csv-parser";
 type Params = Record<string, string>;
 
 const Types = {
@@ -32,6 +32,7 @@ const Types = {
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
+  PRESS: "press_key",
   HOVER: "hover_element",
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
@@ -190,6 +191,9 @@ class StableBrowser {
     return text;
   }
   _getLocator(locator, scope, _params: Params) {
+    if (locator.type === "pw_selector") {
+      return scope.locator(locator.selector);
+    }
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
@@ -1114,18 +1118,28 @@ class StableBrowser {
       await this.scrollIfNeeded(element, info);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
-      try {
-        let currentValue = await element.inputValue();
-        if (currentValue) {
-          await element.fill("");
+      if (options === null || options === undefined || !options.press) {
+        try {
+          let currentValue = await element.inputValue();
+          if (currentValue) {
+            await element.fill("");
+          }
+        } catch (e) {
+          this.logger.info("unable to clear input value");
         }
-      } catch (e) {
-        this.logger.info("unable to clear input value");
       }
-      try {
-        await element.click({ timeout: 5000 });
-      } catch (e) {
-        await element.dispatchEvent("click");
+      if (options === null || options === undefined || options.press) {
+        try {
+          await element.click({ timeout: 5000 });
+        } catch (e) {
+          await element.dispatchEvent("click");
+        }
+      } else {
+        try {
+          await element.focus();
+        } catch (e) {
+          await element.dispatchEvent("focus");
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
       const valueSegment = _value.split("&&");
@@ -1478,15 +1492,41 @@ class StableBrowser {
     // save the data to the file
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
   }
+  _getDataFilePath(fileName) {
+    let dataFile = path.join(this.project_path, "data", fileName);
+    if (fs.existsSync(dataFile)) {
+      return dataFile;
+    }
+    dataFile = path.join(this.project_path, fileName);
+    if (fs.existsSync(dataFile)) {
+      return dataFile;
+    }
+    throw new Error("data file not found " + fileName);
+  }
+  _parseCSVSync(filePath) {
+    const data = fs.readFileSync(filePath, "utf8");
+    const results = [];
+
+    return new Promise((resolve, reject) => {
+      const readableStream = new stream.Readable();
+      readableStream._read = () => {}; // _read is required but you can noop it
+      readableStream.push(data);
+      readableStream.push(null);
+
+      readableStream
+        .pipe(csv())
+        .on("data", (data) => results.push(data))
+        .on("end", () => resolve(results))
+        .on("error", (error) => reject(error));
+    });
+  }
   loadTestData(type: string, dataSelector: string, world = null) {
     switch (type) {
       case "users":
-        // check if file users.json exists
-        if (!fs.existsSync(path.join(this.project_path, "users.json"))) {
-          throw new Error("users.json file not found");
-        }
+        // get the users.json file path
+        let dataFile = this._getDataFilePath("users.json");
         // read the file and return the data
-        const users = JSON.parse(fs.readFileSync(path.join(this.project_path, "users.json"), "utf8"));
+        const users = JSON.parse(fs.readFileSync(dataFile, "utf8"));
         for (let i = 0; i < users.length; i++) {
           if (users[i].username === dataSelector) {
             const userObj = {
@@ -1499,6 +1539,52 @@ class StableBrowser {
           }
         }
         throw new Error("user not found " + dataSelector);
+      default:
+        throw new Error("unknown type " + type);
+    }
+  }
+  async loadTestDataAsync(type: string, dataSelector: string, world = null) {
+    switch (type) {
+      case "users": {
+        // get the users.json file path
+        let dataFile = this._getDataFilePath("users.json");
+        // read the file and return the data
+        const users = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+        for (let i = 0; i < users.length; i++) {
+          if (users[i].username === dataSelector) {
+            const userObj = {
+              username: users[i].username,
+              password: "secret:" + users[i].password,
+              totp: users[i].secretKey ? "totp:" + users[i].secretKey : null,
+            };
+            this.setTestData(userObj, world);
+            return userObj;
+          }
+        }
+        throw new Error("user not found " + dataSelector);
+      }
+      case "csv": {
+        // the dataSelector should start with the file name followed by the row number: data.csv:1, if no row number is provided, it will default to 1
+        const parts = dataSelector.split(":");
+        let rowNumber = 0;
+        if (parts.length > 1) {
+          rowNumber = parseInt(parts[1]);
+        }
+        let dataFile = this._getDataFilePath(parts[0]);
+        const results = await this._parseCSVSync(dataFile);
+        // result stracture:
+        // [
+        //   { NAME: 'Daffy Duck', AGE: '24' },
+        //   { NAME: 'Bugs Bunny', AGE: '22' }
+        // ]
+        // verify the row number is within the range
+        if (rowNumber >= results.length) {
+          throw new Error("row number is out of range " + rowNumber);
+        }
+        const data = results[rowNumber];
+        this.setTestData(data, world);
+        return data;
+      }
       default:
         throw new Error("unknown type " + type);
     }
@@ -1715,7 +1801,8 @@ class StableBrowser {
       if (world) {
         world[variable] = info.value;
       }
-      this.logger.info("world." + variable + "=" + info.value);
+      this.setTestData({ [variable]: info.value }, world);
+      this.logger.info("set test data: " + variable + "=" + info.value);
       return info;
     } catch (e) {
       //await this.closeUnexpectedPopups();
@@ -1748,6 +1835,92 @@ class StableBrowser {
             },
         info: info,
       });
+    }
+  }
+  async extractEmailData(emailAddress, options, world) {
+    if (!emailAddress) {
+      throw new Error("email address is null");
+    }
+    // check if address contain @
+    if (emailAddress.indexOf("@") === -1) {
+      emailAddress = emailAddress + "@blinq-mail.io";
+    } else {
+      if (!emailAddress.toLowerCase().endsWith("@blinq-mail.io")) {
+        throw new Error("email address should end with @blinq-mail.io");
+      }
+    }
+    const startTime = Date.now();
+    let timeout = 60000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    const serviceUrl = this._getServerUrl() + "/api/mail/createLinkOrCodeFromEmail";
+
+    const request = {
+      method: "POST",
+      url: serviceUrl,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.TOKEN}`,
+      },
+      data: JSON.stringify({
+        email: emailAddress,
+      }),
+    };
+    let errorCount = 0;
+    while (true) {
+      try {
+        let result = await this.context.api.request(request);
+
+        // the response body expected to be the following:
+        // {
+        //  "status": true,
+        //  "content": {
+        //    "url": "",
+        //    "code": "112112",
+        //    "name": "generate_link_or_code"
+        //  }
+        //}
+
+        if ((result && result.data, result.data.status === true)) {
+          let codeOrUrlFound = false;
+          let emailCode = null;
+          let emailUrl = null;
+          // check if a code is returned
+          if (result.data.content && result.data.content.code) {
+            let code = result.data.content.code;
+            this.setTestData({ emailCode: code }, world);
+            this.logger.info("set test data: emailCode = " + code);
+            emailCode = code;
+            codeOrUrlFound = true;
+          }
+          // check if a url is returned
+          if (result.data.content && result.data.content.url) {
+            let url = result.data.content.url;
+            this.setTestData({ emailUrl: url }, world);
+            this.logger.info("set test data: emailUrl = " + url);
+            emailUrl = url;
+            codeOrUrlFound = true;
+          }
+          if (codeOrUrlFound) {
+            return { emailUrl, emailCode };
+          } else {
+            this.logger.info("an email received but no code or url found");
+          }
+        }
+      } catch (e) {
+        errorCount++;
+        if (errorCount > 3) {
+          throw e;
+        }
+        // ignore
+      }
+      // check if the timeout is reached
+      if (Date.now() - startTime > timeout) {
+        throw new Error("timeout reached");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 
@@ -1974,6 +2147,15 @@ class StableBrowser {
       });
     }
   }
+  _getServerUrl() {
+    let serviceUrl = "https://api.blinq.io";
+    if (process.env.NODE_ENV_BLINQ === "dev") {
+      serviceUrl = "https://dev.api.blinq.io";
+    } else if (process.env.NODE_ENV_BLINQ === "stage") {
+      serviceUrl = "https://stage.api.blinq.io";
+    }
+    return serviceUrl;
+  }
   async visualVerification(text, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -1988,12 +2170,7 @@ class StableBrowser {
       throw new Error("TOKEN is not set");
     }
     try {
-      let serviceUrl = "https://api.blinq.io";
-      if (process.env.NODE_ENV_BLINQ === "dev") {
-        serviceUrl = "https://dev.api.blinq.io";
-      } else if (process.env.NODE_ENV_BLINQ === "stage") {
-        serviceUrl = "https://stage.api.blinq.io";
-      }
+      let serviceUrl = this._getServerUrl();
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
