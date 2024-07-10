@@ -208,6 +208,14 @@ class StableBrowser {
     if (locator.css) {
       return scope.locator(this._fixUsingParams(locator.css, _params));
     }
+    if(locator?.engine && locator?.score <= 520) {
+      let selector = locator.selector.replace(/"/g, "\\\"");
+      if(locator.engine === "internal:att") {
+        selector = `[${selector}]`;
+      }
+      const locator = scope.locator(`${locator.engine}="${selector}"`);
+      return locator;
+    }
     throw new Error("unknown locator type");
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
