@@ -92,6 +92,10 @@ class StableBrowser {
       this.webLogFile = this.getWebLogFile(logFolder);
       this.registerConsoleLogListener(page, context, this.webLogFile);
       this.registerRequestListener();
+      page.on("close", () => {
+        context.pages = context.pages.filter((p) => p !== page);
+        this.page = context.pages[context.pages.length - 1]; // assuming the last page is the active page
+      });
       try {
         await this.waitForPageLoad();
         console.log("Switch page: " + (await page.title()));
