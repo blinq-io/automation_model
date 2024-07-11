@@ -196,7 +196,32 @@ class StableBrowser {
     }
     return text;
   }
+  _fixLocatorUsingParams(locator, _params: Params) {
+    // check if not null
+    if (!locator) {
+      return locator;
+    }
+    // clone the locator
+    locator = JSON.parse(JSON.stringify(locator));
+    this.scanAndManipulate(locator, _params);
+    return locator;
+  }
+  _isObject(value) {
+    return value && typeof value === "object" && value.constructor === Object;
+  }
+  scanAndManipulate(currentObj, _params: Params) {
+    for (const key in currentObj) {
+      if (typeof currentObj[key] === "string") {
+        // Perform string manipulation
+        currentObj[key] = this._fixUsingParams(currentObj[key], _params);
+      } else if (this._isObject(currentObj[key])) {
+        // Recursively scan nested objects
+        this.scanAndManipulate(currentObj[key], _params);
+      }
+    }
+  }
   _getLocator(locator, scope, _params: Params) {
+    locator = this._fixLocatorUsingParams(locator, _params);
     if (locator.type === "pw_selector") {
       return scope.locator(locator.selector);
     }
@@ -205,14 +230,14 @@ class StableBrowser {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
         delete locator.role[1].nameReg;
       }
-      if (locator.role[1].name) {
-        locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
-      }
+      // if (locator.role[1].name) {
+      //   locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
+      // }
 
       return scope.getByRole(locator.role[0], locator.role[1]);
     }
     if (locator.css) {
-      return scope.locator(this._fixUsingParams(locator.css, _params));
+      return scope.locator(locator.css);
     }
     if (locator?.engine && locator?.score <= 520) {
       let selector = locator.selector.replace(/"/g, '\\"');
