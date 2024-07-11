@@ -14,6 +14,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import { decrypt } from "./utils.js";
+import csv from "csv-parser";
 type Params = Record<string, string>;
 
 const Types = {
@@ -31,6 +32,7 @@ const Types = {
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
   TYPE_PRESS: "type_press",
+  PRESS: "press_key",
   HOVER: "hover_element",
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
@@ -83,27 +85,31 @@ class StableBrowser {
     context.pages = [this.page];
 
     context.pageLoading = { status: false };
-    context.playContext.on("page", async function (page) {
-      context.pageLoading.status = true;
-      this.page = page;
-      context.page = page;
-      context.pages.push(page);
+    context.playContext.on(
+      "page",
+      async function (page) {
+        context.pageLoading.status = true;
+        this.page = page;
+        context.page = page;
+        context.pages.push(page);
 
-      this.webLogFile = this.getWebLogFile(logFolder);
-      this.registerConsoleLogListener(page, context, this.webLogFile);
-      this.registerRequestListener();
-      page.on("close", () => {
-        context.pages = context.pages.filter((p) => p !== page);
-        this.page = context.pages[context.pages.length - 1]; // assuming the last page is the active page
-      });
-      try {
-        await this.waitForPageLoad();
-        console.log("Switch page: " + (await page.title()));
-      } catch (e) {
-        this.logger.error("error on page load " + e);
-      }
-      context.pageLoading.status = false;
-    });
+        this.webLogFile = this.getWebLogFile(logFolder);
+        this.registerConsoleLogListener(page, context, this.webLogFile);
+        this.registerRequestListener();
+        page.on("close", () => {
+          context.pages = context.pages.filter((p) => p !== page);
+          this.page = context.pages[context.pages.length - 1]; // assuming the last page is the active page
+        });
+        try {
+          await this.waitForPageLoad();
+          console.log("Switch page: " + (await page.title()));
+        } catch (e) {
+          this.logger.error("error on page load " + e);
+        }
+        context.pageLoading.status = false;
+      }.bind(this)
+    );
+
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
@@ -180,24 +186,65 @@ class StableBrowser {
       return text;
     }
     for (let key in _params) {
-      text = text.replaceAll(new RegExp("{" + key + "}", "g"), _params[key]);
+      let regValue = key;
+      if (key.startsWith("_")) {
+        // remove the _ prefix
+        regValue = key.substring(1);
+      }
+      text = text.replaceAll(new RegExp("{" + regValue + "}", "g"), _params[key]);
     }
     return text;
   }
+  _fixLocatorUsingParams(locator, _params: Params) {
+    // check if not null
+    if (!locator) {
+      return locator;
+    }
+    // clone the locator
+    locator = JSON.parse(JSON.stringify(locator));
+    this.scanAndManipulate(locator, _params);
+    return locator;
+  }
+  _isObject(value) {
+    return value && typeof value === "object" && value.constructor === Object;
+  }
+  scanAndManipulate(currentObj, _params: Params) {
+    for (const key in currentObj) {
+      if (typeof currentObj[key] === "string") {
+        // Perform string manipulation
+        currentObj[key] = this._fixUsingParams(currentObj[key], _params);
+      } else if (this._isObject(currentObj[key])) {
+        // Recursively scan nested objects
+        this.scanAndManipulate(currentObj[key], _params);
+      }
+    }
+  }
   _getLocator(locator, scope, _params: Params) {
+    locator = this._fixLocatorUsingParams(locator, _params);
+    if (locator.type === "pw_selector") {
+      return scope.locator(locator.selector);
+    }
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
         delete locator.role[1].nameReg;
       }
-      if (locator.role[1].name) {
-        locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
-      }
+      // if (locator.role[1].name) {
+      //   locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
+      // }
 
       return scope.getByRole(locator.role[0], locator.role[1]);
     }
     if (locator.css) {
-      return scope.locator(this._fixUsingParams(locator.css, _params));
+      return scope.locator(locator.css);
+    }
+    if (locator?.engine && locator?.score <= 520) {
+      let selector = locator.selector.replace(/"/g, '\\"');
+      if (locator.engine === "internal:att") {
+        selector = `[${selector}]`;
+      }
+      const locator = scope.locator(`${locator.engine}="${selector}"`);
+      return locator;
     }
     throw new Error("unknown locator type");
   }
@@ -340,7 +387,7 @@ class StableBrowser {
     visibleOnly = true
   ) {
     let locatorSearch = selectorHierarchy[index];
-    info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
+    //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
       let locatorString = await this._locateElmentByTextClimbCss(
@@ -350,6 +397,9 @@ class StableBrowser {
         locatorSearch.css,
         _params
       );
+      if (!locatorString) {
+        return;
+      }
       locator = this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
       let result = await this._locateElementByText(
@@ -376,7 +426,7 @@ class StableBrowser {
     //   cssHref = true;
     // }
     let count = await locator.count();
-    info.log += "total elements found " + count + "\n";
+    //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
     if (locatorSearch.index && locatorSearch.index < count) {
@@ -387,17 +437,19 @@ class StableBrowser {
     for (let j = 0; j < count; j++) {
       let visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
-      info.log += "element " + j + " visible " + visible + " enabled " + enabled + "\n";
       if (!visibleOnly) {
         visible = true;
       }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
-
-        // if (cssHref) {
-        //   info.log += "css href locator found, will ignore all others" + "\n";
-        //   break;
-        // }
+      } else {
+        if (!info.printMessages) {
+          info.printMessages = {};
+        }
+        if (!info.printMessages[j.toString()]) {
+          info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+          info.printMessages[j.toString()] = true;
+        }
       }
     }
   }
@@ -423,19 +475,30 @@ class StableBrowser {
       }
       if (result.foundElements.length > 0) {
         // need to handle popup
-        let dialogCloseLocator = this._getLocator(
-          this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator,
-          scope,
-          _params
-        );
-        await dialogCloseLocator.click();
-        return { rerun: true };
+        const closeHandlerGroup = [];
+        closeHandlerGroup.push(this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator);
+        for (let i = 0; i < scopes.length; i++) {
+          result = await this._scanLocatorsGroup(closeHandlerGroup, scopes[i], _params, info, true);
+          if (result.foundElements.length > 0) {
+            break;
+          }
+        }
+        if (result.foundElements.length > 0) {
+          let dialogCloseLocator = result.foundElements[0].locator;
+          await dialogCloseLocator.click();
+          return { rerun: true };
+        }
       }
     }
     return { rerun: false };
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     for (let i = 0; i < 3; i++) {
+      info.log += "attempt " + i + ": totoal locators " + selectors.locators.length + "\n";
+      for (let j = 0; j < selectors.locators.length; j++) {
+        let selector = selectors.locators[j];
+        info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
+      }
       let element = await this._locate_internal(selectors, info, _params, timeout);
       if (!element.rerun) {
         return element;
@@ -451,6 +514,7 @@ class StableBrowser {
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
     if (selectors.iframe_src || selectors.frameLocators) {
+      info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators + "\n";
       while (true) {
         let frameFound = false;
         if (selectors.frameLocators) {
@@ -509,20 +573,25 @@ class StableBrowser {
       if (popupResult.rerun) {
         return popupResult;
       }
-      info.log += "scanning locators in priority 1" + "\n";
+      // info.log += "scanning locators in priority 1" + "\n";
+      let onlyPriority3 = selectorsLocators[0].priority === 3;
       result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
       if (result.foundElements.length === 0) {
-        info.log += "scanning locators in priority 2" + "\n";
+        // info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
       }
-      if (result.foundElements.length === 0 && !highPriorityOnly) {
-        info.log += "scanning locators in priority 3" + "\n";
+      if (result.foundElements.length === 0 && onlyPriority3) {
         result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+      } else {
+        if (result.foundElements.length === 0 && !highPriorityOnly) {
+          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+        }
       }
       let foundElements = result.foundElements;
 
       if (foundElements.length === 1 && foundElements[0].unique) {
         info.box = foundElements[0].box;
+        info.log += "unique element was found, locator: " + foundElements[0].locator + "\n";
         return foundElements[0].locator;
       }
       //info.log += "total elements found " + foundElements.length);
@@ -550,6 +619,7 @@ class StableBrowser {
           }
         }
         if (maxCountElement) {
+          info.log += "unique element was found, locator: " + maxCountElement.locator + "\n";
           info.box = await maxCountElement.locator.boundingBox();
           return maxCountElement.locator;
         }
@@ -558,9 +628,11 @@ class StableBrowser {
         break;
       }
       if (performance.now() - startTime > highPriorityTimeout) {
+        info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
       }
       if (performance.now() - startTime > visibleOnlyTimeout) {
+        info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -605,7 +677,7 @@ class StableBrowser {
     this._validateSelectors(selectors);
     const startTime = Date.now();
     const info = {};
-    info.log = "";
+    info.log = "***** click on " + selectors.element_name + " *****\n";
     info.operation = "click";
     info.selectors = selectors;
     let error = null;
@@ -1069,12 +1141,12 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** clickType on " + selectors.element_name + " with value " + _value + "*****\n";
     info.operation = "clickType";
     info.selectors = selectors;
     const newValue = await this._replaceWithLocalData(_value, world);
     if (newValue !== _value) {
-      this.logger.info(_value + "=" + newValue);
+      //this.logger.info(_value + "=" + newValue);
       _value = newValue;
     }
     info.value = _value;
@@ -1084,18 +1156,28 @@ class StableBrowser {
       await this.scrollIfNeeded(element, info);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
-      try {
-        let currentValue = await element.inputValue();
-        if (currentValue) {
-          await element.fill("");
+      if (options === null || options === undefined || !options.press) {
+        try {
+          let currentValue = await element.inputValue();
+          if (currentValue) {
+            await element.fill("");
+          }
+        } catch (e) {
+          this.logger.info("unable to clear input value");
         }
-      } catch (e) {
-        this.logger.info("unable to clear input value");
       }
-      try {
-        await element.click({ timeout: 5000 });
-      } catch (e) {
-        await element.dispatchEvent("click");
+      if (options === null || options === undefined || options.press) {
+        try {
+          await element.click({ timeout: 5000 });
+        } catch (e) {
+          await element.dispatchEvent("click");
+        }
+      } else {
+        try {
+          await element.focus();
+        } catch (e) {
+          await element.dispatchEvent("focus");
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
       const valueSegment = _value.split("&&");
@@ -1171,7 +1253,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** fill on " + selectors.element_name + " with value " + value + "*****\n";
     info.operation = "fill";
     info.selectors = selectors;
     info.value = value;
@@ -1282,7 +1364,8 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log =
+      "***** verify element " + selectors.element_name + " contains pattern  " + pattern + "/" + text + " *****\n";
     info.operation = "containsPattern";
     info.selectors = selectors;
     info.value = text;
@@ -1346,7 +1429,7 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log = "***** verify element " + selectors.element_name + " contains text " + text + " *****\n";
     info.operation = "containsText";
     info.selectors = selectors;
     const newValue = await this._replaceWithLocalData(text, world);
@@ -1447,15 +1530,41 @@ class StableBrowser {
     // save the data to the file
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
   }
+  _getDataFilePath(fileName) {
+    let dataFile = path.join(this.project_path, "data", fileName);
+    if (fs.existsSync(dataFile)) {
+      return dataFile;
+    }
+    dataFile = path.join(this.project_path, fileName);
+    if (fs.existsSync(dataFile)) {
+      return dataFile;
+    }
+    throw new Error("data file not found " + fileName);
+  }
+  _parseCSVSync(filePath) {
+    const data = fs.readFileSync(filePath, "utf8");
+    const results = [];
+
+    return new Promise((resolve, reject) => {
+      const readableStream = new stream.Readable();
+      readableStream._read = () => {}; // _read is required but you can noop it
+      readableStream.push(data);
+      readableStream.push(null);
+
+      readableStream
+        .pipe(csv())
+        .on("data", (data) => results.push(data))
+        .on("end", () => resolve(results))
+        .on("error", (error) => reject(error));
+    });
+  }
   loadTestData(type: string, dataSelector: string, world = null) {
     switch (type) {
       case "users":
-        // check if file users.json exists
-        if (!fs.existsSync(path.join(this.project_path, "users.json"))) {
-          throw new Error("users.json file not found");
-        }
+        // get the users.json file path
+        let dataFile = this._getDataFilePath("users.json");
         // read the file and return the data
-        const users = JSON.parse(fs.readFileSync(path.join(this.project_path, "users.json"), "utf8"));
+        const users = JSON.parse(fs.readFileSync(dataFile, "utf8"));
         for (let i = 0; i < users.length; i++) {
           if (users[i].username === dataSelector) {
             const userObj = {
@@ -1468,6 +1577,52 @@ class StableBrowser {
           }
         }
         throw new Error("user not found " + dataSelector);
+      default:
+        throw new Error("unknown type " + type);
+    }
+  }
+  async loadTestDataAsync(type: string, dataSelector: string, world = null) {
+    switch (type) {
+      case "users": {
+        // get the users.json file path
+        let dataFile = this._getDataFilePath("users.json");
+        // read the file and return the data
+        const users = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+        for (let i = 0; i < users.length; i++) {
+          if (users[i].username === dataSelector) {
+            const userObj = {
+              username: users[i].username,
+              password: "secret:" + users[i].password,
+              totp: users[i].secretKey ? "totp:" + users[i].secretKey : null,
+            };
+            this.setTestData(userObj, world);
+            return userObj;
+          }
+        }
+        throw new Error("user not found " + dataSelector);
+      }
+      case "csv": {
+        // the dataSelector should start with the file name followed by the row number: data.csv:1, if no row number is provided, it will default to 1
+        const parts = dataSelector.split(":");
+        let rowNumber = 0;
+        if (parts.length > 1) {
+          rowNumber = parseInt(parts[1]);
+        }
+        let dataFile = this._getDataFilePath(parts[0]);
+        const results = await this._parseCSVSync(dataFile);
+        // result stracture:
+        // [
+        //   { NAME: 'Daffy Duck', AGE: '24' },
+        //   { NAME: 'Bugs Bunny', AGE: '22' }
+        // ]
+        // verify the row number is within the range
+        if (rowNumber >= results.length) {
+          throw new Error("row number is out of range " + rowNumber);
+        }
+        const data = results[rowNumber];
+        this.setTestData(data, world);
+        return data;
+      }
       default:
         throw new Error("unknown type " + type);
     }
@@ -1608,7 +1763,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** verify element " + selectors.element_name + " exists in page *****\n";
     info.operation = "verify";
     info.selectors = selectors;
     try {
@@ -1659,7 +1814,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n";
     info.operation = "extract";
     info.selectors = selectors;
     try {
@@ -1684,7 +1839,8 @@ class StableBrowser {
       if (world) {
         world[variable] = info.value;
       }
-      this.logger.info("world." + variable + "=" + info.value);
+      this.setTestData({ [variable]: info.value }, world);
+      this.logger.info("set test data: " + variable + "=" + info.value);
       return info;
     } catch (e) {
       //await this.closeUnexpectedPopups();
@@ -1717,6 +1873,92 @@ class StableBrowser {
             },
         info: info,
       });
+    }
+  }
+  async extractEmailData(emailAddress, options, world) {
+    if (!emailAddress) {
+      throw new Error("email address is null");
+    }
+    // check if address contain @
+    if (emailAddress.indexOf("@") === -1) {
+      emailAddress = emailAddress + "@blinq-mail.io";
+    } else {
+      if (!emailAddress.toLowerCase().endsWith("@blinq-mail.io")) {
+        throw new Error("email address should end with @blinq-mail.io");
+      }
+    }
+    const startTime = Date.now();
+    let timeout = 60000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    const serviceUrl = this._getServerUrl() + "/api/mail/createLinkOrCodeFromEmail";
+
+    const request = {
+      method: "POST",
+      url: serviceUrl,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.TOKEN}`,
+      },
+      data: JSON.stringify({
+        email: emailAddress,
+      }),
+    };
+    let errorCount = 0;
+    while (true) {
+      try {
+        let result = await this.context.api.request(request);
+
+        // the response body expected to be the following:
+        // {
+        //  "status": true,
+        //  "content": {
+        //    "url": "",
+        //    "code": "112112",
+        //    "name": "generate_link_or_code"
+        //  }
+        //}
+
+        if ((result && result.data, result.data.status === true)) {
+          let codeOrUrlFound = false;
+          let emailCode = null;
+          let emailUrl = null;
+          // check if a code is returned
+          if (result.data.content && result.data.content.code) {
+            let code = result.data.content.code;
+            this.setTestData({ emailCode: code }, world);
+            this.logger.info("set test data: emailCode = " + code);
+            emailCode = code;
+            codeOrUrlFound = true;
+          }
+          // check if a url is returned
+          if (result.data.content && result.data.content.url) {
+            let url = result.data.content.url;
+            this.setTestData({ emailUrl: url }, world);
+            this.logger.info("set test data: emailUrl = " + url);
+            emailUrl = url;
+            codeOrUrlFound = true;
+          }
+          if (codeOrUrlFound) {
+            return { emailUrl, emailCode };
+          } else {
+            this.logger.info("an email received but no code or url found");
+          }
+        }
+      } catch (e) {
+        errorCount++;
+        if (errorCount > 3) {
+          throw e;
+        }
+        // ignore
+      }
+      // check if the timeout is reached
+      if (Date.now() - startTime > timeout) {
+        throw new Error("timeout reached");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 
@@ -1793,7 +2035,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** verify page path " + pathPart + " *****\n";
     info.operation = "verifyPagePath";
 
     const newValue = await this._replaceWithLocalData(pathPart, world);
@@ -1853,7 +2095,7 @@ class StableBrowser {
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const info = {};
-    info.log = "";
+    info.log = "***** verify text " + text + " exists in page *****\n";
     info.operation = "verifyTextExistInPage";
 
     const newValue = await this._replaceWithLocalData(text, world);
@@ -1903,8 +2145,10 @@ class StableBrowser {
           const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
           await this._highlightElements(frame, dataAttribute);
           const element = await frame.$(dataAttribute);
-          await this.scrollIfNeeded(element, info);
-          await element.dispatchEvent("bvt_verify_page_contains_text");
+          if (element) {
+            await this.scrollIfNeeded(element, info);
+            await element.dispatchEvent("bvt_verify_page_contains_text");
+          }
         }
         ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         return info;
@@ -1941,6 +2185,15 @@ class StableBrowser {
       });
     }
   }
+  _getServerUrl() {
+    let serviceUrl = "https://api.blinq.io";
+    if (process.env.NODE_ENV_BLINQ === "dev") {
+      serviceUrl = "https://dev.api.blinq.io";
+    } else if (process.env.NODE_ENV_BLINQ === "stage") {
+      serviceUrl = "https://stage.api.blinq.io";
+    }
+    return serviceUrl;
+  }
   async visualVerification(text, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -1955,12 +2208,7 @@ class StableBrowser {
       throw new Error("TOKEN is not set");
     }
     try {
-      let serviceUrl = "https://api.blinq.io";
-      if (process.env.NODE_ENV_BLINQ === "dev") {
-        serviceUrl = "https://dev.api.blinq.io";
-      } else if (process.env.NODE_ENV_BLINQ === "stage") {
-        serviceUrl = "https://stage.api.blinq.io";
-      }
+      let serviceUrl = this._getServerUrl();
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
@@ -2106,7 +2354,16 @@ class StableBrowser {
     let screenshotId = null;
     let screenshotPath = null;
     const info = {};
-    info.log = "";
+    info.log =
+      "***** analyze table " +
+      selectors.element_name +
+      " query " +
+      query +
+      " operator " +
+      operator +
+      " value " +
+      value +
+      " *****\n";
     info.operation = "analyzeTable";
     info.selectors = selectors;
     info.query = query;
@@ -2234,7 +2491,7 @@ class StableBrowser {
       });
     }
   }
-  async _replaceWithLocalData(value, world) {
+  async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
     if (!value) {
       return value;
     }
@@ -2256,8 +2513,8 @@ class StableBrowser {
         }
       }
     }
-    if (value.startsWith("secret:") || value.startsWith("totp:")) {
-      return await decrypt(value);
+    if ((value.startsWith("secret:") || value.startsWith("totp:")) && _decrypt) {
+      return await decrypt(value, null, totpWait);
     }
     return value;
   }
