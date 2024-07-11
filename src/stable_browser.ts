@@ -93,12 +93,14 @@ class StableBrowser {
         context.page = page;
         context.pages.push(page);
 
-        this.webLogFile = this.getWebLogFile(logFolder);
-        this.registerConsoleLogListener(page, context, this.webLogFile);
-        this.registerRequestListener();
-        page.on("close", () => {
-          context.pages = context.pages.filter((p) => p !== page);
-          this.page = context.pages[context.pages.length - 1]; // assuming the last page is the active page
+        page.on("close", async () => {
+          if (this.context && this.context.pages && this.context.pages.length > 0) {
+            this.context.pages.pop();
+            this.page = this.context.pages[this.context.pages.length - 1];
+            this.context.page = this.page;
+            let title = await this.page.title();
+            console.log("Switched to page " + title);
+          }
         });
         try {
           await this.waitForPageLoad();
@@ -109,7 +111,6 @@ class StableBrowser {
         context.pageLoading.status = false;
       }.bind(this)
     );
-
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
@@ -195,32 +196,7 @@ class StableBrowser {
     }
     return text;
   }
-  _fixLocatorUsingParams(locator, _params: Params) {
-    // check if not null
-    if (!locator) {
-      return locator;
-    }
-    // clone the locator
-    locator = JSON.parse(JSON.stringify(locator));
-    this.scanAndManipulate(locator, _params);
-    return locator;
-  }
-  _isObject(value) {
-    return value && typeof value === "object" && value.constructor === Object;
-  }
-  scanAndManipulate(currentObj, _params: Params) {
-    for (const key in currentObj) {
-      if (typeof currentObj[key] === "string") {
-        // Perform string manipulation
-        currentObj[key] = this._fixUsingParams(currentObj[key], _params);
-      } else if (this._isObject(currentObj[key])) {
-        // Recursively scan nested objects
-        this.scanAndManipulate(currentObj[key], _params);
-      }
-    }
-  }
   _getLocator(locator, scope, _params: Params) {
-    locator = this._fixLocatorUsingParams(locator, _params);
     if (locator.type === "pw_selector") {
       return scope.locator(locator.selector);
     }
@@ -229,14 +205,14 @@ class StableBrowser {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
         delete locator.role[1].nameReg;
       }
-      // if (locator.role[1].name) {
-      //   locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
-      // }
+      if (locator.role[1].name) {
+        locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
+      }
 
       return scope.getByRole(locator.role[0], locator.role[1]);
     }
     if (locator.css) {
-      return scope.locator(locator.css);
+      return scope.locator(this._fixUsingParams(locator.css, _params));
     }
     if (locator?.engine && locator?.score <= 520) {
       let selector = locator.selector.replace(/"/g, '\\"');
@@ -1012,14 +988,14 @@ class StableBrowser {
           await this.page.keyboard.press("Enter");
           await this.waitForPageLoad();
         }
-      } catch (error) {
+      } catch (err) {
         //await this.closeUnexpectedPopups();
         this.logger.error("setting date time input failed " + JSON.stringify(info));
         this.logger.info("Trying again")(
           ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info))
         );
         info.screenshotPath = screenshotPath;
-        Object.assign(error, { info: info });
+        Object.assign(err, { info: info });
         await element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
@@ -1038,7 +1014,7 @@ class StableBrowser {
           await this.waitForPageLoad();
         }
       }
-    } catch (error) {
+    } catch (e) {
       error = e;
       throw e;
     } finally {
@@ -1065,75 +1041,7 @@ class StableBrowser {
       });
     }
   }
-  async setDateTime(selectors, value, enter = false, _params = null, options = {}, world = null) {
-    this._validateSelectors(selectors);
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    const info = {};
-    info.log = "";
-    info.operation = Types.SET_DATE_TIME;
-    info.selectors = selectors;
-    info.value = value;
-    try {
-      let element = await this._locate(selectors, info, _params);
-      //insert red border around the element
-      await this.scrollIfNeeded(element, info);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      await this._highlightElements(element);
 
-      try {
-        await element.click();
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const dateTimeValue = await getDateTimeValue({ value, element });
-        await element.evaluateHandle((el, dateTimeValue) => {
-          el.value = ""; // clear input
-          el.value = dateTimeValue;
-        }, dateTimeValue);
-      } catch (error) {
-        //await this.closeUnexpectedPopups();
-        this.logger.error("setting date time input failed " + JSON.stringify(info));
-        this.logger.info("Trying again")(
-          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info))
-        );
-        info.screenshotPath = screenshotPath;
-        Object.assign(error, { info: info });
-        await element.click();
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const dateTimeValue = await getDateTimeValue({ value, element });
-        await element.evaluateHandle((el, dateTimeValue) => {
-          el.value = ""; // clear input
-          el.value = dateTimeValue;
-        }, dateTimeValue);
-      }
-    } catch (error) {
-      error = e;
-      throw e;
-    } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.SET_DATE_TIME,
-        screenshotId,
-        value: value,
-        text: `setDateTime input with value: ${value}`,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error === null || error === void 0 ? void 0 : error.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
-    }
-  }
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
@@ -2597,13 +2505,6 @@ class StableBrowser {
     const info = {};
     try {
       await this.page.close();
-      if (this.context && this.context.pages && this.context.pages.length > 0) {
-        this.context.pages.pop();
-        this.page = this.context.pages[this.context.pages.length - 1];
-        this.context.page = this.page;
-        let title = await this.page.title();
-        console.log("Switched to page " + title);
-      }
     } catch (e) {
       console.log(".");
     } finally {
