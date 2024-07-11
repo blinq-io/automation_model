@@ -109,6 +109,7 @@ class StableBrowser {
         context.pageLoading.status = false;
       }.bind(this)
     );
+
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
