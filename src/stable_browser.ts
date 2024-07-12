@@ -15,6 +15,7 @@ import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import { decrypt } from "./utils.js";
 import csv from "csv-parser";
+import { Readable } from "node:stream";
 type Params = Record<string, string>;
 
 const Types = {
@@ -41,6 +42,7 @@ const Types = {
   SET_DATE_TIME: "set_date_time",
   SET_VIEWPORT: "set_viewport",
   VERIFY_VISUAL: "verify_visual",
+  LOAD_DATA: "load_data",
 };
 
 class StableBrowser {
@@ -1479,7 +1481,7 @@ class StableBrowser {
     const results = [];
 
     return new Promise((resolve, reject) => {
-      const readableStream = new stream.Readable();
+      const readableStream = new Readable();
       readableStream._read = () => {}; // _read is required but you can noop it
       readableStream.push(data);
       readableStream.push(null);
