@@ -1083,9 +1083,8 @@ class StableBrowser {
       } catch (err) {
         //await this.closeUnexpectedPopups();
         this.logger.error("setting date time input failed " + JSON.stringify(info));
-        this.logger.info("Trying again")(
-          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info))
-        );
+        this.logger.info("Trying again");
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         info.screenshotPath = screenshotPath;
         Object.assign(err, { info: info });
         await element.click();
