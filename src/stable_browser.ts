@@ -43,6 +43,7 @@ const Types = {
   SET_VIEWPORT: "set_viewport",
   VERIFY_VISUAL: "verify_visual",
   LOAD_DATA: "load_data",
+  SET_INPUT: "set_input",
 };
 
 class StableBrowser {
@@ -978,6 +979,70 @@ class StableBrowser {
       });
     }
   }
+  async setInputValue(selectors, value, _params = null, options = {}, world = null) {
+    // set input value for non fillable inputs like date, time, range, color, etc.
+    this._validateSelectors(selectors);
+    const startTime = Date.now();
+    const info = {};
+    info.log = "***** set input value " + selectors.element_name + " *****\n";
+    info.operation = "setInputValue";
+    info.selectors = selectors;
+    value = this._fixUsingParams(value, _params);
+    info.value = value;
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+
+    try {
+      value = await this._replaceWithLocalData(value, this);
+      let element = await this._locate(selectors, info, _params);
+      await this.scrollIfNeeded(element, info);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await this._highlightElements(element);
+      try {
+        await element.evaluateHandle((el, value) => {
+          el.value = value;
+        }, value);
+      } catch (error) {
+        this.logger.error("setInputValue failed, will try again");
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+        info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: info });
+        await element.evaluateHandle((el, value) => {
+          el.value = value;
+        });
+      }
+    } catch (e) {
+      this.logger.error("setInputValue failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
+    } finally {
+      const endTime = Date.now();
+      this._reportToWorld(world, {
+        element_name: selectors.element_name,
+        type: Types.SET_INPUT,
+        text: `Set input value`,
+        value: value,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
   async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
@@ -1018,9 +1083,8 @@ class StableBrowser {
       } catch (err) {
         //await this.closeUnexpectedPopups();
         this.logger.error("setting date time input failed " + JSON.stringify(info));
-        this.logger.info("Trying again")(
-          ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info))
-        );
+        this.logger.info("Trying again");
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
         info.screenshotPath = screenshotPath;
         Object.assign(err, { info: info });
         await element.click();
