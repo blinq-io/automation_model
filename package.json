@@ -1,6 +1,6 @@
 {
   "name": "automation_model",
-  "version": "1.0.364-stage",
+  "version": "1.0.365-stage",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
