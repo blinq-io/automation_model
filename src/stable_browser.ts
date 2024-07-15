@@ -237,8 +237,11 @@ class StableBrowser {
 
       locatorReturn = scope.getByRole(locator.role[0], locator.role[1]);
     }
-    if (locator.css || locator.engine === "css") {
+    if (locator.css) {
       locatorReturn = scope.locator(locator.css);
+    }
+    if(locator.engine === "css") {
+      locatorReturn = scope.locator(locator.selector);
     }
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
