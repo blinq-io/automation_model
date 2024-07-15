@@ -242,13 +242,29 @@ class StableBrowser {
     if (locator.css) {
       return scope.locator(locator.css);
     }
+    // handle role/name locators
+    // locator.selector will be something like: textbox[name="Username"i]
+    if (locator.engine === "internal:role") {
+      // extract the role, name and the i/s flags using regex
+      const match = locator.selector.match(/(.*)\[(.*)="(.*)"(.*)\]/);
+      if (match) {
+        const role = match[1];
+        const name = match[3];
+        const flags = match[4];
+        return scope.getByRole(role, { name }, { exact: flags === "i" });
+      }
+    }
+    // handle css locators
+    if (locator.engine === "css") {
+      return scope.locator(locator.selector);
+    }
     if (locator?.engine && locator?.score <= 520) {
       let selector = locator.selector.replace(/"/g, '\\"');
       if (locator.engine === "internal:att") {
         selector = `[${selector}]`;
       }
-      const locator = scope.locator(`${locator.engine}="${selector}"`);
-      return locator;
+      const newLocator = scope.locator(`${locator.engine}="${selector}"`);
+      return newLocator;
     }
     throw new Error("unknown locator type");
   }
