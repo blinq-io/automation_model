@@ -255,7 +255,7 @@ class StableBrowser {
     if (locator.engine === "css") {
       return scope.locator(locator.selector);
     }
-    if (locator?.engine && locator?.score <= 520) {
+    if (locator?.engine) {
       if (locator.engine === "internal:attr") {
         selector = `[${selector}]`;
       }
