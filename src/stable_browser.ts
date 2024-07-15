@@ -267,10 +267,9 @@ class StableBrowser {
         throw new Error("Elements not found");
       } else if(count > 1) {
         throw new Error("Multiple elements found");
-      } else {
-        return locatorReturn;
-      }
+      } 
     }
+    return locatorReturn;
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
     let result = await this._locateElementByText(scope, this._fixUsingParams(text, _params), "*", false, true, _params);
