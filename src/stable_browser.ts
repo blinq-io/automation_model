@@ -225,6 +225,7 @@ class StableBrowser {
   }
   _getLocator(locator, scope, _params: Params) {
     locator = this._fixLocatorUsingParams(locator, _params);
+    let locatorReturn;
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
@@ -234,10 +235,10 @@ class StableBrowser {
       //   locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
       // }
 
-      return scope.getByRole(locator.role[0], locator.role[1]);
+      locatorReturn = scope.getByRole(locator.role[0], locator.role[1]);
     }
-    if (locator.css) {
-      return scope.locator(locator.css);
+    if (locator.css || locator.engine === "css") {
+      locatorReturn = scope.locator(locator.css);
     }
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
@@ -248,21 +249,27 @@ class StableBrowser {
         const role = match[1];
         const name = match[3];
         const flags = match[4];
-        return scope.getByRole(role, { name }, { exact: flags === "i" });
+        locatorReturn = scope.getByRole(role, { name }, { exact: flags === "i" });
       }
     }
-    // handle css locators
-    if (locator.engine === "css") {
-      return scope.locator(locator.selector);
-    }
-    if (locator?.engine && locator?.score <= 520) {
+    if (locator?.engine) {
       if (locator.engine === "internal:attr") {
         selector = `[${selector}]`;
       }
-      const newLocator = scope.locator(`${locator.engine}=${selector}`);
-      return newLocator;
+      locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
-    throw new Error("unknown locator type");
+    if(!locatorReturn) {
+      console.error(locator);
+      throw new Error("Locator undefined");
+    } else {
+      const count = await locatorReturn.count();
+      if(count === 0) {
+        throw new Error("Elements not found");
+      } else if(count > 1) {
+        throw new Error("Multiple elements found");
+      } 
+    }
+    return locatorReturn;
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
     let result = await this._locateElementByText(scope, this._fixUsingParams(text, _params), "*", false, true, _params);
