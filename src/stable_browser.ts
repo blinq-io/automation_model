@@ -225,9 +225,6 @@ class StableBrowser {
   }
   _getLocator(locator, scope, _params: Params) {
     locator = this._fixLocatorUsingParams(locator, _params);
-    if (locator.type === "pw_selector") {
-      return scope.locator(locator.selector);
-    }
     if (locator.role) {
       if (locator.role[1].nameReg) {
         locator.role[1].name = reg_parser(locator.role[1].nameReg);
@@ -259,11 +256,10 @@ class StableBrowser {
       return scope.locator(locator.selector);
     }
     if (locator?.engine && locator?.score <= 520) {
-      let selector = locator.selector.replace(/"/g, '\\"');
-      if (locator.engine === "internal:att") {
+      if (locator.engine === "internal:attr") {
         selector = `[${selector}]`;
       }
-      const newLocator = scope.locator(`${locator.engine}="${selector}"`);
+      const newLocator = scope.locator(`${locator.engine}=${selector}`);
       return newLocator;
     }
     throw new Error("unknown locator type");
