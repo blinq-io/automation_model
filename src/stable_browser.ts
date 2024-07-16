@@ -264,13 +264,6 @@ class StableBrowser {
     if(!locatorReturn) {
       console.error(locator);
       throw new Error("Locator undefined");
-    } else {
-      const count = await locatorReturn.count();
-      if(count === 0) {
-        throw new Error("Elements not found");
-      } else if(count > 1) {
-        throw new Error("Multiple elements found");
-      }
     }
     return locatorReturn;
   }
@@ -694,6 +687,12 @@ class StableBrowser {
           unique: true,
         });
         result.locatorIndex = i;
+      } else {
+        if(foundLocators.length === 0) {
+          this.logger.error("Elements not found");
+        } else if(foundLocators.length > 1) {
+          this.logger.error("Multiple elements found");
+        }
       }
     }
     return result;
