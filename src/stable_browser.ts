@@ -240,7 +240,7 @@ class StableBrowser {
     if (locator.css) {
       locatorReturn = scope.locator(locator.css);
     }
-    if(locator.engine === "css") {
+    if (locator.engine === "css") {
       locatorReturn = scope.locator(locator.selector);
     }
     // handle role/name locators
@@ -261,16 +261,16 @@ class StableBrowser {
       }
       locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
-    if(!locatorReturn) {
+    if (!locatorReturn) {
       console.error(locator);
       throw new Error("Locator undefined");
-    } else {
-      const count = await locatorReturn.count();
-      if(count === 0) {
-        throw new Error("Elements not found");
-      } else if(count > 1) {
-        throw new Error("Multiple elements found");
-      }
+      // } else {
+      //   const count = await locatorReturn.count();
+      //   if(count === 0) {
+      //     throw new Error("Elements not found");
+      //   } else if(count > 1) {
+      //     throw new Error("Multiple elements found");
+      //   }
     }
     return locatorReturn;
   }
