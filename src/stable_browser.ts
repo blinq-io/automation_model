@@ -240,6 +240,7 @@ class StableBrowser {
     if (locator.css || locator.engine === "css") {
       locatorReturn = scope.locator(locator.css);
     }
+
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
     if (locator.engine === "internal:role") {
@@ -275,6 +276,7 @@ class StableBrowser {
       //   if (count === 0) {
       //     throw new Error("Elements not found");
       //   } else if (count > 1) {
+
       //     throw new Error("Multiple elements found");
       //   }
     }
@@ -708,6 +710,9 @@ class StableBrowser {
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
+    if (options && options.context) {
+      selectors.locators[0].text = options.context;
+    }
     const info = {};
     info.log = "***** click on " + selectors.element_name + " *****\n";
     info.operation = "click";
