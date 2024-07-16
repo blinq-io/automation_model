@@ -31,10 +31,6 @@ jobs:
         run: npx playwright install
         working-directory: ${{ github.workspace }}
 
-      - name: Configure git
-        run: |
-          git config --global user.name "${{ secrets.GIT_USER_NAME }}"
-          git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
 
       - name: Fetch current version from npm with tag 'latest'
         id: npm_version
@@ -60,14 +56,6 @@ jobs:
       - name: Update package-lock.json
         run: npm install --package-lock-only
         working-directory: ${{ github.workspace }}
-
-      - name: Commit and push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB_WORKFLOW }}
-        run: |
-          git add "${{ github.workspace }}/package.json" "${{ github.workspace }}/package-lock.json"
-          git commit -m "new version commited"
-          git push origin main
 
 
 
