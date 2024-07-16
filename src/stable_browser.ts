@@ -237,11 +237,8 @@ class StableBrowser {
 
       locatorReturn = scope.getByRole(locator.role[0], locator.role[1]);
     }
-    if (locator.css) {
+    if (locator.css || locator.engine === "css") {
       locatorReturn = scope.locator(locator.css);
-    }
-    if(locator.engine === "css") {
-      locatorReturn = scope.locator(locator.selector);
     }
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
@@ -255,22 +252,31 @@ class StableBrowser {
         locatorReturn = scope.getByRole(role, { name }, { exact: flags === "i" });
       }
     }
-    if (locator?.engine) {
-      if (locator.engine === "internal:attr") {
-        selector = `[${selector}]`;
+    // locator object { engine: "internal:text", selector: '"Signup / Login"i', priority: 4 },
+    if (locator.engine === "internal:text") {
+      // extract the text and the i flag using regex
+      const match = locator.selector.match(/"(.*)"(.*)/);
+      if (match) {
+        const text = match[1];
+        const flags = match[2];
+        locatorReturn = scope.locator(`text=${text}`, { exact: flags === "i" });
       }
+    }
+
+    if (locator.engine === "internal:attr") {
+      selector = `[${selector}]`;
       locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
-    if(!locatorReturn) {
+    if (!locatorReturn) {
       console.error(locator);
-      throw new Error("Locator undefined");
-    } else {
-      const count = await locatorReturn.count();
-      if(count === 0) {
-        throw new Error("Elements not found");
-      } else if(count > 1) {
-        throw new Error("Multiple elements found");
-      }
+      throw new Error("Locator " + JSON.stringify(locator) + " not found");
+      // } else {
+      //   const count = locatorReturn.count();
+      //   if (count === 0) {
+      //     throw new Error("Elements not found");
+      //   } else if (count > 1) {
+      //     throw new Error("Multiple elements found");
+      //   }
     }
     return locatorReturn;
   }
