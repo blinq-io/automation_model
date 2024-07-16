@@ -258,16 +258,16 @@ class StableBrowser {
       }
       locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
-    if(!locatorReturn) {
+    if (!locatorReturn) {
       console.error(locator);
       throw new Error("Locator undefined");
     } else {
       const count = await locatorReturn.count();
-      if(count === 0) {
+      if (count === 0) {
         throw new Error("Elements not found");
-      } else if(count > 1) {
+      } else if (count > 1) {
         throw new Error("Multiple elements found");
-      } 
+      }
     }
     return locatorReturn;
   }
@@ -695,7 +695,11 @@ class StableBrowser {
     }
     return result;
   }
-
+  async contextClick(selectors, text: string, _params?: Params, options = {}, world = null) {
+    this._validateSelectors(selectors);
+    selectors.locators[0].text = text;
+    this.click(selectors, _params, options, world);
+  }
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
