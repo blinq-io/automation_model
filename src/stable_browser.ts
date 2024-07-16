@@ -252,15 +252,24 @@ class StableBrowser {
         locatorReturn = scope.getByRole(role, { name }, { exact: flags === "i" });
       }
     }
-    if (locator?.engine) {
-      if (locator.engine === "internal:attr") {
-        selector = `[${selector}]`;
+    // locator object { engine: "internal:text", selector: '"Signup / Login"i', priority: 4 },
+    if (locator.engine === "internal:text") {
+      // extract the text and the i flag using regex
+      const match = locator.selector.match(/"(.*)"(.*)/);
+      if (match) {
+        const text = match[1];
+        const flags = match[2];
+        locatorReturn = scope.locator(`text=${text}`, { exact: flags === "i" });
       }
+    }
+
+    if (locator.engine === "internal:attr") {
+      selector = `[${selector}]`;
       locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
     if (!locatorReturn) {
       console.error(locator);
-      throw new Error("Locator undefined");
+      throw new Error("Locator " + JSON.stringify(locator) + " not found");
       // } else {
       //   const count = locatorReturn.count();
       //   if (count === 0) {
