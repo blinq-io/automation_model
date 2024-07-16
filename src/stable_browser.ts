@@ -262,7 +262,7 @@ class StableBrowser {
       console.error(locator);
       throw new Error("Locator undefined");
     } else {
-      const count = await locatorReturn.count();
+      const count = locatorReturn.count();
       if (count === 0) {
         throw new Error("Elements not found");
       } else if (count > 1) {
