@@ -695,14 +695,13 @@ class StableBrowser {
     }
     return result;
   }
-  async contextClick(selectors, text: string, _params?: Params, options = {}, world = null) {
-    this._validateSelectors(selectors);
-    selectors.locators[0].text = text;
-    await this.click(selectors, _params, options, world);
-  }
+
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
+    if (options && options.context) {
+      selectors.locators[0].text = options.context;
+    }
     const info = {};
     info.log = "***** click on " + selectors.element_name + " *****\n";
     info.operation = "click";
