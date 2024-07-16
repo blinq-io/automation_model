@@ -240,7 +240,7 @@ class StableBrowser {
     if (locator.css) {
       locatorReturn = scope.locator(locator.css);
     }
-    if(locator.engine === "css") {
+    if (locator.engine === "css") {
       locatorReturn = scope.locator(locator.selector);
     }
     // handle role/name locators
@@ -265,7 +265,7 @@ class StableBrowser {
       console.error(locator);
       throw new Error("Locator undefined");
     } else {
-      const count = await locatorReturn.count();
+      const count = locatorReturn.count();
       if (count === 0) {
         throw new Error("Elements not found");
       } else if (count > 1) {
@@ -701,7 +701,7 @@ class StableBrowser {
   async contextClick(selectors, text: string, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     selectors.locators[0].text = text;
-    this.click(selectors, _params, options, world);
+    await this.click(selectors, _params, options, world);
   }
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
