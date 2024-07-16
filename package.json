@@ -18,6 +18,7 @@
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
     "regression": "cross-env HEADLESS=true npx mocha --parallel --jobs=8 ./regression/ --timeout 120000"
   },
+  
   "author": "",
   "license": "ISC",
   "dependencies": {
