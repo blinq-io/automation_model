@@ -1760,13 +1760,13 @@ class StableBrowser {
     );
     const { data } = await client.send("Page.captureScreenshot", {
       format: "png",
-      clip: {
-        x: 0,
-        y: 0,
-        width: viewportWidth,
-        height: viewportHeight,
-        scale: 1,
-      },
+      // clip: {
+      //   x: 0,
+      //   y: 0,
+      //   width: viewportWidth,
+      //   height: viewportHeight,
+      //   scale: 1,
+      // },
     });
     if (!screenshotPath) {
       return data;
