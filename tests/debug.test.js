@@ -1,6 +1,7 @@
+import { get } from "http";
 import { initContext } from "../build/lib/auto_page.js";
 import { closeBrowser } from "../build/lib/init_browser.js";
-
+import { existsSync, mkdirSync, rmdirSync } from "fs";
 
 const name = "login";
 const path = "/";
@@ -13,7 +14,7 @@ const elements = {
     ],
     element_name: "username field",
   },
-  
+
   textbox_password: {
     locators: [
       { role: ["textbox", { name: "Password" }] },
@@ -92,16 +93,32 @@ const elements = {
     element_name: "CONTINUE button",
   },
 };
-
+let screenshotId = 0;
+function getScreenShotPath() {
+  screenshotId++;
+  if (!existsSync("./screenshots")) {
+    mkdirSync("./screenshots", { recursive: true });
+  }
+  return "./screenshots/" + screenshotId + ".png";
+}
 const context = await initContext(path, true, false);
 const login = async function (username, password) {
+  // if screenshot folder exist delete it
+  if (existsSync("./screenshots")) {
+    rmdirSync("./screenshots", { recursive: true });
+  }
   const _params = { username, password };
+  let options = {};
+  options.screenshot = true;
+  options.screenshotPath = getScreenShotPath();
   // Fill username field with "username"
-  await context.stable.clickType(elements["textbox_username"], username, false, _params, null, this);
+  await context.stable.clickType(elements["textbox_username"], username, false, _params, options, null);
   // Fill password field with "password"
-  await context.stable.clickType(elements["textbox_password"], password, false, _params, null, this);
+  options.screenshotPath = getScreenShotPath();
+  await context.stable.clickType(elements["textbox_password"], password, false, _params, options, null);
   // Click on login button
-  await context.stable.click(elements["button_login"], _params, null, this);
+  options.screenshotPath = getScreenShotPath();
+  await context.stable.click(elements["button_login"], _params, options, null);
 };
 await login("blinq_user", "let_me_in");
 
