@@ -28,12 +28,7 @@ const _findEmptyFolder = (folder?: string) => {
   }
   return path.join(folder, nextIndex.toString());
 };
-const initContext = async (
-  path: string,
-  doNavigate = true,
-  headless = false,
-  world: any = null
-) => {
+const initContext = async (path: string, doNavigate = true, headless = false, world: any = null, moveToRight = -1) => {
   if (context) {
     return context;
   }
@@ -61,12 +56,38 @@ const initContext = async (
     context.reportFolder = reportFolder;
   }
 
+  if (moveToRight > 0) {
+    // move the borwser to the top right corner of the screen
+    // create a cdp session
+    // Get CDP session
+    const playContext: any = context.playContext;
+    const client = await playContext.newCDPSession(context.page);
+
+    // Get window ID for the current target
+    const { windowId } = await client.send("Browser.getWindowForTarget");
+    console.log(windowId);
+
+    // get the window for the current target
+    const window = await client.send("Browser.getWindowBounds", {
+      windowId,
+    });
+    console.log(window);
+    await client.send("Browser.setWindowBounds", {
+      windowId,
+      bounds: {
+        left: window.bounds.left + moveToRight,
+      },
+    });
+    // close cdp
+    await client.detach();
+  }
   if (doNavigate) {
     await navigate(path);
   }
 
   return context;
 };
+
 const closeContext = async () => {
   try {
     if (context && context.browser) {

@@ -101,7 +101,7 @@ function getScreenShotPath() {
   }
   return "./screenshots/" + screenshotId + ".png";
 }
-const context = await initContext(path, true, false);
+const context = await initContext(path, true, false, null, 450);
 const login = async function (username, password) {
   // if screenshot folder exist delete it
   if (existsSync("./screenshots")) {
