@@ -223,7 +223,7 @@ class StableBrowser {
       }
     }
   }
-  _getLocator(locator, scope, _params: Params) {
+  _getLocator(locator, scope, _params) {
     locator = this._fixLocatorUsingParams(locator, _params);
     let locatorReturn;
     if (locator.role) {
@@ -237,12 +237,13 @@ class StableBrowser {
 
       locatorReturn = scope.getByRole(locator.role[0], locator.role[1]);
     }
-    if (locator.css || locator.engine === "css") {
+    if (locator.css) {
       locatorReturn = scope.locator(locator.css);
     }
-
+    
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
+
     if (locator.engine === "internal:role") {
       // extract the role, name and the i/s flags using regex
       const match = locator.selector.match(/(.*)\[(.*)="(.*)"(.*)\]/);
@@ -253,33 +254,21 @@ class StableBrowser {
         locatorReturn = scope.getByRole(role, { name }, { exact: flags === "i" });
       }
     }
-    // locator object { engine: "internal:text", selector: '"Signup / Login"i', priority: 4 },
-    if (locator.engine === "internal:text") {
-      // extract the text and the i flag using regex
-      const match = locator.selector.match(/"(.*)"(.*)/);
-      if (match) {
-        const text = match[1];
-        const flags = match[2];
-        locatorReturn = scope.locator(`text=${text}`, { exact: flags === "i" });
-      }
+    if (locator?.engine) {
+        if(locator.engine === "css") {
+            locatorReturn = scope.locator(locator.selector);
+          } else {
+            let selector = locator.selector;
+            if (locator.engine === "internal:attr") {
+                selector = `[${selector}]`;
+            }
+            locatorReturn = scope.locator(`${locator.engine}=${selector}`);
+          }
     }
-
-    if (locator.engine === "internal:attr") {
-      selector = `[${selector}]`;
-      locatorReturn = scope.locator(`${locator.engine}=${selector}`);
-    }
-    if (!locatorReturn) {
+    if(!locatorReturn) {
       console.error(locator);
-      throw new Error("Locator " + JSON.stringify(locator) + " not found");
-      // } else {
-      //   const count = locatorReturn.count();
-      //   if (count === 0) {
-      //     throw new Error("Elements not found");
-      //   } else if (count > 1) {
-
-      //     throw new Error("Multiple elements found");
-      //   }
-    }
+      throw new Error("Locator undefined");
+    } 
     return locatorReturn;
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
