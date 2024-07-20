@@ -223,7 +223,7 @@ class StableBrowser {
       }
     }
   }
-  _getLocator(locator, scope, _params: Params) {
+  _getLocator(locator, scope, _params) {
     locator = this._fixLocatorUsingParams(locator, _params);
     let locatorReturn;
     if (locator.role) {
@@ -237,12 +237,13 @@ class StableBrowser {
 
       locatorReturn = scope.getByRole(locator.role[0], locator.role[1]);
     }
-    if (locator.css || locator.engine === "css") {
+    if (locator.css) {
       locatorReturn = scope.locator(locator.css);
     }
-
+    
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
+
     if (locator.engine === "internal:role") {
       // extract the role, name and the i/s flags using regex
       const match = locator.selector.match(/(.*)\[(.*)="(.*)"(.*)\]/);
@@ -270,7 +271,7 @@ class StableBrowser {
       }
       locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
-    if (!locatorReturn) {
+    if(!locatorReturn) {
       console.error(locator);
       throw new Error("Locator " + JSON.stringify(locator) + " not found");
     }
