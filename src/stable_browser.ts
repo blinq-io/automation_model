@@ -253,7 +253,7 @@ class StableBrowser {
         locatorReturn = scope.getByRole(role, { name }, { exact: flags === "i" });
       }
     }
-    // locator object { engine: "internal:text", selector: '"Signup / Login"i', priority: 4 },
+
     if (locator.engine === "internal:text") {
       // extract the text and the i flag using regex
       const match = locator.selector.match(/"(.*)"(.*)/);
@@ -265,20 +265,14 @@ class StableBrowser {
     }
 
     if (locator.engine === "internal:attr") {
-      selector = `[${selector}]`;
+      if (!selector.startsWith("[")) {
+        selector = `[${selector}]`;
+      }
       locatorReturn = scope.locator(`${locator.engine}=${selector}`);
     }
     if (!locatorReturn) {
       console.error(locator);
       throw new Error("Locator " + JSON.stringify(locator) + " not found");
-      // } else {
-      //   const count = locatorReturn.count();
-      //   if (count === 0) {
-      //     throw new Error("Elements not found");
-      //   } else if (count > 1) {
-
-      //     throw new Error("Multiple elements found");
-      //   }
     }
     return locatorReturn;
   }
