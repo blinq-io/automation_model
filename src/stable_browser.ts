@@ -240,7 +240,7 @@ class StableBrowser {
     if (locator.css) {
       locatorReturn = scope.locator(locator.css);
     }
-    
+
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
 
@@ -255,20 +255,22 @@ class StableBrowser {
       }
     }
     if (locator?.engine) {
-        if(locator.engine === "css") {
-            locatorReturn = scope.locator(locator.selector);
-          } else {
-            let selector = locator.selector;
-            if (locator.engine === "internal:attr") {
-                selector = `[${selector}]`;
-            }
-            locatorReturn = scope.locator(`${locator.engine}=${selector}`);
+      if (locator.engine === "css") {
+        locatorReturn = scope.locator(locator.selector);
+      } else {
+        let selector = locator.selector;
+        if (locator.engine === "internal:attr") {
+          if (!selector.startsWith("[")) {
+            selector = `[${selector}]`;
           }
+        }
+        locatorReturn = scope.locator(`${locator.engine}=${selector}`);
+      }
     }
-    if(!locatorReturn) {
+    if (!locatorReturn) {
       console.error(locator);
       throw new Error("Locator undefined");
-    } 
+    }
     return locatorReturn;
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
