@@ -240,7 +240,7 @@ class StableBrowser {
     if (locator.css) {
       locatorReturn = scope.locator(locator.css);
     }
-    
+
     // handle role/name locators
     // locator.selector will be something like: textbox[name="Username"i]
 
@@ -254,26 +254,22 @@ class StableBrowser {
         locatorReturn = scope.getByRole(role, { name }, { exact: flags === "i" });
       }
     }
-
-    if (locator.engine === "internal:text") {
-      // extract the text and the i flag using regex
-      const match = locator.selector.match(/"(.*)"(.*)/);
-      if (match) {
-        const text = match[1];
-        const flags = match[2];
-        locatorReturn = scope.locator(`text=${text}`, { exact: flags === "i" });
+    if (locator?.engine) {
+      if (locator.engine === "css") {
+        locatorReturn = scope.locator(locator.selector);
+      } else {
+        let selector = locator.selector;
+        if (locator.engine === "internal:attr") {
+          if (!selector.startsWith("[")) {
+            selector = `[${selector}]`;
+          }
+        }
+        locatorReturn = scope.locator(`${locator.engine}=${selector}`);
       }
     }
-
-    if (locator.engine === "internal:attr") {
-      if (!selector.startsWith("[")) {
-        selector = `[${selector}]`;
-      }
-      locatorReturn = scope.locator(`${locator.engine}=${selector}`);
-    }
-    if(!locatorReturn) {
+    if (!locatorReturn) {
       console.error(locator);
-      throw new Error("Locator " + JSON.stringify(locator) + " not found");
+      throw new Error("Locator undefined");
     }
     return locatorReturn;
   }
