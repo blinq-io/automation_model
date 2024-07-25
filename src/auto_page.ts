@@ -6,6 +6,9 @@ import type { TestContext } from "./test_context.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
+  if (path === null && context!.navigate === true) {
+    return;
+  }
   let url = null;
   if (path === null) {
     url = context!.environment!.baseUrl!;
@@ -13,6 +16,7 @@ const navigate = async (path = "") => {
     url = new URL(path, context!.environment!.baseUrl).href;
   }
   await context!.stable!.goto(url);
+  context!.navigate = true;
   await context!.stable!.waitForPageLoad();
 };
 const _findEmptyFolder = (folder?: string) => {
