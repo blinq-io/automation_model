@@ -97,12 +97,16 @@ class StableBrowser {
         context.pages.push(page);
 
         page.on("close", async () => {
-          if (this.context && this.context.pages && this.context.pages.length > 0) {
+          if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
             this.page = this.context.pages[this.context.pages.length - 1];
             this.context.page = this.page;
-            let title = await this.page.title();
-            console.log("Switched to page " + title);
+            try {
+              let title = await this.page.title();
+              console.log("Switched to page " + title);
+            } catch (error) {
+              console.error("Error on page close", error);
+            }
           }
         });
         try {
