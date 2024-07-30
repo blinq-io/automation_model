@@ -97,12 +97,16 @@ class StableBrowser {
         context.pages.push(page);
 
         page.on("close", async () => {
-          if (this.context && this.context.pages && this.context.pages.length > 0) {
+          if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
             this.page = this.context.pages[this.context.pages.length - 1];
             this.context.page = this.page;
-            let title = await this.page.title();
-            console.log("Switched to page " + title);
+            try {
+              let title = await this.page.title();
+              console.log("Switched to page " + title);
+            } catch (error) {
+              console.error("Error on page close", error);
+            }
           }
         });
         try {
@@ -1463,47 +1467,47 @@ class StableBrowser {
     info.value = text;
     let foundObj = null;
     try {
-      // foundObj = await this._getText(selectors, climb, _params, options, info, world);
-      // if (foundObj && foundObj.element) {
-      //   await this.scrollIfNeeded(foundObj.element, info);
-      // }
-      // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      // const dateAlternatives = findDateAlternatives(text);
-      // const numberAlternatives = findNumberAlternatives(text);
-      // if (dateAlternatives.date) {
-      //   for (let i = 0; i < dateAlternatives.dates.length; i++) {
-      //     if (
-      //       foundObj?.text.includes(dateAlternatives.dates[i]) ||
-      //       foundObj?.value?.includes(dateAlternatives.dates[i])
-      //     ) {
-      //       return info;
-      //     }
-      //   }
-      //   throw new Error("element doesn't contain text " + text);
-      // } else if (numberAlternatives.number) {
-      //   for (let i = 0; i < numberAlternatives.numbers.length; i++) {
-      //     if (
-      //       foundObj?.text.includes(numberAlternatives.numbers[i]) ||
-      //       foundObj?.value?.includes(numberAlternatives.numbers[i])
-      //     ) {
-      //       return info;
-      //     }
-      //   }
-      //   throw new Error("element doesn't contain text " + text);
-      // } else if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
-      //   info.foundText = foundObj?.text;
-      //   info.value = foundObj?.value;
-      //   throw new Error("element doesn't contain text " + text);
-      // }
-      // return info;
+      foundObj = await this._getText(selectors, climb, _params, options, info, world);
+      if (foundObj && foundObj.element) {
+        await this.scrollIfNeeded(foundObj.element, info);
+      }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      const dateAlternatives = findDateAlternatives(text);
+      const numberAlternatives = findNumberAlternatives(text);
+      if (dateAlternatives.date) {
+        for (let i = 0; i < dateAlternatives.dates.length; i++) {
+          if (
+            foundObj?.text.includes(dateAlternatives.dates[i]) ||
+            foundObj?.value?.includes(dateAlternatives.dates[i])
+          ) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (numberAlternatives.number) {
+        for (let i = 0; i < numberAlternatives.numbers.length; i++) {
+          if (
+            foundObj?.text.includes(numberAlternatives.numbers[i]) ||
+            foundObj?.value?.includes(numberAlternatives.numbers[i])
+          ) {
+            return info;
+          }
+        }
+        throw new Error("element doesn't contain text " + text);
+      } else if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
+        info.foundText = foundObj?.text;
+        info.value = foundObj?.value;
+        throw new Error("element doesn't contain text " + text);
+      }
+      return info;
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      // this.logger.error("verify element contains text failed " + info.log);
-      // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      // info.screenshotPath = screenshotPath;
-      // Object.assign(e, { info: info });
-      // error = e;
-      // throw e;
+      await this.closeUnexpectedPopups();
+      this.logger.error("verify element contains text failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      throw e;
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {

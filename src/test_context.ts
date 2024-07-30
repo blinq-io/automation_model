@@ -11,6 +11,7 @@ class TestContext {
   environment: Environment | null = null;
   reportFolder: string | null = null;
   api: Api | null = null;
+  navigate = false;
   constructor() {}
 }
 export { TestContext };
