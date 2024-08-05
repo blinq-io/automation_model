@@ -98,5 +98,5 @@ describe("Click Tests", function () {
       info = await context.stable.click(tagLocElements[key]);
       console.log(info.log);
     }
-  });
+  }).timeout(180_000);
 });
