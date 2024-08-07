@@ -721,7 +721,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.click({ timeout: 5000 });
+        await element.click();
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         // await this.closeUnexpectedPopups();
@@ -779,7 +779,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.setChecked(checked, { timeout: 5000 });
+        await element.setChecked(checked);
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         if (e.message && e.message.includes("did not change its state")) {
@@ -841,7 +841,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.hover({ timeout: 10000 });
+        await element.hover();
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         //await this.closeUnexpectedPopups();
@@ -903,7 +903,7 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         await this._highlightElements(element);
-        await element.selectOption(values, { timeout: 5000 });
+        await element.selectOption(values);
       } catch (e) {
         //await this.closeUnexpectedPopups();
         info.log += "selectOption failed, will try force" + "\n";
@@ -1288,7 +1288,7 @@ class StableBrowser {
       let element = await this._locate(selectors, info, _params);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       await this._highlightElements(element);
-      await element.fill(value, { timeout: 10000 });
+      await element.fill(value);
       await element.dispatchEvent("change");
       if (enter) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
