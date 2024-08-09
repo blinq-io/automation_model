@@ -727,7 +727,7 @@ class StableBrowser {
         // await this.closeUnexpectedPopups();
         info.log += "click failed, will try again" + "\n";
         element = await this._locate(selectors, info, _params);
-        await element.click({ timeout: 10000, force: true });
+        await element.dispatchEvent("click");
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
@@ -2727,30 +2727,10 @@ class StableBrowser {
   }
   async scrollIfNeeded(element, info) {
     try {
-      let didScroll = await element.evaluate((node) => {
-        const rect = node.getBoundingClientRect();
-        if (
-          rect &&
-          rect.top >= 0 &&
-          rect.left >= 0 &&
-          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-        ) {
-          return false;
-        } else {
-          node.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-            inline: "center",
-          });
-          return true;
-        }
-      });
-      if (didScroll) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        if (info) {
-          info.box = await element.boundingBox();
-        }
+      await element.scrollIntoViewIfNeeded();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (info) {
+        info.box = await element.boundingBox();
       }
     } catch (e) {
       console.log("scroll failed");
