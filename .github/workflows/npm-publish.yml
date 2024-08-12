@@ -27,7 +27,7 @@ jobs:
       - run: npm install
         working-directory: ${{ github.workspace }}
       - name: Install Playwright dependencies
-        run: npx playwright install
+        run: npx playwright install --with-deps
         working-directory: ${{ github.workspace }}
 
 
