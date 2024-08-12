@@ -25,7 +25,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Install Playwright dependencies
-        run: npx clear-npx-cache && npx playwright install --with-deps 
+        run: npx playwright uninstall --all && npx playwright install --with-deps 
         working-directory: ${{ github.workspace }}
 
 
