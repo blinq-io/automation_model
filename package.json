@@ -32,7 +32,7 @@
     "sharp": "^0.32.6",
     "totp-generator": "^1.0.0",
     "tunnel": "^0.0.6",
-    "playwright": "^1.45.3"
+    "playwright": "1.45.3"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
