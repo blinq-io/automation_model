@@ -21,8 +21,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@playwright/test": "^1.40.0",
-    "axios": "^1.6.8",
+    "@playwright/test": "1.45.3",
+    "axios": "^1.7.4",
     "crypto-js": "^4.2.0",
     "csv-parser": "^3.0.0",
     "dayjs": "^1.11.10",
