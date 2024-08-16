@@ -2727,13 +2727,17 @@ class StableBrowser {
   }
   async scrollIfNeeded(element, info) {
     try {
-      await element.scrollIntoViewIfNeeded();
+      await element.scrollIntoViewIfNeeded({
+        timeout: 2000,
+      });
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (info) {
-        info.box = await element.boundingBox();
+        info.box = await element.boundingBox({
+          timeout: 1000,
+        });
       }
     } catch (e) {
-      console.log("scroll failed");
+      console.log("#-#");
     }
   }
   _reportToWorld(world, properties: JsonCommandReport) {
