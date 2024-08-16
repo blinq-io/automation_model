@@ -96,6 +96,7 @@ class Api {
       res: any = null,
       testsPassed = 0;
     const apiFilePath = path.join("./features", "apis", methodName + ".json");
+    let result = null;
     if (existsSync(apiFilePath)) {
       try {
         const apiRequests = JSON.parse(readFileSync(apiFilePath, "utf8"));
@@ -138,7 +139,7 @@ class Api {
         if (testsFailed.length > 0) {
           throw new Error("Tests failed");
         }
-        return res.data;
+        result = res.data;
       } catch (e) {
         error = e;
         throw error;
@@ -166,7 +167,7 @@ class Api {
             mediaType: "application/json",
           });
         }
-        return null;
+        return result;
       }
     }
   }
