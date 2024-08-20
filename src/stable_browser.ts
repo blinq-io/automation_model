@@ -523,7 +523,7 @@ class StableBrowser {
   }
   async _locate(selectors, info, _params?: Params, timeout = 30000) {
     for (let i = 0; i < 3; i++) {
-      info.log += "attempt " + i + ": totoal locators " + selectors.locators.length + "\n";
+      info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
       for (let j = 0; j < selectors.locators.length; j++) {
         let selector = selectors.locators[j];
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
@@ -2586,11 +2586,11 @@ class StableBrowser {
       await Promise.all(promiseArray);
     } catch (e) {
       if (e.label === "networkidle") {
-        console.log("waitted for the network to be idle timeout");
+        console.log("waited for the network to be idle timeout");
       } else if (e.label === "load") {
-        console.log("waitted for the load timeout");
+        console.log("waited for the load timeout");
       } else if (e.label === "domcontentloaded") {
-        console.log("waitted for the domcontent loaded timeout");
+        console.log("waited for the domcontent loaded timeout");
       }
       console.log(".");
     } finally {
@@ -2727,13 +2727,17 @@ class StableBrowser {
   }
   async scrollIfNeeded(element, info) {
     try {
-      await element.scrollIntoViewIfNeeded();
+      await element.scrollIntoViewIfNeeded({
+        timeout: 2000,
+      });
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (info) {
-        info.box = await element.boundingBox();
+        info.box = await element.boundingBox({
+          timeout: 1000,
+        });
       }
     } catch (e) {
-      console.log("scroll failed");
+      console.log("#-#");
     }
   }
   _reportToWorld(world, properties: JsonCommandReport) {
