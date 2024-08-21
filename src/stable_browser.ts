@@ -16,6 +16,7 @@ import objectPath from "object-path";
 import { decrypt } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
+import readline from "readline";
 type Params = Record<string, string>;
 
 const Types = {
@@ -1544,6 +1545,26 @@ class StableBrowser {
       dataFile = "data.json";
     }
     return dataFile;
+  }
+  async waitForUserInput(message, world = null) {
+    if (!message) {
+      message = "Press any key to continue";
+    }
+    message += "\n";
+    const value = await new Promise((resolve) => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      rl.question(message, (answer) => {
+        rl.close();
+        resolve(answer);
+      });
+    });
+    if (value) {
+      this.logger.info(`{{userInput}} was set to: ${value}`);
+    }
+    this.setTestData({ userInput: value }, world);
   }
   setTestData(testData, world = null) {
     if (!testData) {
