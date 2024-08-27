@@ -1566,7 +1566,9 @@ class StableBrowser {
   }
   async waitForUserInput(message, world = null) {
     if (!message) {
-      message = "Press any key to continue";
+      message = "# Wait for user input. Press any key to continue";
+    } else {
+      message = "# Wait for user input. " + message;
     }
     message += "\n";
     const value = await new Promise((resolve) => {
