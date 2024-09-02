@@ -131,7 +131,7 @@ class Browser {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials","--disable-web-security"],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials","--disable-web-security", "--user-data-dir=/tmp/temporary-chrome-profile-dir"],
         });
       }
 
