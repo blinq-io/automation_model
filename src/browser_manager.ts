@@ -165,7 +165,7 @@ class Browser {
             "--disable-site-isolation-trials",
           ],
         });
-        pages = await this.context!.pages();
+        pages = this.context!.pages();
       }
 
       let contextOptions = {} as BrowserContextOptions;
