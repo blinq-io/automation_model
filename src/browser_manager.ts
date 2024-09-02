@@ -77,7 +77,7 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--disable-site-isolation-trials"],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--disable-site-isolation-trials","--disable-web-security"],
       });
       // this.browser = await chromium.connectOverCDP({
       //   endpointURL: `http://localhost:${cdpPort}`,
@@ -110,27 +110,28 @@ class Browser {
           "--load-extension=" + extensionPath,
           "--no-incognito",
           "--ignore-certificate-errors", 
-          "--disable-site-isolation-trials"
+          "--disable-site-isolation-trials",
+          "--disable-web-security"
         ],
       });
     } else {
       if (process.env.BROWSER === "firefox") {
         this.browser = await firefox.launch({
           headless: headless,
-          timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials"],
+        timeout: 0,
+          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials","--disable-web-security"],
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials"],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials","--disable-web-security"],
         });
       } else {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials"],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors", "--disable-site-isolation-trials","--disable-web-security"],
         });
       }
 
