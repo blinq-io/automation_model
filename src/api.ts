@@ -84,12 +84,7 @@ class Api {
   public async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
     return await this.axiosClientRequest<T>(config);
   }
-  async requestWithAuth(
-    methodName: string,
-    world: any,
-    token: string,
-    params: any
-  ) {
+  async requestWithAuth(methodName: string, world: any, token: string, params: any) {
     const startTime = Date.now();
     let error = null,
       tests: any = {},
@@ -162,6 +157,9 @@ class Api {
               },
           info: { tests, testsPassed, headers: res.headers },
         };
+        if (error) {
+          throw error;
+        }
         if (world && world.attach) {
           world.attach(JSON.stringify(properties), {
             mediaType: "application/json",
