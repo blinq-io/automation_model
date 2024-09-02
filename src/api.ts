@@ -157,13 +157,14 @@ class Api {
               },
           info: { tests, testsPassed, headers: res.headers },
         };
-        if (error) {
-          throw error;
-        }
         if (world && world.attach) {
           world.attach(JSON.stringify(properties), {
             mediaType: "application/json",
           });
+        }
+
+        if (error) {
+          throw error;
         }
         return result;
       }
