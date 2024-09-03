@@ -6,7 +6,8 @@
   "type": "module",
   "types": "lib/index.d.ts",
   "directories": {
-    "lib": "lib"
+    "lib": "lib",
+    "patches": "patches"
   },
   "scripts": {
     "compile": "tsc",
