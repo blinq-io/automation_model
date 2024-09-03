@@ -96,6 +96,9 @@ const closeContext = async () => {
   try {
     if (context && context.browser) {
       await browserManager.closeBrowser(context.browser);
+    } else if (context && context.playContext) {
+      await context.playContext.close();
+      await browserManager.closeAll();
     }
   } catch (e) {
     // eslint-disable-next-line no-console
