@@ -124,10 +124,6 @@ class Api {
           } else if (value == test.value) {
             test.fail = false;
           }
-          if (test.fail) {
-            test.newValue = value;
-            throw new Error("Test failed");
-          }
         });
         const testsFailed = tests.filter((test: any) => test.fail);
         testsPassed = tests.length - testsFailed.length;
@@ -164,6 +160,13 @@ class Api {
           world.attach(JSON.stringify(properties), {
             mediaType: "application/json",
           });
+        }
+
+        if (error) {
+          //@ts-ignore
+          const err = new Error(error.message);
+          err.stack = "";
+          throw err;
         }
         return result;
       }
