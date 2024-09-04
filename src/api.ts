@@ -84,12 +84,7 @@ class Api {
   public async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
     return await this.axiosClientRequest<T>(config);
   }
-  async requestWithAuth(
-    methodName: string,
-    world: any,
-    token: string,
-    params: any
-  ) {
+  async requestWithAuth(methodName: string, world: any, token: string, params: any) {
     const startTime = Date.now();
     let error = null,
       tests: any = {},
@@ -129,10 +124,6 @@ class Api {
           } else if (value == test.value) {
             test.fail = false;
           }
-          if (test.fail) {
-            test.newValue = value;
-            throw new Error("Test failed");
-          }
         });
         const testsFailed = tests.filter((test: any) => test.fail);
         testsPassed = tests.length - testsFailed.length;
@@ -162,10 +153,20 @@ class Api {
               },
           info: { tests, testsPassed, headers: res.headers },
         };
+        if (error) {
+          throw error;
+        }
         if (world && world.attach) {
           world.attach(JSON.stringify(properties), {
             mediaType: "application/json",
           });
+        }
+
+        if (error) {
+          //@ts-ignore
+          const err = new Error(error.message);
+          err.stack = "";
+          throw err;
         }
         return result;
       }

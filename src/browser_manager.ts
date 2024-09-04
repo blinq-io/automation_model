@@ -71,7 +71,6 @@ class Browser {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     }
-
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
@@ -142,9 +141,12 @@ class Browser {
       if (viewport) {
         contextOptions.viewport = viewport;
       }
-      this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+
+      if (!this.context && this.browser) {
+        this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+      }
     }
-    // }
+
     this.page = await this.context!.newPage();
   }
 
