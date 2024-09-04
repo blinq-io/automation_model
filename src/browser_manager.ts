@@ -71,21 +71,12 @@ class Browser {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     }
-    let pages: Page[] = [];
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: [
-          "--ignore-https-errors",
-          "--no-incognito",
-          "--ignore-certificate-errors",
-          "--disable-web-security",
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-site-isolation-trials",
-        ],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors"],
       });
       // this.browser = await chromium.connectOverCDP({
       //   endpointURL: `http://localhost:${cdpPort}`,
@@ -118,10 +109,6 @@ class Browser {
           "--load-extension=" + extensionPath,
           "--no-incognito",
           "--ignore-certificate-errors",
-          "--disable-web-security",
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-site-isolation-trials",
         ],
       });
     } else {
@@ -129,43 +116,20 @@ class Browser {
         this.browser = await firefox.launch({
           headless: headless,
           timeout: 0,
-          args: [
-            "--ignore-https-errors",
-            "--ignore-certificate-errors",
-            "--disable-web-security",
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-site-isolation-trials",
-          ],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
-          args: [
-            "--ignore-https-errors",
-            "--ignore-certificate-errors",
-            "--disable-web-security",
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-site-isolation-trials",
-          ],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
         });
       } else {
-        this.context = await chromium.launchPersistentContext("", {
+        this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
-          bypassCSP: true,
-          args: [
-            "--ignore-https-errors",
-            "--ignore-certificate-errors",
-            "--disable-web-security",
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-site-isolation-trials",
-          ],
+          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
         });
-        pages = this.context!.pages();
       }
 
       let contextOptions = {} as BrowserContextOptions;
@@ -183,7 +147,7 @@ class Browser {
       }
     }
 
-    this.page = pages.length ? pages[0] : await this.context!.newPage();
+    this.page = await this.context!.newPage();
   }
 
   async close() {
