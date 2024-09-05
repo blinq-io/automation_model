@@ -17,6 +17,7 @@ import { decrypt } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
+import { getContext } from "./init_browser.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -46,11 +47,12 @@ const Types = {
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
 };
-
+export const apps = {};
 class StableBrowser {
   project_path = null;
   webLogFile = null;
   configuration = null;
+  appName = "main";
   constructor(
     public browser: Browser,
     public page: Page,
@@ -89,6 +91,9 @@ class StableBrowser {
     context.pages = [this.page];
 
     context.pageLoading = { status: false };
+    this.registerPageEventListeners(context);
+  }
+  registerPageEventListeners(context) {
     context.playContext.on(
       "page",
       async function (page) {
@@ -119,6 +124,33 @@ class StableBrowser {
         context.pageLoading.status = false;
       }.bind(this)
     );
+  }
+
+  async switchApp(appName) {
+    // check if the current app (this.appName) is the same as the new app
+    if (this.appName === appName) {
+      return;
+    }
+    if (!apps[appName]) {
+      let newContext = getContext(null, false, this.logger, appName, false);
+      apps[appName] = {
+        context: newContext,
+        browser: newContext.browser,
+        page: newContext.page,
+      };
+    }
+    const tempContext = {};
+    this._copyContext(this, tempContext);
+    this._copyContext(apps[appName], this);
+    apps[this.appName] = tempContext;
+    this.appName = appName;
+    // fields in this that need to be copied
+    // browser, page, context
+  }
+  _copyContext(from, to) {
+    to.browser = from.browser;
+    to.page = from.page;
+    to.context = from.context;
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
@@ -544,24 +576,24 @@ class StableBrowser {
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
     if (selectors.iframe_src || selectors.frameLocators) {
-      const findFrame = (frame,framescope)=>{
+      const findFrame = (frame, framescope) => {
         for (let i = 0; i < frame.selectors.length; i++) {
-            let frameLocator = frame.selectors[i];
-            if (frameLocator.css) {
-                framescope = framescope.frameLocator(frameLocator.css);
-                break;
-            }
+          let frameLocator = frame.selectors[i];
+          if (frameLocator.css) {
+            framescope = framescope.frameLocator(frameLocator.css);
+            break;
+          }
         }
-        if(frame.children) {
-            return findFrame(frame.children,framescope);
-        } 
+        if (frame.children) {
+          return findFrame(frame.children, framescope);
+        }
         return framescope;
-    }
+      };
       info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators + "\n";
       while (true) {
         let frameFound = false;
-        if(selectors.nestFrmLoc) {
-          scope = findFrame(selectors.nestFrmLoc,scope);
+        if (selectors.nestFrmLoc) {
+          scope = findFrame(selectors.nestFrmLoc, scope);
           frameFound = true;
           break;
         }
