@@ -11,9 +11,21 @@ import { Api } from "./api.js";
 // let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (environment: Environment | null, headless = false, logger?: null) {
+const getContext = async function (
+  environment: Environment | null,
+  headless = false,
+  logger?: null,
+  appName?: string,
+  createStable = true
+) {
   if (environment === null) {
     environment = initEnvironment();
+  }
+  if (appName && !environment.apps && !environment.apps[appName]) {
+    throw new Error(`App ${appName} not found in environment`);
+  }
+  if (appName) {
+    environment = environment.apps[appName];
   }
   const { cookies, origins } = environment;
   if (cookies) {
@@ -40,14 +52,15 @@ const getContext = async function (environment: Environment | null, headless = f
     }
   }
   const storageState = { cookies, origins };
-  let browser = await browserManager.getBrowser(headless, storageState, extensionPath, userDataDirPath);
+  let browser = await browserManager.createBrowser(headless, storageState, extensionPath, userDataDirPath);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
   context.page = browser.page;
   context.environment = environment;
-
-  context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
+  if (createStable) {
+    context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
+  }
   context.api = new Api(logger);
   // await _initCookies(context);
   return context;
