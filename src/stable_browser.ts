@@ -516,6 +516,8 @@ class StableBrowser {
         if (result.foundElements.length > 0) {
           let dialogCloseLocator = result.foundElements[0].locator;
           await dialogCloseLocator.click();
+          // wait for the dialog to close
+          await dialogCloseLocator.waitFor({ state: "hidden" });
           return { rerun: true };
         }
       }
@@ -544,24 +546,24 @@ class StableBrowser {
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
     if (selectors.iframe_src || selectors.frameLocators) {
-      const findFrame = (frame,framescope)=>{
+      const findFrame = (frame, framescope) => {
         for (let i = 0; i < frame.selectors.length; i++) {
-            let frameLocator = frame.selectors[i];
-            if (frameLocator.css) {
-                framescope = framescope.frameLocator(frameLocator.css);
-                break;
-            }
+          let frameLocator = frame.selectors[i];
+          if (frameLocator.css) {
+            framescope = framescope.frameLocator(frameLocator.css);
+            break;
+          }
         }
-        if(frame.children) {
-            return findFrame(frame.children,framescope);
-        } 
+        if (frame.children) {
+          return findFrame(frame.children, framescope);
+        }
         return framescope;
-    }
+      };
       info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators + "\n";
       while (true) {
         let frameFound = false;
-        if(selectors.nestFrmLoc) {
-          scope = findFrame(selectors.nestFrmLoc,scope);
+        if (selectors.nestFrmLoc) {
+          scope = findFrame(selectors.nestFrmLoc, scope);
           frameFound = true;
           break;
         }
