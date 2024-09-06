@@ -16,7 +16,8 @@ const getContext = async function (
   headless = false,
   logger?: null,
   appName?: string,
-  createStable = true
+  createStable = true,
+  stable: StableBrowser | null = null
 ) {
   if (environment === null) {
     environment = initEnvironment();
@@ -60,8 +61,11 @@ const getContext = async function (
   context.environment = environment;
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
+  } else {
+    context.stable = stable;
   }
   context.api = new Api(logger);
+
   // await _initCookies(context);
   return context;
 };

@@ -18,6 +18,7 @@ import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
 import { getContext } from "./init_browser.js";
+import { navigate } from "./auto_page.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -131,8 +132,10 @@ class StableBrowser {
     if (this.appName === appName) {
       return;
     }
+    let navigate = false;
     if (!apps[appName]) {
-      let newContext = getContext(null, false, this.logger, appName, false);
+      let newContext = await getContext(null, false, this.logger, appName, false, this);
+      navigate = true;
       apps[appName] = {
         context: newContext,
         browser: newContext.browser,
@@ -144,8 +147,10 @@ class StableBrowser {
     this._copyContext(apps[appName], this);
     apps[this.appName] = tempContext;
     this.appName = appName;
-    // fields in this that need to be copied
-    // browser, page, context
+    if (navigate) {
+      await this.goto(this.context.environment.baseUrl);
+      await this.waitForPageLoad();
+    }
   }
   _copyContext(from, to) {
     to.browser = from.browser;
