@@ -84,17 +84,16 @@ class StableBrowser {
       this.logger.error("unable to read ai_config.json");
     }
 
-    const logFolder = path.join(this.project_path, "logs", "web");
-
-    this.webLogFile = this.getWebLogFile(logFolder);
-    this.registerConsoleLogListener(page, context, this.webLogFile);
-    this.registerRequestListener();
-    context.pages = [this.page];
-
     context.pageLoading = { status: false };
-    this.registerPageEventListeners(context);
+    context.pages = [this.page];
+    const logFolder = path.join(this.project_path, "logs", "web");
+    this.webLogFile = this.getWebLogFile(logFolder);
+
+    this.registerEventListeners(context);
   }
-  registerPageEventListeners(context) {
+  registerEventListeners(context) {
+    this.registerConsoleLogListener(this.page, context, this.webLogFile);
+    this.registerRequestListener();
     context.playContext.on(
       "page",
       async function (page) {
@@ -132,10 +131,10 @@ class StableBrowser {
     if (this.appName === appName) {
       return;
     }
-    let navigate = false;
+    let newContextCreated = false;
     if (!apps[appName]) {
       let newContext = await getContext(null, false, this.logger, appName, false, this);
-      navigate = true;
+      newContextCreated = true;
       apps[appName] = {
         context: newContext,
         browser: newContext.browser,
@@ -147,7 +146,8 @@ class StableBrowser {
     this._copyContext(apps[appName], this);
     apps[this.appName] = tempContext;
     this.appName = appName;
-    if (navigate) {
+    if (newContextCreated) {
+      this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
       await this.waitForPageLoad();
     }
