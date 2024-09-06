@@ -14,14 +14,12 @@ const elements = {
     locators: [{ css: "#password" }],
   },
 };
-const context = await initContext(path, false, true);
+const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
   info = await context.stable.verifyTextExistInPage("Accepted usernames are:", {});
   console.log(info.log);
   info = await context.stable.click(elements.loginButton, { signin: "Login" });
-  await switchApp("shop");
-
   console.log(info.log);
   //console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
