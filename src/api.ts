@@ -151,7 +151,14 @@ class Api {
                 startTime,
                 endTime,
               },
-          info: { tests, testsPassed, headers: res.headers },
+          info: {
+            tests,
+            testsPassed,
+            headers: res.headers,
+            status: res.status,
+            data: res.data,
+            statusText: res.statusText,
+          },
         };
         if (world && world.attach) {
           world.attach(JSON.stringify(properties), {
