@@ -17,6 +17,7 @@ import { decrypt } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
+import { log } from "console";
 type Params = Record<string, string>;
 
 const Types = {
@@ -722,185 +723,224 @@ class StableBrowser {
     }
     return result;
   }
-
-  async click(selectors, _params?: Params, options = {}, world = null) {
-    this._validateSelectors(selectors);
-    const startTime = Date.now();
-    if (options && options.context) {
-      selectors.locators[0].text = options.context;
+  async _preCommand(state) {
+    if (!state) {
+      return;
     }
-    const info = {};
-    info.log = "***** click on " + selectors.element_name + " *****\n";
-    info.operation = "click";
-    info.selectors = selectors;
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    try {
-      let element = await this._locate(selectors, info, _params);
-      await this.scrollIfNeeded(element, info);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+    if (state.selectors) {
+      this._validateSelectors(state.selectors);
+    }
+    this.startTime = Date.now();
+    state.info = {};
+    state.info.selectors = state.selectors;
+    state.info.log = state.log ? state.log : "";
+    state.info.operation = state.operation;
+    state.error = null;
+    state.screenshotId = null;
+    state.screenshotPath = null;
+    if (state.locate === true) {
+      state.element = await this._locate(state.selectors, state.info, state._params);
+    }
+    if (state.scroll === true) {
+      await this.scrollIfNeeded(state.element, state.info);
+    }
+    if (state.screenshot === true) {
+      const { screenshotId, screenshotPath } = await this._screenShot(state.options, state.world, state.info);
+      state.screenshotId = screenshotId;
+      state.screenshotPath = screenshotPath;
+    }
+    if (state.highlight === true) {
       try {
-        await this._highlightElements(element);
-        await element.click();
+        await this._highlightElements(state.element);
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+  async _commandError(state, error) {
+    this.logger.error(state.text + " failed " + state.info.log);
+    const { screenshotId, screenshotPath } = await this._screenShot(state.options, state.world, state.info);
+    state.screenshotId = screenshotId;
+    state.screenshotPath = screenshotPath;
+    state.info.screenshotPath = screenshotPath;
+    Object.assign(error, { info: state.info });
+    state.error = error;
+    throw error;
+  }
+  _commandFinally(state) {
+    state.endTime = Date.now();
+    this._reportToWorld(state.world, {
+      element_name: state.selectors.element_name,
+      type: state.type,
+      text: state.text,
+      screenshotId: state.screenshotId,
+      result: state.error
+        ? {
+            status: "FAILED",
+            startTime: state.startTime,
+            endTime: state.endTime,
+            message: state.error?.message,
+          }
+        : {
+            status: "PASSED",
+            startTime: state.startTime,
+            endTime: state.endTime,
+          },
+      info: state.info,
+    });
+  }
+  async click(selectors, _params?: Params, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      options,
+      world,
+      locate: true,
+      scroll: true,
+      screenshot: true,
+      highlight: true,
+      text: "Click element",
+      type: Types.CLICK,
+      operation: "click",
+      log: "***** click on " + selectors.element_name + " *****\n",
+    };
+    try {
+      this._preCommand(state);
+      if (state.options && state.options.context) {
+        state.selectors.locators[0].text = state.options.context;
+      }
+
+      try {
+        await state.element.click();
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         // await this.closeUnexpectedPopups();
-        info.log += "click failed, will try again" + "\n";
-        element = await this._locate(selectors, info, _params);
-        await element.dispatchEvent("click");
+        state.element = await this._locate(selectors, state.info, _params);
+        await state.element.dispatchEvent("click");
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
-      return info;
+      return state.info;
     } catch (e) {
-      this.logger.error("click failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      throw e;
+      await this._commandError(state, e);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.CLICK,
-        text: `Click element`,
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      this._commandFinally(state);
     }
   }
   async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
-    this._validateSelectors(selectors);
-    const startTime = Date.now();
-    const info = {};
-    info.log = "";
-    info.operation = "setCheck";
-    info.checked = checked;
-    info.selectors = selectors;
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    try {
-      let element = await this._locate(selectors, info, _params);
+    const state = {
+      selectors,
+      _params,
+      options,
+      world,
+      locate: true,
+      scroll: true,
+      screenshot: true,
+      highlight: true,
+      text: checked ? "Check element" : "Uncheck element",
+      type: checked ? Types.CHECK : Types.UNCHECK,
+      operation: "setCheck",
+      log: "***** " + (checked ? "check" : "uncheck") + " on " + selectors.element_name + " *****\n",
+    };
 
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+    state.info.checked = checked;
+    try {
+      await this._preCommand(state);
       try {
-        await this._highlightElements(element);
-        await element.setChecked(checked);
+        await state.element.setChecked(checked);
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         if (e.message && e.message.includes("did not change its state")) {
           this.logger.info("element did not change its state, ignoring...");
         } else {
           //await this.closeUnexpectedPopups();
-          info.log += "setCheck failed, will try again" + "\n";
-          element = await this._locate(selectors, info, _params);
-          await element.setChecked(checked, { timeout: 5000, force: true });
+          state.info.log += "setCheck failed, will try again" + "\n";
+          state.element = await this._locate(selectors, state.info, _params);
+          await state.element.setChecked(checked, { timeout: 5000, force: true });
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
       await this.waitForPageLoad();
-      return info;
+      return state.info;
     } catch (e) {
-      this.logger.error("setCheck failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      throw e;
+      await this._commandError(state, e);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: checked ? Types.CHECK : Types.UNCHECK,
-        text: checked ? `Check element` : `Uncheck element`,
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      this._commandFinally(state);
     }
   }
 
   async hover(selectors, _params?: Params, options = {}, world = null) {
-    this._validateSelectors(selectors);
-    const startTime = Date.now();
-    const info = {};
-    info.log = "";
-    info.operation = "hover";
-    info.selectors = selectors;
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
+    const state = {
+      selectors,
+      _params,
+      options,
+      world,
+      locate: true,
+      scroll: false,
+      screenshot: true,
+      highlight: true,
+      text: "Hover element",
+      type: Types.HOVER,
+      operation: "hover",
+      log: "***** hover on " + selectors.element_name + " *****\n",
+    };
+    // this._validateSelectors(selectors);
+    // const startTime = Date.now();
+    // const info = {};
+    // info.log = "";
+    // info.operation = "hover";
+    // info.selectors = selectors;
+    // let error = null;
+    // let screenshotId = null;
+    // let screenshotPath = null;
     try {
-      let element = await this._locate(selectors, info, _params);
+      await this._preCommand(state);
+      //let element = await this._locate(selectors, info, _params);
 
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      //({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
-        await this._highlightElements(element);
-        await element.hover();
+        //await this._highlightElements(element);
+        await state.element.hover();
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         //await this.closeUnexpectedPopups();
-        info.log += "hover failed, will try again" + "\n";
-        element = await this._locate(selectors, info, _params);
-        await element.hover({ timeout: 10000 });
+        state.info.log += "hover failed, will try again" + "\n";
+        state.element = await this._locate(selectors, state.info, _params);
+        await state.element.hover({ timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
-      return info;
+      return state.info;
     } catch (e) {
-      this.logger.error("hover failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      throw e;
+      // this.logger.error("hover failed " + info.log);
+      // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      // info.screenshotPath = screenshotPath;
+      // Object.assign(e, { info: info });
+      // error = e;
+      // throw e;
+      await this._commandError(state, e);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.HOVER,
-        text: `Hover element`,
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      // const endTime = Date.now();
+      // this._reportToWorld(world, {
+      //   element_name: selectors.element_name,
+      //   type: Types.HOVER,
+      //   text: `Hover element`,
+      //   screenshotId,
+      //   result: error
+      //     ? {
+      //         status: "FAILED",
+      //         startTime,
+      //         endTime,
+      //         message: error?.message,
+      //       }
+      //     : {
+      //         status: "PASSED",
+      //         startTime,
+      //         endTime,
+      //       },
+      //   info: info,
+      // });
+      this._commandFinally(state);
     }
   }
 
