@@ -17,6 +17,8 @@ import { decrypt } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
+import { getContext } from "./init_browser.js";
+import { navigate } from "./auto_page.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -46,11 +48,12 @@ const Types = {
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
 };
-
+export const apps = {};
 class StableBrowser {
   project_path = null;
   webLogFile = null;
   configuration = null;
+  appName = "main";
   constructor(
     public browser: Browser,
     public page: Page,
@@ -89,6 +92,9 @@ class StableBrowser {
     context.pages = [this.page];
 
     context.pageLoading = { status: false };
+    this.registerPageEventListeners(context);
+  }
+  registerPageEventListeners(context) {
     context.playContext.on(
       "page",
       async function (page) {
@@ -119,6 +125,37 @@ class StableBrowser {
         context.pageLoading.status = false;
       }.bind(this)
     );
+  }
+
+  async switchApp(appName) {
+    // check if the current app (this.appName) is the same as the new app
+    if (this.appName === appName) {
+      return;
+    }
+    let navigate = false;
+    if (!apps[appName]) {
+      let newContext = await getContext(null, false, this.logger, appName, false, this);
+      navigate = true;
+      apps[appName] = {
+        context: newContext,
+        browser: newContext.browser,
+        page: newContext.page,
+      };
+    }
+    const tempContext = {};
+    this._copyContext(this, tempContext);
+    this._copyContext(apps[appName], this);
+    apps[this.appName] = tempContext;
+    this.appName = appName;
+    if (navigate) {
+      await this.goto(this.context.environment.baseUrl);
+      await this.waitForPageLoad();
+    }
+  }
+  _copyContext(from, to) {
+    to.browser = from.browser;
+    to.page = from.page;
+    to.context = from.context;
   }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {

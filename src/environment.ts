@@ -19,6 +19,7 @@ class Environment {
   setBaseUrl(url: string) {
     this.baseUrl = url;
   }
+  apps: { [key: string]: Environment } = {};
 }
 export { Environment };
 export type { Cookie, LocalStorage };
