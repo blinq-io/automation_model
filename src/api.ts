@@ -104,9 +104,6 @@ class Api {
           };
         }
         res = await this.axiosClientRequest(JSON.parse(apiRequests.config));
-        if (res.status != 200) {
-          throw new Error("Request failed with status code " + res.status);
-        }
         tests = apiRequests.tests;
         tests?.forEach((test: any) => {
           test.fail = true;
@@ -125,6 +122,9 @@ class Api {
             test.fail = false;
           }
         });
+        if (res.status != 200) {
+          throw new Error("Request failed with status code " + res.status);
+        }
         const testsFailed = tests.filter((test: any) => test.fail);
         testsPassed = tests.length - testsFailed.length;
         if (testsFailed.length > 0) {
@@ -151,11 +151,15 @@ class Api {
                 startTime,
                 endTime,
               },
-          info: { tests, testsPassed, headers: res.headers },
+          info: {
+            tests,
+            testsPassed,
+            headers: res.headers,
+            status: res.status,
+            data: res.data,
+            statusText: res.statusText,
+          },
         };
-        if (error) {
-          throw error;
-        }
         if (world && world.attach) {
           world.attach(JSON.stringify(properties), {
             mediaType: "application/json",
