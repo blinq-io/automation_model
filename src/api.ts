@@ -121,6 +121,7 @@ class Api {
           } else if (value == test.value) {
             test.fail = false;
           }
+          test.receivedValue = value;
         });
         if (res.status != 200) {
           throw new Error("Request failed with status code " + res.status);
