@@ -1001,6 +1001,7 @@ class StableBrowser {
       });
     }
   }
+
   async type(_value, _params = null, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -1220,6 +1221,7 @@ class StableBrowser {
   }
 
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
+    _value = unEscapeString(_value);
     this._validateSelectors(selectors);
     const startTime = Date.now();
     let error = null;
@@ -1332,7 +1334,7 @@ class StableBrowser {
   }
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
-
+    value = unEscapeString(value);
     const startTime = Date.now();
     let error = null;
     let screenshotId = null;
@@ -1506,6 +1508,7 @@ class StableBrowser {
 
   async containsText(selectors, text, climb, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
+    text = unEscapeString(text);
     if (!text) {
       throw new Error("text is null");
     }
@@ -2195,6 +2198,7 @@ class StableBrowser {
     }
   }
   async verifyTextExistInPage(text, options = {}, world = null) {
+    text = unEscapeString(text);
     const startTime = Date.now();
     const timeout = this._getLoadTimeout(options);
     let error = null;
@@ -3000,4 +3004,9 @@ const KEYBOARD_EVENTS = [
   "TVAntennaCable",
   "TVAudioDescription",
 ];
+function unEscapeString(str: string) {
+  const placeholder = "__NEWLINE__";
+  str = str.replace(new RegExp(placeholder, "g"), "\n");
+  return str;
+}
 export { StableBrowser };
