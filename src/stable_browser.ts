@@ -52,6 +52,7 @@ export const apps = {};
 class StableBrowser {
   project_path = null;
   webLogFile = null;
+  networkLogger =null;
   configuration = null;
   appName = "main";
   constructor(
@@ -93,7 +94,7 @@ class StableBrowser {
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context, this.webLogFile);
-    this.registerRequestListener();
+    this.registerRequestListener(this.page, context, this.webLogFile);
     context.playContext.on(
       "page",
       async function (page) {
@@ -182,22 +183,40 @@ class StableBrowser {
       await fs.promises.writeFile(logFile, JSON.stringify(this.context.webLogger, null, 2));
     });
   }
-  registerRequestListener() {
-    this.page.on("request", async (data) => {
+
+  registerRequestListener(page: Page, context: any, logFile: string) {
+    if (!this.context.networkLogger) {
+      this.context.networkLogger = [];
+    }
+    page.on("request", async (data) => {
       try {
-        const pageUrl = new URL(this.page.url());
+        const pageUrl = new URL(page.url());
         const requestUrl = new URL(data.url());
         if (pageUrl.hostname === requestUrl.hostname) {
           const method = data.method();
-          if (method === "POST" || method === "GET" || method === "PUT" || method === "DELETE" || method === "PATCH") {
+          if (["POST", "GET", "PUT", "DELETE", "PATCH"].includes(method)) {
             const token = await data.headerValue("Authorization");
             if (token) {
-              this.context.authtoken = token;
+              context.authtoken = token;
             }
           }
         }
+        context.networkLogger.push({
+          url: data.url(),
+          method: data.method(),
+          headers: data.headers(),
+          postData: data.postData()
+        });
+        await fs.promises.writeFile(logFile, JSON.stringify(context.networkLogger, null, 2));
       } catch (error) {
         console.error("Error in request listener", error);
+        context.networkLogger.push({
+          error: "not able to listen",
+          message: error.message,
+          stack: error.stack,
+          time: new Date().toISOString()
+        });
+        await fs.promises.writeFile(logFile, JSON.stringify(context.networkLogger, null, 2));
       }
     });
   }
