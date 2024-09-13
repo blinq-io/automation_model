@@ -39,7 +39,7 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
   if (world && world.context) {
     return world.context;
   }
-  context = await getContext(null, headless);
+  context = await getContext(null, headless, world);
   if (world) {
     world.context = context;
     world.screenshot = true;

@@ -59,7 +59,8 @@ class StableBrowser {
     public browser: Browser,
     public page: Page,
     public logger: any = null,
-    public context: any = null
+    public context: any = null,
+    public world?: any = null
   ) {
     if (!this.logger) {
       this.logger = console;
@@ -86,11 +87,12 @@ class StableBrowser {
     }
 
     const logFolder = path.join(this.project_path, "logs", "web");
+    this.world = world;
 
     this.registerEventListeners(context);
   }
   registerEventListeners(context) {
-    this.registerConsoleLogListener(this.page, context, this.webLogFile);
+    this.registerConsoleLogListener(this.page, context);
     this.registerRequestListener(this.page, context, this.webLogFile);
     context.playContext.on(
       "page",
@@ -165,18 +167,19 @@ class StableBrowser {
     const fileName = nextIndex + ".json";
     return path.join(logFolder, fileName);
   }
-  registerConsoleLogListener(page: Page, context: any, logFile: string) {
+  registerConsoleLogListener(page: Page, context: any) {
     if (!this.context.webLogger) {
       this.context.webLogger = [];
     }
     page.on("console", async (msg) => {
-      this.context.webLogger.push({
+      const obj = {
         type: msg.type(),
         text: msg.text(),
         location: msg.location(),
         time: new Date().toISOString(),
-      });
-      await fs.promises.writeFile(logFile, JSON.stringify(this.context.webLogger, null, 2));
+      };
+      this.context.webLogger.push(obj);
+      this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+log" });
     });
   }
 
@@ -185,6 +188,7 @@ class StableBrowser {
       this.context.networkLogger = [];
     }
     page.on("request", async (data) => {
+      const startTime = new Date().getTime();
       try {
         const pageUrl = new URL(page.url());
         const requestUrl = new URL(data.url());
@@ -197,13 +201,19 @@ class StableBrowser {
             }
           }
         }
-        context.networkLogger.push({
+        const response = await data.response();
+        const endTime = new Date().getTime();
+
+        const obj = {
           url: data.url(),
           method: data.method(),
-          headers: data.headers(),
           postData: data.postData(),
-        });
-        await fs.promises.writeFile(logFile, JSON.stringify(context.networkLogger, null, 2));
+          error: data.failure() ? data.failure().errorText : null,
+          duration: endTime - startTime,
+          startTime,
+        };
+        context.networkLogger.push(obj);
+        this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+network" });
       } catch (error) {
         console.error("Error in request listener", error);
         context.networkLogger.push({
@@ -212,7 +222,7 @@ class StableBrowser {
           stack: error.stack,
           time: new Date().toISOString(),
         });
-        await fs.promises.writeFile(logFile, JSON.stringify(context.networkLogger, null, 2));
+        // await fs.promises.writeFile(logFile, JSON.stringify(context.networkLogger, null, 2));
       }
     });
   }
