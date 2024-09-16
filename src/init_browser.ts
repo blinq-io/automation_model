@@ -14,6 +14,7 @@ import { Api } from "./api.js";
 const getContext = async function (
   environment: Environment | null,
   headless = false,
+  world: any,
   logger?: null,
   appName?: string,
   createStable = true,
@@ -60,7 +61,7 @@ const getContext = async function (
   context.page = browser.page;
   context.environment = environment;
   if (createStable) {
-    context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
+    context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
   } else {
     context.stable = stable;
   }
