@@ -91,7 +91,7 @@ class StableBrowser {
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
 
-    this.registerEventListeners(context);
+    this.registerEventListeners(this.context);
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
