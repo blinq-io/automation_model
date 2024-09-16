@@ -88,6 +88,8 @@ class StableBrowser {
 
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
+    context.pages = [this.page];
+    context.pageLoading = { status: false };
 
     this.registerEventListeners(this.context);
   }
