@@ -54,6 +54,7 @@ class Browser {
   browser: PlaywrightBrowser | null;
   context: BrowserContext | null;
   page: Page | null;
+  headless: boolean = false;
   constructor() {
     this.browser = null;
     this.context = null;
@@ -61,6 +62,7 @@ class Browser {
   }
 
   async init(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+    this.headless = headless;
     let viewport = null;
     if (process.env.HEADLESS === "true") {
       headless = true;

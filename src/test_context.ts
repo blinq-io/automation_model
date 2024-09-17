@@ -12,6 +12,7 @@ class TestContext {
   reportFolder: string | null = null;
   api: Api | null = null;
   navigate = false;
+  headless = false;
   constructor() {}
 }
 export { TestContext };

@@ -59,6 +59,7 @@ const getContext = async function (
   context.browser = browser.browser;
   context.playContext = browser.context;
   context.page = browser.page;
+  context.headless = headless;
   context.environment = environment;
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
