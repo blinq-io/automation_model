@@ -2,11 +2,10 @@
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
-
+import { Jimp } from "jimp";
 import path from "path";
 import type { Browser, Page } from "playwright";
 import reg_parser from "regex-parser";
-import sharp from "sharp";
 import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 import { getDateTimeValue } from "./date_time.js";
 import drawRectangle from "./drawRect.js";
@@ -1878,18 +1877,18 @@ class StableBrowser {
     }
     let screenshotBuffer = Buffer.from(data, "base64");
 
-    const sharpBuffer = sharp(screenshotBuffer);
-    const metadata = await sharpBuffer.metadata();
-    //check if you are on retina display and reduce the quality of the image
-    if (metadata.width > viewportWidth || metadata.height > viewportHeight) {
-      screenshotBuffer = await sharpBuffer
-        .resize(viewportWidth, viewportHeight, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
-        })
-        .toBuffer();
+    let image = await Jimp.read(screenshotBuffer);
+
+    // Get the image dimensions
+
+    const { width, height } = image.bitmap;
+    // Resize the image to fit within the viewport dimensions without enlarging
+    if (width > viewportWidth || height > viewportHeight) {
+      image = image.resize({ w: viewportWidth, h: viewportHeight }); // Resize the image while maintaining aspect ratio
+      await image.write(screenshotPath);
+    } else {
+      fs.writeFileSync(screenshotPath, screenshotBuffer);
     }
-    fs.writeFileSync(screenshotPath, screenshotBuffer);
     await client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
