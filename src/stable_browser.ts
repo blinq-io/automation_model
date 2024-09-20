@@ -617,6 +617,9 @@ class StableBrowser {
           let frameLocator = frame.selectors[i];
           if (frameLocator.css) {
             framescope = framescope.frameLocator(frameLocator.css);
+            if (frameLocator.index) {
+              framescope = framescope.nth(frameLocator.index);
+            }
             break;
           }
         }
