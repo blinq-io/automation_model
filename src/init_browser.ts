@@ -16,9 +16,10 @@ const getContext = async function (
   headless = false,
   world: any,
   logger?: null,
-  appName?: string,
+  appName?: string | null,
   createStable = true,
-  stable: StableBrowser | null = null
+  stable: StableBrowser | null = null,
+  moveToRight = -1
 ) {
   if (environment === null) {
     environment = initEnvironment();
@@ -67,6 +68,31 @@ const getContext = async function (
     context.stable = stable;
   }
   context.api = new Api(logger);
+  if (moveToRight > 0) {
+    // move the borwser to the top right corner of the screen
+    // create a cdp session
+    // Get CDP session
+    const playContext: any = context.playContext;
+    const client = await playContext.newCDPSession(context.page);
+
+    // Get window ID for the current target
+    const { windowId } = await client.send("Browser.getWindowForTarget");
+    console.log(windowId);
+
+    // get the window for the current target
+    const window = await client.send("Browser.getWindowBounds", {
+      windowId,
+    });
+    console.log(window);
+    await client.send("Browser.setWindowBounds", {
+      windowId,
+      bounds: {
+        left: window.bounds.left + moveToRight,
+      },
+    });
+    // close cdp
+    await client.detach();
+  }
 
   // await _initCookies(context);
   return context;
