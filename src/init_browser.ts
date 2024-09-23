@@ -11,9 +11,24 @@ import { Api } from "./api.js";
 // let environment = null;
 
 // init browser create context and page, if context and page are not null
-const getContext = async function (environment: Environment | null, headless = false, logger?: null) {
+const getContext = async function (
+  environment: Environment | null,
+  headless = false,
+  world: any,
+  logger?: null,
+  appName?: string | null,
+  createStable = true,
+  stable: StableBrowser | null = null,
+  moveToRight = -1
+) {
   if (environment === null) {
     environment = initEnvironment();
+  }
+  if (appName && !environment.apps && !environment.apps[appName]) {
+    throw new Error(`App ${appName} not found in environment`);
+  }
+  if (appName) {
+    environment = environment.apps[appName];
   }
   const { cookies, origins } = environment;
   if (cookies) {
@@ -40,15 +55,44 @@ const getContext = async function (environment: Environment | null, headless = f
     }
   }
   const storageState = { cookies, origins };
-  let browser = await browserManager.getBrowser(headless, storageState, extensionPath, userDataDirPath);
+  let browser = await browserManager.createBrowser(headless, storageState, extensionPath, userDataDirPath);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
   context.page = browser.page;
   context.environment = environment;
-
-  context.stable = new StableBrowser(context.browser!, context.page!, logger, context);
+  if (createStable) {
+    context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
+  } else {
+    context.stable = stable;
+  }
   context.api = new Api(logger);
+  if (moveToRight > 0) {
+    // move the borwser to the top right corner of the screen
+    // create a cdp session
+    // Get CDP session
+    const playContext: any = context.playContext;
+    const client = await playContext.newCDPSession(context.page);
+
+    // Get window ID for the current target
+    const { windowId } = await client.send("Browser.getWindowForTarget");
+    console.log(windowId);
+
+    // get the window for the current target
+    const window = await client.send("Browser.getWindowBounds", {
+      windowId,
+    });
+    console.log(window);
+    await client.send("Browser.setWindowBounds", {
+      windowId,
+      bounds: {
+        left: window.bounds.left + moveToRight,
+      },
+    });
+    // close cdp
+    await client.detach();
+  }
+
   // await _initCookies(context);
   return context;
 };

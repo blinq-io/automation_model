@@ -2,11 +2,10 @@
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
-
+import { Jimp } from "jimp";
 import path from "path";
 import type { Browser, Page } from "playwright";
 import reg_parser from "regex-parser";
-import sharp from "sharp";
 import { findDateAlternatives, findNumberAlternatives } from "./analyze_helper.js";
 import { getDateTimeValue } from "./date_time.js";
 import drawRectangle from "./drawRect.js";
@@ -17,6 +16,8 @@ import { decrypt } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
+import { getContext } from "./init_browser.js";
+import { navigate } from "./auto_page.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -46,16 +47,19 @@ const Types = {
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
 };
-
+export const apps = {};
 class StableBrowser {
   project_path = null;
   webLogFile = null;
+  networkLogger = null;
   configuration = null;
+  appName = "main";
   constructor(
     public browser: Browser,
     public page: Page,
     public logger: any = null,
-    public context: any = null
+    public context: any = null,
+    public world?: any = null
   ) {
     if (!this.logger) {
       this.logger = console;
@@ -82,13 +86,18 @@ class StableBrowser {
     }
 
     const logFolder = path.join(this.project_path, "logs", "web");
-
-    this.webLogFile = this.getWebLogFile(logFolder);
-    this.registerConsoleLogListener(page, context, this.webLogFile);
-    this.registerRequestListener();
+    this.world = world;
     context.pages = [this.page];
-
     context.pageLoading = { status: false };
+
+    this.registerEventListeners(this.context);
+  }
+  registerEventListeners(context) {
+    this.registerConsoleLogListener(this.page, context);
+    this.registerRequestListener(this.page, context, this.webLogFile);
+    if (!context.pageLoading) {
+      context.pageLoading = { status: false };
+    }
     context.playContext.on(
       "page",
       async function (page) {
@@ -120,6 +129,37 @@ class StableBrowser {
       }.bind(this)
     );
   }
+
+  async switchApp(appName) {
+    // check if the current app (this.appName) is the same as the new app
+    if (this.appName === appName) {
+      return;
+    }
+    let navigate = false;
+    if (!apps[appName]) {
+      let newContext = await getContext(null, false, this.logger, appName, false, this);
+      navigate = true;
+      apps[appName] = {
+        context: newContext,
+        browser: newContext.browser,
+        page: newContext.page,
+      };
+    }
+    const tempContext = {};
+    this._copyContext(this, tempContext);
+    this._copyContext(apps[appName], this);
+    apps[this.appName] = tempContext;
+    this.appName = appName;
+    if (navigate) {
+      await this.goto(this.context.environment.baseUrl);
+      await this.waitForPageLoad();
+    }
+  }
+  _copyContext(from, to) {
+    to.browser = from.browser;
+    to.page = from.page;
+    to.context = from.context;
+  }
   getWebLogFile(logFolder: string) {
     if (!fs.existsSync(logFolder)) {
       fs.mkdirSync(logFolder, { recursive: true });
@@ -131,36 +171,62 @@ class StableBrowser {
     const fileName = nextIndex + ".json";
     return path.join(logFolder, fileName);
   }
-  registerConsoleLogListener(page: Page, context: any, logFile: string) {
+  registerConsoleLogListener(page: Page, context: any) {
     if (!this.context.webLogger) {
       this.context.webLogger = [];
     }
     page.on("console", async (msg) => {
-      this.context.webLogger.push({
+      const obj = {
         type: msg.type(),
         text: msg.text(),
         location: msg.location(),
         time: new Date().toISOString(),
-      });
-      await fs.promises.writeFile(logFile, JSON.stringify(this.context.webLogger, null, 2));
+      };
+      this.context.webLogger.push(obj);
+      this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+log" });
     });
   }
-  registerRequestListener() {
-    this.page.on("request", async (data) => {
+
+  registerRequestListener(page: Page, context: any, logFile: string) {
+    if (!this.context.networkLogger) {
+      this.context.networkLogger = [];
+    }
+    page.on("request", async (data) => {
+      const startTime = new Date().getTime();
       try {
-        const pageUrl = new URL(this.page.url());
+        const pageUrl = new URL(page.url());
         const requestUrl = new URL(data.url());
         if (pageUrl.hostname === requestUrl.hostname) {
           const method = data.method();
-          if (method === "POST" || method === "GET" || method === "PUT" || method === "DELETE" || method === "PATCH") {
+          if (["POST", "GET", "PUT", "DELETE", "PATCH"].includes(method)) {
             const token = await data.headerValue("Authorization");
             if (token) {
-              this.context.authtoken = token;
+              context.authtoken = token;
             }
           }
         }
+        const response = await data.response();
+        const endTime = new Date().getTime();
+
+        const obj = {
+          url: data.url(),
+          method: data.method(),
+          postData: data.postData(),
+          error: data.failure() ? data.failure().errorText : null,
+          duration: endTime - startTime,
+          startTime,
+        };
+        context.networkLogger.push(obj);
+        this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+network" });
       } catch (error) {
         console.error("Error in request listener", error);
+        context.networkLogger.push({
+          error: "not able to listen",
+          message: error.message,
+          stack: error.stack,
+          time: new Date().toISOString(),
+        });
+        // await fs.promises.writeFile(logFile, JSON.stringify(context.networkLogger, null, 2));
       }
     });
   }
@@ -551,6 +617,9 @@ class StableBrowser {
           let frameLocator = frame.selectors[i];
           if (frameLocator.css) {
             framescope = framescope.frameLocator(frameLocator.css);
+            if (frameLocator.index) {
+              framescope = framescope.nth(frameLocator.index);
+            }
             break;
           }
         }
@@ -1811,18 +1880,18 @@ class StableBrowser {
     }
     let screenshotBuffer = Buffer.from(data, "base64");
 
-    const sharpBuffer = sharp(screenshotBuffer);
-    const metadata = await sharpBuffer.metadata();
-    //check if you are on retina display and reduce the quality of the image
-    if (metadata.width > viewportWidth || metadata.height > viewportHeight) {
-      screenshotBuffer = await sharpBuffer
-        .resize(viewportWidth, viewportHeight, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
-        })
-        .toBuffer();
+    let image = await Jimp.read(screenshotBuffer);
+
+    // Get the image dimensions
+
+    const { width, height } = image.bitmap;
+    // Resize the image to fit within the viewport dimensions without enlarging
+    if (width > viewportWidth || height > viewportHeight) {
+      image = image.resize({ w: viewportWidth, h: viewportHeight }); // Resize the image while maintaining aspect ratio
+      await image.write(screenshotPath);
+    } else {
+      fs.writeFileSync(screenshotPath, screenshotBuffer);
     }
-    fs.writeFileSync(screenshotPath, screenshotBuffer);
     await client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
