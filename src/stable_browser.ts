@@ -345,6 +345,9 @@ class StableBrowser {
     return locatorReturn;
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
+    if (css && css.locator) {
+      css = css.locator;
+    }
     let result = await this._locateElementByText(scope, this._fixUsingParams(text, _params), "*", false, true, _params);
     if (result.elementCount === 0) {
       return;
