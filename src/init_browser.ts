@@ -77,13 +77,13 @@ const getContext = async function (
 
     // Get window ID for the current target
     const { windowId } = await client.send("Browser.getWindowForTarget");
-    console.log(windowId);
+    //console.log(windowId);
 
     // get the window for the current target
     const window = await client.send("Browser.getWindowBounds", {
       windowId,
     });
-    console.log(window);
+    //console.log(window);
     await client.send("Browser.setWindowBounds", {
       windowId,
       bounds: {
