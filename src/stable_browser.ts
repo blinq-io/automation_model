@@ -1870,16 +1870,7 @@ class StableBrowser {
         document.documentElement.clientWidth,
       ]))
     );
-    const viewportHeight = Math.max(
-      ...(await this.page.evaluate(() => [
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.offsetHeight,
-        document.body.clientHeight,
-        document.documentElement.clientHeight,
-      ]))
-    );
+
     const { data } = await client.send("Page.captureScreenshot", {
       format: "png",
       // clip: {
@@ -1900,9 +1891,10 @@ class StableBrowser {
     // Get the image dimensions
 
     const { width, height } = image.bitmap;
+    const resizeRatio = viewportWidth / width;
     // Resize the image to fit within the viewport dimensions without enlarging
-    if (width > viewportWidth || height > viewportHeight) {
-      image = image.resize({ w: viewportWidth, h: viewportHeight }); // Resize the image while maintaining aspect ratio
+    if (width > viewportWidth) {
+      image = image.resize({ w: viewportWidth, h: height * resizeRatio }); // Resize the image while maintaining aspect ratio
       await image.write(screenshotPath);
     } else {
       fs.writeFileSync(screenshotPath, screenshotBuffer);
