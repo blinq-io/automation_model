@@ -13,6 +13,7 @@ class TestContext {
   api: Api | null = null;
   navigate = false;
   headless = false;
+  browserName: string | null = null;
   constructor() {}
 }
 export { TestContext };

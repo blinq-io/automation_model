@@ -62,13 +62,14 @@ const getContext = async function (
   context.page = browser.page;
   context.headless = headless;
   context.environment = environment;
+  context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
   } else {
     context.stable = stable;
   }
   context.api = new Api(logger);
-  if (moveToRight > 0) {
+  if (moveToRight > 0 && context.browserName === "chromium") {
     // move the borwser to the top right corner of the screen
     // create a cdp session
     // Get CDP session
