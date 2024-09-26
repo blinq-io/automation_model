@@ -1846,7 +1846,7 @@ class StableBrowser {
   }
   async takeScreenshot(screenshotPath) {
     const playContext = this.context.playContext;
-    const client = await playContext.newCDPSession(this.page);
+
     // Using CDP to capture the screenshot
     const viewportWidth = Math.max(
       ...(await this.page.evaluate(() => [
@@ -1858,21 +1858,28 @@ class StableBrowser {
         document.documentElement.clientWidth,
       ]))
     );
+    let screenshotBuffer = null;
 
-    const { data } = await client.send("Page.captureScreenshot", {
-      format: "png",
-      // clip: {
-      //   x: 0,
-      //   y: 0,
-      //   width: viewportWidth,
-      //   height: viewportHeight,
-      //   scale: 1,
-      // },
-    });
-    if (!screenshotPath) {
-      return data;
+    if (this.context.browserName === "chromium") {
+      const client = await playContext.newCDPSession(this.page);
+      const { data } = await client.send("Page.captureScreenshot", {
+        format: "png",
+        // clip: {
+        //   x: 0,
+        //   y: 0,
+        //   width: viewportWidth,
+        //   height: viewportHeight,
+        //   scale: 1,
+        // },
+      });
+      await client.detach();
+      if (!screenshotPath) {
+        return data;
+      }
+      screenshotBuffer = Buffer.from(data, "base64");
+    } else {
+      screenshotBuffer = await this.page.screenshot();
     }
-    let screenshotBuffer = Buffer.from(data, "base64");
 
     let image = await Jimp.read(screenshotBuffer);
 
@@ -1887,7 +1894,6 @@ class StableBrowser {
     } else {
       fs.writeFileSync(screenshotPath, screenshotBuffer);
     }
-    await client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
