@@ -376,6 +376,16 @@ class StableBrowser {
           return false;
         }
         document.isParent = isParent;
+        function getRegex(str) {
+          const match = str.match(/^\/(.*?)\/([gimuy]*)$/);
+          if (!match) {
+            return null;
+          }
+
+          let [_, pattern, flags] = match;
+          return new RegExp(pattern, flags);
+        }
+        document.getRegex = getRegex;
         function collectAllShadowDomElements(element, result = []) {
           // Check and add the element if it has a shadow root
           if (element.shadowRoot) {
@@ -396,6 +406,10 @@ class StableBrowser {
         if (!tag) {
           tag = "*";
         }
+        let regexpSearch = document.getRegex(text);
+        if (regexpSearch) {
+          regex = true;
+        }
         let elements = Array.from(document.querySelectorAll(tag));
         let shadowHosts = [];
         document.collectAllShadowDomElements(document, shadowHosts);
@@ -411,7 +425,9 @@ class StableBrowser {
         let randomToken = null;
         const foundElements = [];
         if (regex) {
-          let regexpSearch = new RegExp(text, "im");
+          if (!regexpSearch) {
+            regexpSearch = new RegExp(text, "im");
+          }
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (
