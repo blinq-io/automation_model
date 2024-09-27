@@ -61,13 +61,14 @@ const getContext = async function (
   context.playContext = browser.context;
   context.page = browser.page;
   context.environment = environment;
+  context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
   } else {
     context.stable = stable;
   }
   context.api = new Api(logger);
-  if (moveToRight > 0) {
+  if (moveToRight > 0 && context.browserName === "chromium") {
     // move the borwser to the top right corner of the screen
     // create a cdp session
     // Get CDP session
@@ -76,13 +77,13 @@ const getContext = async function (
 
     // Get window ID for the current target
     const { windowId } = await client.send("Browser.getWindowForTarget");
-    console.log(windowId);
+    //console.log(windowId);
 
     // get the window for the current target
     const window = await client.send("Browser.getWindowBounds", {
       windowId,
     });
-    console.log(window);
+    //console.log(window);
     await client.send("Browser.setWindowBounds", {
       windowId,
       bounds: {

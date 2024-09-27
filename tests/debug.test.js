@@ -111,6 +111,7 @@ const login = async function (username, password) {
   let options = {};
   options.screenshot = true;
   options.screenshotPath = getScreenShotPath();
+  await context.stable.verifyTextExistInPage("/Log\\s+In/mg", {}, null);
   // Fill username field with "username"
   await context.stable.clickType(elements["textbox_username"], username, false, _params, options, null);
   // Fill password field with "password"

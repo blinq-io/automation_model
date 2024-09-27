@@ -345,6 +345,9 @@ class StableBrowser {
     return locatorReturn;
   }
   async _locateElmentByTextClimbCss(scope, text, climb, css, _params: Params) {
+    if (css && css.locator) {
+      css = css.locator;
+    }
     let result = await this._locateElementByText(scope, this._fixUsingParams(text, _params), "*", false, true, _params);
     if (result.elementCount === 0) {
       return;
@@ -373,6 +376,16 @@ class StableBrowser {
           return false;
         }
         document.isParent = isParent;
+        function getRegex(str) {
+          const match = str.match(/^\/(.*?)\/([gimuy]*)$/);
+          if (!match) {
+            return null;
+          }
+
+          let [_, pattern, flags] = match;
+          return new RegExp(pattern, flags);
+        }
+        document.getRegex = getRegex;
         function collectAllShadowDomElements(element, result = []) {
           // Check and add the element if it has a shadow root
           if (element.shadowRoot) {
@@ -393,6 +406,10 @@ class StableBrowser {
         if (!tag) {
           tag = "*";
         }
+        let regexpSearch = document.getRegex(text);
+        if (regexpSearch) {
+          regex = true;
+        }
         let elements = Array.from(document.querySelectorAll(tag));
         let shadowHosts = [];
         document.collectAllShadowDomElements(document, shadowHosts);
@@ -408,7 +425,9 @@ class StableBrowser {
         let randomToken = null;
         const foundElements = [];
         if (regex) {
-          let regexpSearch = new RegExp(text, "im");
+          if (!regexpSearch) {
+            regexpSearch = new RegExp(text, "im");
+          }
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (
@@ -1843,7 +1862,7 @@ class StableBrowser {
   }
   async takeScreenshot(screenshotPath) {
     const playContext = this.context.playContext;
-    const client = await playContext.newCDPSession(this.page);
+
     // Using CDP to capture the screenshot
     const viewportWidth = Math.max(
       ...(await this.page.evaluate(() => [
@@ -1855,44 +1874,42 @@ class StableBrowser {
         document.documentElement.clientWidth,
       ]))
     );
-    const viewportHeight = Math.max(
-      ...(await this.page.evaluate(() => [
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.offsetHeight,
-        document.body.clientHeight,
-        document.documentElement.clientHeight,
-      ]))
-    );
-    const { data } = await client.send("Page.captureScreenshot", {
-      format: "png",
-      // clip: {
-      //   x: 0,
-      //   y: 0,
-      //   width: viewportWidth,
-      //   height: viewportHeight,
-      //   scale: 1,
-      // },
-    });
-    if (!screenshotPath) {
-      return data;
+    let screenshotBuffer = null;
+
+    if (this.context.browserName === "chromium") {
+      const client = await playContext.newCDPSession(this.page);
+      const { data } = await client.send("Page.captureScreenshot", {
+        format: "png",
+        // clip: {
+        //   x: 0,
+        //   y: 0,
+        //   width: viewportWidth,
+        //   height: viewportHeight,
+        //   scale: 1,
+        // },
+      });
+      await client.detach();
+      if (!screenshotPath) {
+        return data;
+      }
+      screenshotBuffer = Buffer.from(data, "base64");
+    } else {
+      screenshotBuffer = await this.page.screenshot();
     }
-    let screenshotBuffer = Buffer.from(data, "base64");
 
     let image = await Jimp.read(screenshotBuffer);
 
     // Get the image dimensions
 
     const { width, height } = image.bitmap;
+    const resizeRatio = viewportWidth / width;
     // Resize the image to fit within the viewport dimensions without enlarging
-    if (width > viewportWidth || height > viewportHeight) {
-      image = image.resize({ w: viewportWidth, h: viewportHeight }); // Resize the image while maintaining aspect ratio
+    if (width > viewportWidth) {
+      image = image.resize({ w: viewportWidth, h: height * resizeRatio }); // Resize the image while maintaining aspect ratio
       await image.write(screenshotPath);
     } else {
       fs.writeFileSync(screenshotPath, screenshotBuffer);
     }
-    await client.detach();
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     this._validateSelectors(selectors);
