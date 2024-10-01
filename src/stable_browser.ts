@@ -443,8 +443,8 @@ class StableBrowser {
             const element = elements[i];
             if (partial) {
               if (
-                (element.innerText && element.innerText.trim().includes(text)) ||
-                (element.value && element.value.includes(text))
+                (element.innerText && element.innerText.toLowerCase().trim().includes(text.toLowerCase())) ||
+                (element.value && element.value.toLowerCase().includes(text.toLowerCase()))
               ) {
                 foundElements.push(element);
               }
