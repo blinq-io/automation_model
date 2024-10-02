@@ -1290,7 +1290,7 @@ class StableBrowser {
       let element = await this._locate(selectors, info, _params);
       //insert red border around the element
       await this.scrollIfNeeded(element, info);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+
       await this._highlightElements(element);
       if (options === null || options === undefined || !options.press) {
         try {
@@ -1335,6 +1335,7 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
