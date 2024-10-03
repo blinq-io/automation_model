@@ -823,7 +823,7 @@ class StableBrowser {
     }
     return result;
   }
-
+  async simpleClick(elementDescription, _params?: Params, options = {}, world = null) {}
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
