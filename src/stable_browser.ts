@@ -640,19 +640,27 @@ class StableBrowser {
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
     if (selectors.iframe_src || selectors.frameLocators) {
-      const findFrame = (frame, framescope) => {
+      const findFrame = async (frame, framescope) => {
         for (let i = 0; i < frame.selectors.length; i++) {
           let frameLocator = frame.selectors[i];
           if (frameLocator.css) {
-            framescope = framescope.frameLocator(frameLocator.css);
+            let testframescope = framescope.frameLocator(frameLocator.css);
             if (frameLocator.index) {
-              framescope = framescope.nth(frameLocator.index);
+              testframescope = framescope.nth(frameLocator.index);
             }
-            break;
+            try {
+              await testframescope.owner().evaluateHandle(() => true, null, {
+                timeout: 5000,
+              });
+              framescope = testframescope;
+              break;
+            } catch (error) {
+              console.error("frame not found " + frameLocator.css);
+            }
           }
         }
         if (frame.children) {
-          return findFrame(frame.children, framescope);
+          return await findFrame(frame.children, framescope);
         }
         return framescope;
       };
@@ -660,7 +668,7 @@ class StableBrowser {
       while (true) {
         let frameFound = false;
         if (selectors.nestFrmLoc) {
-          scope = findFrame(selectors.nestFrmLoc, scope);
+          scope = await findFrame(selectors.nestFrmLoc, scope);
           frameFound = true;
           break;
         }
