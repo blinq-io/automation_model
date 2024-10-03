@@ -3,6 +3,7 @@ import { getContext } from "./init_browser.js";
 import fs from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
+import { locate_element } from "./locat_element.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
@@ -18,6 +19,7 @@ const navigate = async (path = "") => {
   await context!.stable!.goto(url);
   context!.navigate = true;
   await context!.stable!.waitForPageLoad();
+  await locate_element(context, "body");
 };
 const _findEmptyFolder = (folder?: string) => {
   if (!folder) {
