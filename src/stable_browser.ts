@@ -511,6 +511,11 @@ class StableBrowser {
     visibleOnly = true
   ) {
     let locatorSearch = selectorHierarchy[index];
+    try {
+      locatorSearch = JSON.parse(this._fixUsingParams(JSON.stringify(locatorSearch), _params));
+    } catch (e) {
+      console.error(e);
+    }
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
