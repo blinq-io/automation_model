@@ -19,8 +19,6 @@ const navigate = async (path = "") => {
   await context!.stable!.goto(url);
   context!.navigate = true;
   await context!.stable!.waitForPageLoad();
-  let dump = await locate_element(context, "body");
-  console.log(JSON.stringify(dump, null, 2));
 };
 const _findEmptyFolder = (folder?: string) => {
   if (!folder) {

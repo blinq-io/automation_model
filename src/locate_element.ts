@@ -7,7 +7,12 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export async function locate_element(context: any, elementDescription: string) {
+export async function locate_element(
+  context: any,
+  elementDescription: string,
+  operation = "click",
+  value: string | null = null
+) {
   // load the axe-core library to all of the frames in the page
   // read the axe-core library from the file system placed in the same folder as the script file, name axe.mini.js
   // Construct the path to axe.min.js relative to the current file
@@ -24,6 +29,7 @@ export async function locate_element(context: any, elementDescription: string) {
   let nextFrameIndex = 1;
   let actionableElementIndex = 0;
   const randomToken = Math.random().toString(36).substring(7);
+  const actionableElements: any[] = [];
   for (let frame of frames) {
     // @ts-ignore
     let result: any = null;
@@ -32,6 +38,7 @@ export async function locate_element(context: any, elementDescription: string) {
         // @ts-ignore
         ([iframeIndex, nextFrameIndex, actionableElementIndex, randomToken]) => {
           let iframeCount = 1;
+          const actionableElements: any[] = [];
           const actionableRoles = [
             "link",
             "button",
@@ -77,10 +84,14 @@ export async function locate_element(context: any, elementDescription: string) {
             const result: any = {};
             for (let i = 0; i < attrs.length; i++) {
               result[attrs[i].name] = attrs[i].value;
+              if (attrs[i].name === "class") {
+                // clean the spaces
+                result[attrs[i].name] = attrs[i].value.replace(/\s+/g, " ").trim();
+              }
             }
             return result;
           }
-          function createAccessibilityNode(element: any) {
+          function createAccessibilityNode(element: any, actionableElements: any) {
             // check if the element is an iframe
 
             const result = {
@@ -97,9 +108,11 @@ export async function locate_element(context: any, elementDescription: string) {
             };
             if (actionableRoles.includes(result.role)) {
               // @ts-ignore
-              result.id = actionableElementIndex;
+              result.elementNumber = actionableElementIndex;
               element.setAttribute("data-blinq-id", "blinq-id-" + randomToken + "-" + actionableElementIndex);
+              //console.log("attribute set to " + "blinq-id-" + randomToken + "-" + actionableElementIndex);
               actionableElementIndex++;
+              actionableElements.push(result);
             }
             if (element.tagName === "IFRAME") {
               // @ts-ignore
@@ -115,10 +128,10 @@ export async function locate_element(context: any, elementDescription: string) {
             if (!treeRoot.children) {
               treeRoot.children = [];
             }
-            console.log(node.tagName + " " + node.children.length);
+            //console.log(node.tagName + " " + node.children.length);
             for (let child of node.children) {
               if (isAccessibilityElement(child)) {
-                const accessibilityNode = createAccessibilityNode(child);
+                const accessibilityNode = createAccessibilityNode(child, actionableElements);
                 // @ts-ignore
                 // accessibilityNode.children = buildAccessibilityTree(child, accessibilityNode),
                 // foundAccessibilityNodes.push(accessibilityNode);
@@ -131,9 +144,9 @@ export async function locate_element(context: any, elementDescription: string) {
           }
           // @ts-ignore
           axe.utils.getFlattenedTree(document);
-          const root = createAccessibilityNode(document.body);
+          const root = createAccessibilityNode(document.body, actionableElements);
           buildAccessibilityTree(document.body, root);
-          return JSON.stringify({ root, nextFrameIndex, actionableElementIndex }, null, 2);
+          return JSON.stringify({ root, nextFrameIndex, actionableElementIndex, actionableElements }, null, 2);
         },
         [iframeIndex, nextFrameIndex, actionableElementIndex, randomToken]
       );
@@ -141,6 +154,7 @@ export async function locate_element(context: any, elementDescription: string) {
       nextFrameIndex = resultData.nextFrameIndex;
       actionableElementIndex = resultData.actionableElementIndex;
       frameDump.push(resultData.root);
+      actionableElements.push(...resultData.actionableElements);
       iframeIndex++;
     } catch (e) {
       // ignore
@@ -155,10 +169,55 @@ export async function locate_element(context: any, elementDescription: string) {
             child.children = [frameDump[child.targetFrameIndex]];
           }
         }
-        traverseDFS(child);
+        if (child.shadowRoot) {
+          traverseDFS(child.shadowRoot);
+        } else {
+          traverseDFS(child);
+        }
       });
     }
   }
   traverseDFS(frameDump[0]);
-  return frameDump[0];
+  // let serviceUrl = context.stable._getServerUrl();
+  let serviceUrl = "http://localhost:5001";
+  const request = {
+    method: "POST",
+    url: `${serviceUrl}/api/runs/locate-element/locate`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.TOKEN}`,
+    },
+    data: JSON.stringify({
+      elementDescription: elementDescription,
+      operation: operation,
+      dump: frameDump[0],
+      value: value,
+    }),
+  };
+  let result = await context.api.request(request);
+  //console.log(JSON.stringify(frameDump[0]));
+  if (result.status !== 200 || !result.data || result.data.status !== true || !result.data.result) {
+    console.error("Failed to locate element");
+    return null;
+  }
+  const returnData = {
+    reason: result.data.result.reason,
+    elementNumber: result.data.result.elementNumber,
+    frameIndex: -1,
+    frame: null,
+    css: "",
+  };
+  if (result.data.result.elementNumber !== -1) {
+    // find the iframe index, the element is in, by identifying the actionable element
+    const actionableElement = actionableElements.find(
+      (element) => element.elementNumber === result.data.result.elementNumber
+    );
+    if (actionableElement) {
+      returnData.frameIndex = actionableElement.frameIndex;
+      returnData.frame = frames[returnData.frameIndex];
+      returnData.css = `[data-blinq-id="blinq-id-${randomToken}-${returnData.elementNumber}"]`;
+    }
+  }
+  //console.log(dumpToHtml(frameDump[0]));
+  return returnData;
 }
