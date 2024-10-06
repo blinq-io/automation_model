@@ -18,6 +18,7 @@ import { Readable } from "node:stream";
 import readline from "readline";
 import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
+import { locate_element } from "./locate_element.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -639,6 +640,10 @@ class StableBrowser {
     let locatorsCount = 0;
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
+    // for the simple click usecase
+    if (selectors.frame) {
+      scope = selectors.frame;
+    }
     if (selectors.iframe_src || selectors.frameLocators) {
       const findFrame = (frame, framescope) => {
         for (let i = 0; i < frame.selectors.length; i++) {
@@ -819,7 +824,66 @@ class StableBrowser {
     }
     return result;
   }
-  async simpleClick(elementDescription, _params?: Params, options = {}, world = null) {}
+  async simpleClick(elementDescription, _params?: Params, options = {}, world = null) {
+    const startTime = Date.now();
+    let timeout = 30000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    while (true) {
+      try {
+        const result = await locate_element(this.context, elementDescription, "click");
+        if (result?.elementNumber >= 0) {
+          const selectors = {
+            frame: result?.frame,
+            locators: [
+              {
+                css: result?.css,
+              },
+            ],
+          };
+
+          await this.click(selectors, _params, options, world);
+          return;
+        }
+      } catch (e) {
+        if (performance.now() - startTime > timeout) {
+          throw e;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
+  async simpleClickType(elementDescription, value, _params?: Params, options = {}, world = null) {
+    const startTime = Date.now();
+    let timeout = 30000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    while (true) {
+      try {
+        const result = await locate_element(this.context, elementDescription, "fill", value);
+        if (result?.elementNumber >= 0) {
+          const selectors = {
+            frame: result?.frame,
+            locators: [
+              {
+                css: result?.css,
+              },
+            ],
+          };
+
+          await this.clickType(selectors, value, false, _params, options, world);
+          return;
+        }
+      } catch (e) {
+        if (performance.now() - startTime > timeout) {
+          throw e;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
