@@ -3,6 +3,7 @@ import { getContext } from "./init_browser.js";
 import fs from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
+import { locate_element } from "./locate_element.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
