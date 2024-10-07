@@ -182,8 +182,7 @@ export async function locate_element(
     }
   }
   traverseDFS(frameDump[0]);
-  // let serviceUrl = context.stable._getServerUrl();
-  let serviceUrl = "http://localhost:5001";
+  let serviceUrl = context.stable._getServerUrl();
   const request = {
     method: "POST",
     url: `${serviceUrl}/api/runs/locate-element/locate`,
