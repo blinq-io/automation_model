@@ -18,6 +18,7 @@ import { Readable } from "node:stream";
 import readline from "readline";
 import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
+import { locate_element } from "./locate_element.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -183,7 +184,9 @@ class StableBrowser {
         time: new Date().toISOString(),
       };
       this.context.webLogger.push(obj);
-      this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+log" });
+      if (msg.type() === "error") {
+        this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+log" });
+      }
     });
   }
 
@@ -443,8 +446,8 @@ class StableBrowser {
             const element = elements[i];
             if (partial) {
               if (
-                (element.innerText && element.innerText.trim().includes(text)) ||
-                (element.value && element.value.includes(text))
+                (element.innerText && element.innerText.toLowerCase().trim().includes(text.toLowerCase())) ||
+                (element.value && element.value.toLowerCase().includes(text.toLowerCase()))
               ) {
                 foundElements.push(element);
               }
@@ -502,6 +505,11 @@ class StableBrowser {
     visibleOnly = true
   ) {
     let locatorSearch = selectorHierarchy[index];
+    try {
+      locatorSearch = JSON.parse(this._fixUsingParams(JSON.stringify(locatorSearch), _params));
+    } catch (e) {
+      console.error(e);
+    }
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
@@ -630,20 +638,32 @@ class StableBrowser {
     let locatorsCount = 0;
     //let arrayMode = Array.isArray(selectors);
     let scope = this.page;
+    // for the simple click usecase
+    if (selectors.frame) {
+      scope = selectors.frame;
+    }
     if (selectors.iframe_src || selectors.frameLocators) {
-      const findFrame = (frame, framescope) => {
+      const findFrame = async (frame, framescope) => {
         for (let i = 0; i < frame.selectors.length; i++) {
           let frameLocator = frame.selectors[i];
           if (frameLocator.css) {
-            framescope = framescope.frameLocator(frameLocator.css);
+            let testframescope = framescope.frameLocator(frameLocator.css);
             if (frameLocator.index) {
-              framescope = framescope.nth(frameLocator.index);
+              testframescope = framescope.nth(frameLocator.index);
             }
-            break;
+            try {
+              await testframescope.owner().evaluateHandle(() => true, null, {
+                timeout: 5000,
+              });
+              framescope = testframescope;
+              break;
+            } catch (error) {
+              console.error("frame not found " + frameLocator.css);
+            }
           }
         }
         if (frame.children) {
-          return findFrame(frame.children, framescope);
+          return await findFrame(frame.children, framescope);
         }
         return framescope;
       };
@@ -651,7 +671,7 @@ class StableBrowser {
       while (true) {
         let frameFound = false;
         if (selectors.nestFrmLoc) {
-          scope = findFrame(selectors.nestFrmLoc, scope);
+          scope = await findFrame(selectors.nestFrmLoc, scope);
           frameFound = true;
           break;
         }
@@ -810,7 +830,66 @@ class StableBrowser {
     }
     return result;
   }
+  async simpleClick(elementDescription, _params?: Params, options = {}, world = null) {
+    const startTime = Date.now();
+    let timeout = 30000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    while (true) {
+      try {
+        const result = await locate_element(this.context, elementDescription, "click");
+        if (result?.elementNumber >= 0) {
+          const selectors = {
+            frame: result?.frame,
+            locators: [
+              {
+                css: result?.css,
+              },
+            ],
+          };
 
+          await this.click(selectors, _params, options, world);
+          return;
+        }
+      } catch (e) {
+        if (performance.now() - startTime > timeout) {
+          throw e;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
+  async simpleClickType(elementDescription, value, _params?: Params, options = {}, world = null) {
+    const startTime = Date.now();
+    let timeout = 30000;
+    if (options && options.timeout) {
+      timeout = options.timeout;
+    }
+    while (true) {
+      try {
+        const result = await locate_element(this.context, elementDescription, "fill", value);
+        if (result?.elementNumber >= 0) {
+          const selectors = {
+            frame: result?.frame,
+            locators: [
+              {
+                css: result?.css,
+              },
+            ],
+          };
+
+          await this.clickType(selectors, value, false, _params, options, world);
+          return;
+        }
+      } catch (e) {
+        if (performance.now() - startTime > timeout) {
+          throw e;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
   async click(selectors, _params?: Params, options = {}, world = null) {
     this._validateSelectors(selectors);
     const startTime = Date.now();
@@ -1290,7 +1369,7 @@ class StableBrowser {
       let element = await this._locate(selectors, info, _params);
       //insert red border around the element
       await this.scrollIfNeeded(element, info);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+
       await this._highlightElements(element);
       if (options === null || options === undefined || !options.press) {
         try {
@@ -1335,6 +1414,7 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
