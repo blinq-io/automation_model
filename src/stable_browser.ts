@@ -193,7 +193,9 @@ class StableBrowser {
         time: new Date().toISOString(),
       };
       this.context.webLogger.push(obj);
-      this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+log" });
+      if (msg.type() === "error") {
+        this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+log" });
+      }
     });
   }
 
