@@ -123,8 +123,9 @@ class Api {
           }
           test.receivedValue = value;
         });
-        if (res.status != 200) {
-          throw new Error("Request failed with status code " + res.status);
+        const statusCode = config.status || 200;
+        if (res.status != statusCode) {
+          throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${statusCode}`);
         }
         const testsFailed = tests.filter((test: any) => test.fail);
         testsPassed = tests.length - testsFailed.length;
