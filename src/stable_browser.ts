@@ -351,7 +351,14 @@ class StableBrowser {
     if (css && css.locator) {
       css = css.locator;
     }
-    let result = await this._locateElementByText(scope, this._fixUsingParams(text, _params), "*", false, true, _params);
+    let result = await this._locateElementByText(
+      scope,
+      this._fixUsingParams(text, _params),
+      "*",
+      false,
+      false,
+      _params
+    );
     if (result.elementCount === 0) {
       return;
     }
@@ -2350,18 +2357,25 @@ class StableBrowser {
         for (let i = 0; i < frames.length; i++) {
           if (dateAlternatives.date) {
             for (let j = 0; j < dateAlternatives.dates.length; j++) {
-              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, {});
+              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, true, {});
               result.frame = frames[i];
               results.push(result);
             }
           } else if (numberAlternatives.number) {
             for (let j = 0; j < numberAlternatives.numbers.length; j++) {
-              const result = await this._locateElementByText(frames[i], numberAlternatives.numbers[j], "*", true, {});
+              const result = await this._locateElementByText(
+                frames[i],
+                numberAlternatives.numbers[j],
+                "*",
+                true,
+                true,
+                {}
+              );
               result.frame = frames[i];
               results.push(result);
             }
           } else {
-            const result = await this._locateElementByText(frames[i], text, "*", true, {});
+            const result = await this._locateElementByText(frames[i], text, "*", true, true, {});
             result.frame = frames[i];
             results.push(result);
           }
