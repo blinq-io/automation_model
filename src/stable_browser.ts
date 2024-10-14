@@ -925,7 +925,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e);
     } finally {
-      _commandFinally(state);
+      _commandFinally(state, this);
     }
   }
   async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
@@ -957,7 +957,7 @@ class StableBrowser {
           //await this.closeUnexpectedPopups();
           info.log += "setCheck failed, will try again" + "\n";
           state.element = await this._locate(selectors, info, _params);
-          await element.setChecked(checked, { timeout: 5000, force: true });
+          await state.element.setChecked(checked, { timeout: 5000, force: true });
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
@@ -990,12 +990,12 @@ class StableBrowser {
       } catch (e) {
         //await this.closeUnexpectedPopups();
         state.info.log += "hover failed, will try again" + "\n";
-        state.element = await this._locate(selectors, info, _params);
+        state.element = await this._locate(selectors, state.info, _params);
         await state.element.hover({ timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
-      return info;
+      return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
@@ -1100,9 +1100,9 @@ class StableBrowser {
         }, value);
       } catch (error) {
         this.logger.error("setInputValue failed, will try again");
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        info.screenshotPath = screenshotPath;
-        Object.assign(error, { info: info });
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
+        state.info.screenshotPath = screenshotPath;
+        Object.assign(error, { info: state.info });
         await state.element.evaluateHandle((el, value) => {
           el.value = value;
         });
@@ -1268,7 +1268,7 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
@@ -1282,7 +1282,7 @@ class StableBrowser {
           await this.waitForPageLoad();
         }
       }
-      return info;
+      return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
@@ -1448,7 +1448,7 @@ class StableBrowser {
     try {
       foundObj = await this._getText(selectors, climb, _params, options, state.info, world);
       if (foundObj && foundObj.element) {
-        await this.scrollIfNeeded(foundObj.element, info);
+        await this.scrollIfNeeded(foundObj.element, state.info);
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
       const dateAlternatives = findDateAlternatives(text);
