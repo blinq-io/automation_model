@@ -34,7 +34,7 @@ describe("Click Tests", function () {
         locators: [{ css: "//details/p" }],
       },
       img: {
-        locators: [{ css: "//img[@src='https://via.placeholder.com/150']" }],
+        locators: [{ css: "//img[@src='150.png']" }],
       },
       a2: {
         locators: [{ css: '//a[contains(text(),"This")]' }],
