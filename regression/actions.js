@@ -12,7 +12,7 @@ describe("Actions Tests", function () {
   });
   beforeEach(async function () {
     context = await initContext("/", true, false);
-    //let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/";
+    //let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
     //await context.stable.goto(url);
   });
