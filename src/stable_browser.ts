@@ -923,7 +923,7 @@ class StableBrowser {
       await this.waitForPageLoad();
       return state.info;
     } catch (e) {
-      await _commandError(state, e);
+      await _commandError(state, e, this);
     } finally {
       _commandFinally(state, this);
     }
