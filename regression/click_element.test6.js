@@ -4,7 +4,7 @@ let context = null;
 describe("Click Tests", function () {
   beforeEach(async function () {
     context = await initContext("/", true, false);
-    let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/";
+    let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
     console.log(`Navigating to URL ${url}`);
     await context.stable.goto(url);
@@ -28,7 +28,7 @@ describe("Click Tests", function () {
         locators: [{ css: "details > p" }],
       },
       img_src: {
-        locators: [{ css: "img[src='https://via.placeholder.com/150']" }],
+        locators: [{ css: "img[src='150.png']" }],
       },
       a_href: {
         locators: [{ css: "a[href='#']" }],
