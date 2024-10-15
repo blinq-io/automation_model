@@ -2861,4 +2861,9 @@ const KEYBOARD_EVENTS = [
   "TVAntennaCable",
   "TVAudioDescription",
 ];
+function unEscapeString(str: string) {
+  const placeholder = "__NEWLINE__";
+  str = str.replace(new RegExp(placeholder, "g"), "\n");
+  return str;
+}
 export { StableBrowser };
