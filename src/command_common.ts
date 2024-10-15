@@ -22,7 +22,7 @@ export async function _preCommand(state: any, stable: any) {
     state.value = stable._fixUsingParams(state.value, state._params);
     state.info.value = state.value;
   }
-  stable.startTime = Date.now();
+  state.startTime = Date.now();
   state.info.selectors = state.selectors;
   state.info.log = state.log ? state.log : "";
   state.info.operation = state.operation;
@@ -36,9 +36,7 @@ export async function _preCommand(state: any, stable: any) {
     await stable.scrollIfNeeded(state.element, state.info);
   }
   if (state.screenshot === true) {
-    const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
-    state.screenshotId = screenshotId;
-    state.screenshotPath = screenshotPath;
+    await _screenshot(state, stable);
   }
   if (state.highlight === true) {
     try {
@@ -57,6 +55,11 @@ export async function _commandError(state: any, error: any, stable: any) {
   Object.assign(error, { info: state.info });
   state.error = error;
   throw error;
+}
+export async function _screenshot(state: any, stable: any) {
+  const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
+  state.screenshotId = screenshotId;
+  state.screenshotPath = screenshotPath;
 }
 export function _commandFinally(state: any, stable: any) {
   state.endTime = Date.now();

@@ -19,7 +19,7 @@ import readline from "readline";
 import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
-import { _commandError, _commandFinally, _preCommand, _validateSelectors } from "./command_common.js";
+import { _commandError, _commandFinally, _preCommand, _validateSelectors, _screenshot } from "./command_common.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -906,7 +906,7 @@ class StableBrowser {
       log: "***** click on " + selectors.element_name + " *****\n",
     };
     try {
-      _preCommand(state);
+      await _preCommand(state, this);
       if (state.options && state.options.context) {
         state.selectors.locators[0].text = state.options.context;
       }
@@ -1100,8 +1100,7 @@ class StableBrowser {
         }, value);
       } catch (error) {
         this.logger.error("setInputValue failed, will try again");
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
-        state.info.screenshotPath = screenshotPath;
+        await _screenshot(state, this);
         Object.assign(error, { info: state.info });
         await state.element.evaluateHandle((el, value) => {
           el.value = value;
@@ -1221,9 +1220,9 @@ class StableBrowser {
       //this.logger.info(_value + "=" + newValue);
       _value = newValue;
     }
-    state.info.value = _value;
     try {
       await _preCommand(state, this);
+      state.info.value = _value;
 
       if (options === null || options === undefined || !options.press) {
         try {
@@ -1268,7 +1267,7 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
+      await _screenshot(state, this);
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
@@ -1297,7 +1296,7 @@ class StableBrowser {
       options,
       world,
       type: Types.FILL,
-      text: `Fill input with value: ${_value}`,
+      text: `Fill input with value: ${value}`,
       operation: "fill",
       log: "***** fill on " + selectors.element_name + " with value " + value + "*****\n",
     };
@@ -1401,7 +1400,7 @@ class StableBrowser {
       if (foundObj && foundObj.element) {
         await this.scrollIfNeeded(foundObj.element, state.info);
       }
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
+      await _screenshot(state, this);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -1450,7 +1449,7 @@ class StableBrowser {
       if (foundObj && foundObj.element) {
         await this.scrollIfNeeded(foundObj.element, state.info);
       }
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, state.info));
+      await _screenshot(state, this);
       const dateAlternatives = findDateAlternatives(text);
       const numberAlternatives = findNumberAlternatives(text);
       if (dateAlternatives.date) {
