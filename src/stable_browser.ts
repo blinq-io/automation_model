@@ -636,7 +636,7 @@ class StableBrowser {
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
   async _findFrameScope(selectors, timeout = 30000) {
-    let scope = null;
+    let scope = this.page;
     if (selectors.frame) {
       return selectors.frame;
     }
