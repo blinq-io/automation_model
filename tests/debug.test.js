@@ -111,6 +111,8 @@ const login = async function (username, password) {
   let options = {};
   options.screenshot = true;
   options.screenshotPath = getScreenShotPath();
+  let body = await context.stable._getDocumentBody(elements["textbox_username"]);
+  console.log("Body: ", body);
   await context.stable.simpleClickType("Username field", username, _params, options, null);
   await context.stable.simpleClickType("Password field", password, _params, options, null);
   await context.stable.simpleClick("Login button", _params, options, null);

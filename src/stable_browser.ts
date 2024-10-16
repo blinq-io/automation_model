@@ -635,16 +635,10 @@ class StableBrowser {
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
-  async _locate_internal(selectors, info, _params?: Params, timeout = 30000) {
-    let highPriorityTimeout = 5000;
-    let visibleOnlyTimeout = 6000;
-    let startTime = performance.now();
-    let locatorsCount = 0;
-    //let arrayMode = Array.isArray(selectors);
-    let scope = this.page;
-    // for the simple click usecase
+  async _findFrameScope(selectors, timeout = 30000) {
+    let scope = null;
     if (selectors.frame) {
-      scope = selectors.frame;
+      return selectors.frame;
     }
     if (selectors.iframe_src || selectors.frameLocators) {
       const findFrame = async (frame, framescope) => {
@@ -671,7 +665,6 @@ class StableBrowser {
         }
         return framescope;
       };
-      info.log += "searching for iframe " + selectors.iframe_src + "/" + selectors.frameLocators + "\n";
       while (true) {
         let frameFound = false;
         if (selectors.nestFrmLoc) {
@@ -703,6 +696,26 @@ class StableBrowser {
         }
       }
     }
+    if (!scope) {
+      scope = this.page;
+    }
+    return scope;
+  }
+  async _getDocumentBody(selectors, timeout = 30000) {
+    let scope = await this._findFrameScope(selectors, timeout);
+
+    return scope.evaluate(() => {
+      var bodyContent = document.body.innerHTML;
+      return bodyContent;
+    });
+  }
+  async _locate_internal(selectors, info, _params?: Params, timeout = 30000) {
+    let highPriorityTimeout = 5000;
+    let visibleOnlyTimeout = 6000;
+    let startTime = performance.now();
+    let locatorsCount = 0;
+    //let arrayMode = Array.isArray(selectors);
+    let scope = await this._findFrameScope(selectors, timeout);
     let selectorsLocators = null;
     selectorsLocators = selectors.locators;
     // group selectors by priority
