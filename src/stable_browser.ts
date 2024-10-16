@@ -361,8 +361,8 @@ class StableBrowser {
   }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, _params: Params) {
     //const stringifyText = JSON.stringify(text);
-    return await scope.evaluate(
-      ([text, tag, regex, partial]) => {
+    return await scope.locator(":root").evaluate(
+      (_node, [text, tag, regex, partial]) => {
         function isParent(parent, child) {
           let currentNode = child.parentNode;
           while (currentNode !== null) {
