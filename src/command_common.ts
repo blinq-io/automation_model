@@ -30,7 +30,11 @@ export async function _preCommand(state: any, stable: any) {
   state.screenshotId = null;
   state.screenshotPath = null;
   if (state.locate === true) {
-    state.element = await stable._locate(state.selectors, state.info, state._params);
+    let timeout = null;
+    if (state.options && state.options.timeout) {
+      timeout = state.options.timeout;
+    }
+    state.element = await stable._locate(state.selectors, state.info, state._params, timeout);
   }
   if (state.scroll === true) {
     await stable.scrollIfNeeded(state.element, state.info);
