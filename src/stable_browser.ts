@@ -947,7 +947,7 @@ class StableBrowser {
         } else {
           //await this.closeUnexpectedPopups();
           info.log += "setCheck failed, will try again" + "\n";
-          state.element = await this._locate(selectors, info, _params);
+          state.element = await this._locate(selectors, state.info, _params);
           await state.element.setChecked(checked, { timeout: 5000, force: true });
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
