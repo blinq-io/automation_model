@@ -612,7 +612,10 @@ class StableBrowser {
     }
     return { rerun: false };
   }
-  async _locate(selectors, info, _params?: Params, timeout = 30000) {
+  async _locate(selectors, info, _params?: Params, timeout) {
+    if (!timeout) {
+      timeout = 30000;
+    }
     for (let i = 0; i < 3; i++) {
       info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
       for (let j = 0; j < selectors.locators.length; j++) {
