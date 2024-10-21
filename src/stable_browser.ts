@@ -948,7 +948,7 @@ class StableBrowser {
     };
 
     try {
-      _preCommand(state, this);
+      await _preCommand(state, this);
       state.info.checked = checked;
       // let element = await this._locate(selectors, info, _params);
 
@@ -962,7 +962,7 @@ class StableBrowser {
           this.logger.info("element did not change its state, ignoring...");
         } else {
           //await this.closeUnexpectedPopups();
-          info.log += "setCheck failed, will try again" + "\n";
+          state.info.log += "setCheck failed, will try again" + "\n";
           state.element = await this._locate(selectors, state.info, _params);
           await state.element.setChecked(checked, { timeout: 5000, force: true });
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -990,7 +990,7 @@ class StableBrowser {
     };
 
     try {
-      _preCommand(state, this);
+      await _preCommand(state, this);
       try {
         await state.element.hover();
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1451,6 +1451,7 @@ class StableBrowser {
     }
     let foundObj = null;
     try {
+      await _preCommand(state, this);
       foundObj = await this._getText(selectors, climb, _params, options, state.info, world);
       if (foundObj && foundObj.element) {
         await this.scrollIfNeeded(foundObj.element, state.info);
