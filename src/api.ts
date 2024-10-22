@@ -4,6 +4,40 @@ import path from "path";
 import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
 
+interface Config {
+  url: string;
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
+  headers: { key: string; value: string; enabled: boolean }[];
+  bodyType: "raw" | "none";
+  body: string;
+  queryParams: { key: string; value: string }[];
+  settings: {
+    removeRefererHeader: boolean;
+    strictHttpParser: boolean;
+    encodeUrl: boolean;
+    disableCookieJar: boolean;
+    useServerCipherSuite: boolean;
+    maxRedirects: number;
+  };
+  tests:
+    | {
+        pattern: string;
+        value: string | number | boolean;
+        operator: "eq" | "ne" | "gt" | "lt" | "gte" | "lte" | "mat";
+        pass: boolean;
+        fail?: boolean;
+      }[]
+    | null
+    | undefined;
+  tokens: { token: string; username: string; password: string };
+  authType: "bearer" | "basic" | "none";
+  isStaticToken: boolean;
+  status: number;
+}
+interface Param {
+  [key: string]: string;
+}
+
 class Api {
   private axiosClient: AxiosInstance;
   constructor(public logger: any) {
@@ -62,7 +96,6 @@ class Api {
           this.logger.error("Error while sending request " + error.message);
           throw error;
         }
-
         if (
           (error.response && error.response.data.includes("self signed certificate")) ||
           (error.message && error.message.includes("self signed certificate"))
@@ -76,13 +109,161 @@ class Api {
     this.logger.debug(config);
     throw new Error("Request failed after 2 attempts"); // Throw an error or return a value explicitly here
   }
+
   public setProxy(proxy?: string) {
     const agent = this.getProxyObject(proxy);
     this.logger.info(agent);
     this.axiosClient = axios.create({ proxy: false, httpsAgent: agent });
   }
-  public async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
-    return await this.axiosClientRequest<T>(config);
+  public async request<T = any>(
+    config: Config,
+    params: Param,
+    testData: any,
+    world: any
+  ): Promise<AxiosResponse<T, any>> {
+    // return await this.axiosClientRequest<T>(config);
+    const startTime = Date.now();
+    let result: any = null;
+
+    let error: any = null;
+    const fixedUrl = repStrWParamTData(config.url, params, testData);
+    const fixedQueryParams = config.queryParams.map((param) => {
+      return {
+        key: repStrWParamTData(param.key, params, testData),
+        value: repStrWParamTData(param.value, params, testData),
+      };
+    });
+    const fixedReqHeaders = config.headers.map((header) => {
+      return {
+        key: repStrWParamTData(header.key, params, testData),
+        value: repStrWParamTData(header.value, params, testData),
+        enabled: header.enabled,
+      };
+    });
+    if (config.authType === "bearer") {
+      //@ts-ignore
+      config.tokens.token = repStrWParamTData(config.tokens.token, params, testData);
+    } else if (config.authType === "basic") {
+      //@ts-ignore
+      config.tokens.username = repStrWParamTData(config.tokens.username, params, testData);
+      //@ts-ignore
+      config.tokens.password = repStrWParamTData(config.tokens.password, params, testData);
+    }
+    const formattedUrl =
+      fixedQueryParams.filter((data) => !!data.key).length > 0
+        ? `${fixedUrl}?${fixedQueryParams.map((data) => `${data.key}=${data.value}`).join("&")}`
+        : fixedUrl;
+
+    const axiosConfig = {
+      method: config.method,
+      url: formattedUrl,
+      headers: fixedReqHeaders.reduce((acc: { [key: string]: string }, header) => {
+        if (header.enabled && header.key.length > 0) acc[header.key] = header.value;
+        return acc;
+      }, {}),
+      data: config.bodyType === "raw" ? config.body : undefined,
+      maxRedirects: config.settings.maxRedirects,
+      validateStatus: config.settings.strictHttpParser ? (status: any) => status >= 200 && status < 300 : null,
+    };
+    if (config.authType === "bearer") {
+      //@ts-ignore
+      axiosConfig.headers["Authorization"] = `Bearer ${config.tokens.token}`;
+    } else if (config.authType === "basic" && config.tokens.username && config.tokens.password) {
+      //@ts-ignore
+      axiosConfig.headers["Authorization"] = `Basic ${btoa(`${config.tokens.username}:${config.tokens.password}`)}`;
+    }
+    const res = await this.axiosClientRequest<T>(axiosConfig);
+
+    const tests = config.tests;
+    let testsPassed = 0;
+    try {
+      if (res.status != config.status) {
+        throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${config.status}`);
+      }
+      if (tests) {
+        tests?.forEach((test) => {
+          test.fail = true;
+          const receivedValue = getValue(res.data, test.pattern);
+          if (!hasValue(receivedValue)) {
+            throw new Error(`The path ${test.pattern} does not exist in the response`);
+          }
+          switch (test.operator) {
+            case "eq":
+              test.fail = receivedValue != test.value;
+              break;
+            case "ne":
+              test.fail = receivedValue == test.value;
+              break;
+            case "gt":
+              test.fail = receivedValue <= test.value;
+              break;
+            case "lt":
+              test.fail = receivedValue >= test.value;
+              break;
+            case "gte":
+              test.fail = receivedValue < test.value;
+              break;
+            case "lte":
+              test.fail = receivedValue > test.value;
+              break;
+            case "mat":
+              test.fail = !new RegExp(test.value as string).test(receivedValue);
+              break;
+            default:
+              test.fail = true;
+              break;
+          }
+        });
+
+        const testsFailed = tests.filter((test) => test.fail);
+        testsPassed = tests.length - testsFailed.length;
+        if (testsFailed.length > 0) {
+          throw new Error("Tests failed");
+        }
+      }
+    } catch (e) {
+      error = e;
+      throw error;
+    } finally {
+      const endTime = Date.now();
+      const properties = {
+        element_name: "API",
+        type: "api_test",
+        text: `Api test  `,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: {
+          tests,
+          testsPassed,
+          headers: res.headers,
+          status: res.status,
+          data: res.data,
+          statusText: res.statusText,
+        },
+      };
+      if (world && world.attach) {
+        world.attach(JSON.stringify(properties), {
+          mediaType: "application/json",
+        });
+      }
+
+      if (error) {
+        //@ts-ignore
+        const err = new Error(error.message);
+        err.stack = "";
+        throw err;
+      }
+      return res;
+    }
   }
   async requestWithAuth(methodName: string, world: any, token: string, params: any) {
     const startTime = Date.now();
@@ -180,4 +361,34 @@ class Api {
   }
 }
 
+const repStrWParamTData = (str: string, params: Param, testData: any) => {
+  let newStr = str;
+  Object.keys(params).forEach((key) => {
+    newStr = newStr.replaceAll(`"<${key.slice(1)}>"`, params[key]);
+  });
+  Object.keys(testData).forEach((key) => {
+    newStr = newStr.replaceAll(`{{${key}}}`, testData[key]);
+  });
+  return newStr;
+};
+
+const getValue = (data: any, pattern: string): any => {
+  const path = pattern.split(".");
+  let lengthExists = false;
+  if (path[path.length - 1] === "length") {
+    path.pop();
+    lengthExists = true;
+  }
+  const value = objectPath.get(data, pattern);
+  if (lengthExists && Array.isArray(value)) {
+    return value?.length;
+  } else if (hasValue(value)) {
+    return value;
+  }
+
+  return null;
+};
+const hasValue = (value: any) => {
+  return value !== null && value !== undefined;
+};
 export { Api };
