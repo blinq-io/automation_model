@@ -364,7 +364,7 @@ class Api {
 const repStrWParamTData = (str: string, params: Param, testData: any) => {
   let newStr = str;
   Object.keys(params).forEach((key) => {
-    newStr = newStr.replaceAll(`"<${key}>"`, params[key]);
+    newStr = newStr.replaceAll(`"<${key.slice(1)}>"`, params[key]);
   });
   Object.keys(testData).forEach((key) => {
     newStr = newStr.replaceAll(`{{${key}}}`, testData[key]);
