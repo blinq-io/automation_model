@@ -67,10 +67,11 @@ export async function _screenshot(state: any, stable: any) {
 }
 export function _commandFinally(state: any, stable: any) {
   state.endTime = Date.now();
-  stable._reportToWorld(state.world, {
+  const reportObject = {
     element_name: state.selectors.element_name,
     type: state.type,
     text: state.text,
+    value: state.value,
     screenshotId: state.screenshotId,
     result: state.error
       ? {
@@ -85,7 +86,9 @@ export function _commandFinally(state: any, stable: any) {
           endTime: state.endTime,
         },
     info: state.info,
-  });
+  };
+
+  stable._reportToWorld(state.world, reportObject);
 }
 export function _validateSelectors(selectors: any) {
   if (!selectors) {
