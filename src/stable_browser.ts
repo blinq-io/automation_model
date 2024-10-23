@@ -1028,6 +1028,7 @@ class StableBrowser {
       _params,
       options,
       world,
+      value: values.toString(),
       type: Types.SELECT,
       text: `Select option: ${values}`,
       operation: "selectOption",
@@ -1235,6 +1236,7 @@ class StableBrowser {
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
       _value = newValue;
+      state.value = newValue;
     }
     try {
       await _preCommand(state, this);
@@ -1389,7 +1391,7 @@ class StableBrowser {
       selectors,
       _params,
       pattern,
-      value: text,
+      value: pattern,
       options,
       world,
       locate: false,
