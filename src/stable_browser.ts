@@ -1236,7 +1236,7 @@ class StableBrowser {
         try {
           let currentValue = await state.element.inputValue();
           if (currentValue) {
-            await element.fill("");
+            await state.element.fill("");
           }
         } catch (e) {
           this.logger.info("unable to clear input value");
