@@ -1010,6 +1010,7 @@ class StableBrowser {
         await state.element.hover({ timeout: 10000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
+      await _screenshot(state, this);
       await this.waitForPageLoad();
       return state.info;
     } catch (e) {
