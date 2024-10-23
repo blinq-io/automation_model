@@ -8,3 +8,4 @@ playwright-report
 /playwright/.cache/
 logs
 screenshots
+temp
