@@ -1235,6 +1235,7 @@ class StableBrowser {
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
       _value = newValue;
+      state.value = newValue;
     }
     try {
       await _preCommand(state, this);
