@@ -108,6 +108,21 @@ async function replaceWithLocalTestData(
   return value;
 }
 
+function maskValue(value: string) {
+  if (!value) {
+    return value;
+  }
+  if (value.startsWith("secret:")) {
+    return "secret:****";
+  }
+  if (value.startsWith("totp:")) {
+    return "totp:****";
+  }
+  if (value.startsWith("mask:")) {
+    return "mask:****";
+  }
+}
+
 // console.log(encrypt("Hello, World!", null));
 // console.log(decrypt("U2FsdGVkX1+6mavadgkMgJPIhR3IO1pDkx36TjTyoyE=", null));
-export { encrypt, decrypt, replaceWithLocalTestData };
+export { encrypt, decrypt, replaceWithLocalTestData, maskValue };

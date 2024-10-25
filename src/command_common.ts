@@ -1,3 +1,5 @@
+import { maskValue } from "./utils";
+
 export async function _preCommand(state: any, stable: any) {
   if (!state) {
     return;
@@ -71,7 +73,7 @@ export function _commandFinally(state: any, stable: any) {
     element_name: state.selectors.element_name,
     type: state.type,
     text: state.text,
-    value: state.value,
+    value: state.originalValue ? maskValue(state.originalValue) : state.value,
     screenshotId: state.screenshotId,
     result: state.error
       ? {

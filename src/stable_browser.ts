@@ -12,7 +12,7 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
-import { decrypt, replaceWithLocalTestData } from "./utils.js";
+import { decrypt, maskValue, replaceWithLocalTestData } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
@@ -1221,23 +1221,24 @@ class StableBrowser {
   }
 
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
+    _value = unEscapeString(_value);
+    const newValue = await this._replaceWithLocalData(_value, world);
     const state = {
       selectors,
       _params,
-      value: unEscapeString(_value),
+      value: newValue,
+      originalValue: _value,
       options,
       world,
       type: Types.FILL,
       text: `Click type input with value: ${_value}`,
       operation: "clickType",
-      log: "***** clickType on " + selectors.element_name + " with value " + _value + "*****\n",
+      log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
 
-    const newValue = await this._replaceWithLocalData(state.value, world);
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
       _value = newValue;
-      state.value = newValue;
     }
     try {
       await _preCommand(state, this);
