@@ -1,7 +1,9 @@
 import CryptoJS from "crypto-js";
+import objectPath from "object-path";
 
 import path from "path";
 import { TOTP } from "totp-generator";
+import fs from "fs";
 // Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
@@ -50,6 +52,62 @@ function _findKey() {
   // extract the base folder name
   return path.basename(folder);
 }
+function _getDataFile(world: any = null, context: any = null, stable: any = null) {
+  let dataFile = null;
+  if (world && world.reportFolder) {
+    dataFile = path.join(world.reportFolder, "data.json");
+  } else if (stable.reportFolder) {
+    dataFile = path.join(stable.reportFolder, "data.json");
+  } else if (stable.context && context.reportFolder) {
+    dataFile = path.join(context.reportFolder, "data.json");
+  } else {
+    dataFile = "data.json";
+  }
+  return dataFile;
+}
+function _getTestData(world = null, context = null, stable = null) {
+  const dataFile = _getDataFile(world, context, stable);
+  let data = {};
+  if (fs.existsSync(dataFile)) {
+    data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+  }
+  return data;
+}
+async function replaceWithLocalTestData(
+  value: string,
+  world: any,
+  _decrypt = true,
+  totpWait = true,
+  context: any = null,
+  stable: any = null
+) {
+  if (!value) {
+    return value;
+  }
+
+  // find all the accurance of {{(.*?)}} and replace with the value
+  let regex = /{{(.*?)}}/g;
+  let matches = value.match(regex);
+  if (matches) {
+    const testData = _getTestData(world, context, stable);
+
+    for (let i = 0; i < matches.length; i++) {
+      let match = matches[i];
+      let key = match.substring(2, match.length - 2);
+
+      let newValue = objectPath.get(testData, key, null);
+
+      if (newValue !== null) {
+        value = value.replace(match, newValue);
+      }
+    }
+  }
+  if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
+    return await decrypt(value, null, totpWait);
+  }
+  return value;
+}
+
 // console.log(encrypt("Hello, World!", null));
 // console.log(decrypt("U2FsdGVkX1+6mavadgkMgJPIhR3IO1pDkx36TjTyoyE=", null));
-export { encrypt, decrypt };
+export { encrypt, decrypt, replaceWithLocalTestData };
