@@ -12,7 +12,7 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
-import { decrypt } from "./utils.js";
+import { decrypt, replaceWithLocalTestData } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
@@ -2491,7 +2491,7 @@ class StableBrowser {
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
-    await replaceWithLocal(value, world, _decrypt, totpWait);
+    return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
   }
   _getLoadTimeout(options) {
     let timeout = 15000;
@@ -2721,33 +2721,6 @@ function createTimedPromise(promise, label) {
   return promise
     .then((result) => ({ status: "fulfilled", label, result }))
     .catch((error) => Promise.reject({ status: "rejected", label, error }));
-}
-export function replaceWithLocal(value, world, _decrypt = true, totpWait = true) {
-  if (!value) {
-    return value;
-  }
-
-  // find all the accurance of {{(.*?)}} and replace with the value
-  let regex = /{{(.*?)}}/g;
-  let matches = value.match(regex);
-  if (matches) {
-    const testData = this.getTestData(world);
-
-    for (let i = 0; i < matches.length; i++) {
-      let match = matches[i];
-      let key = match.substring(2, match.length - 2);
-
-      let newValue = objectPath.get(testData, key, null);
-
-      if (newValue !== null) {
-        value = value.replace(match, newValue);
-      }
-    }
-  }
-  if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
-    return await decrypt(value, null, totpWait);
-  }
-  return value;
 }
 const KEYBOARD_EVENTS = [
   "ALT",
