@@ -32,6 +32,9 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
     }
     return otp;
   }
+  if (encryptedText.startsWith("mask:")) {
+    return encryptedText.substring(5);
+  }
   const bytes = CryptoJS.AES.decrypt(encryptedText, key);
   return bytes.toString(CryptoJS.enc.Utf8);
 }

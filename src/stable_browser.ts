@@ -2512,7 +2512,7 @@ class StableBrowser {
         }
       }
     }
-    if ((value.startsWith("secret:") || value.startsWith("totp:")) && _decrypt) {
+    if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
       return await decrypt(value, null, totpWait);
     }
     return value;
