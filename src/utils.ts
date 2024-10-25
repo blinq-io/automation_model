@@ -121,6 +121,7 @@ function maskValue(value: string) {
   if (value.startsWith("mask:")) {
     return "mask:****";
   }
+  return value;
 }
 
 // console.log(encrypt("Hello, World!", null));
