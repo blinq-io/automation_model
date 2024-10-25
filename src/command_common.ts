@@ -1,4 +1,4 @@
-import { maskValue } from "./utils";
+import { maskValue } from "./utils.js";
 
 export async function _preCommand(state: any, stable: any) {
   if (!state) {
