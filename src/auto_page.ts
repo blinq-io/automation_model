@@ -42,7 +42,7 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
   }
   if (!reportFolder) {
     reportFolder = _findEmptyFolder();
-    if (world.attach) {
+    if (world && world.attach) {
       world.attach(reportFolder, { mediaType: "text/plain" });
     }
   }
