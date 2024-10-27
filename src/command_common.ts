@@ -1,3 +1,5 @@
+import { maskValue } from "./utils.js";
+
 export async function _preCommand(state: any, stable: any) {
   if (!state) {
     return;
@@ -71,7 +73,7 @@ export function _commandFinally(state: any, stable: any) {
     element_name: state.selectors.element_name,
     type: state.type,
     text: state.text,
-    value: state.value,
+    value: state.originalValue ? maskValue(state.originalValue) : state.value,
     screenshotId: state.screenshotId,
     result: state.error
       ? {
@@ -87,7 +89,9 @@ export function _commandFinally(state: any, stable: any) {
         },
     info: state.info,
   };
-
+  if (state.originalValue && state.info) {
+    state.info.value = maskValue(state.originalValue);
+  }
   stable._reportToWorld(state.world, reportObject);
 }
 export function _validateSelectors(selectors: any) {
