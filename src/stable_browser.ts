@@ -12,7 +12,7 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
-import { decrypt } from "./utils.js";
+import { decrypt, maskValue, replaceWithLocalTestData } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
@@ -1210,23 +1210,24 @@ class StableBrowser {
   }
 
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
+    _value = unEscapeString(_value);
+    const newValue = await this._replaceWithLocalData(_value, world);
     const state = {
       selectors,
       _params,
-      value: unEscapeString(_value),
+      value: newValue,
+      originalValue: _value,
       options,
       world,
       type: Types.FILL,
       text: `Click type input with value: ${_value}`,
       operation: "clickType",
-      log: "***** clickType on " + selectors.element_name + " with value " + _value + "*****\n",
+      log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
 
-    const newValue = await this._replaceWithLocalData(state.value, world);
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
       _value = newValue;
-      state.value = newValue;
     }
     try {
       await _preCommand(state, this);
@@ -2479,31 +2480,7 @@ class StableBrowser {
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
-    if (!value) {
-      return value;
-    }
-
-    // find all the accurance of {{(.*?)}} and replace with the value
-    let regex = /{{(.*?)}}/g;
-    let matches = value.match(regex);
-    if (matches) {
-      const testData = this.getTestData(world);
-
-      for (let i = 0; i < matches.length; i++) {
-        let match = matches[i];
-        let key = match.substring(2, match.length - 2);
-
-        let newValue = objectPath.get(testData, key, null);
-
-        if (newValue !== null) {
-          value = value.replace(match, newValue);
-        }
-      }
-    }
-    if ((value.startsWith("secret:") || value.startsWith("totp:")) && _decrypt) {
-      return await decrypt(value, null, totpWait);
-    }
-    return value;
+    return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
   }
   _getLoadTimeout(options) {
     let timeout = 15000;
