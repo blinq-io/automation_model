@@ -89,7 +89,9 @@ export function _commandFinally(state: any, stable: any) {
         },
     info: state.info,
   };
-
+  if (state.originalValue && state.info) {
+    state.info.value = maskValue(state.originalValue);
+  }
   stable._reportToWorld(state.world, reportObject);
 }
 export function _validateSelectors(selectors: any) {
