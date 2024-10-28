@@ -7,6 +7,7 @@ export async function _preCommand(state: any, stable: any) {
   }
   if (state.selectors) {
     _validateSelectors(state.selectors);
+    state.selectors = JSON.parse(JSON.stringify(state.selectors));
   }
   if (state.locate !== false) {
     state.locate = true;
