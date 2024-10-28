@@ -9,3 +9,4 @@ playwright-report
 logs
 screenshots
 temp
+network.json

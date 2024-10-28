@@ -56,7 +56,7 @@ function _getDataFile(world: any = null, context: any = null, stable: any = null
   let dataFile = null;
   if (world && world.reportFolder) {
     dataFile = path.join(world.reportFolder, "data.json");
-  } else if (stable.reportFolder) {
+  } else if (stable && stable.reportFolder) {
     dataFile = path.join(stable.reportFolder, "data.json");
   } else if (stable.context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
