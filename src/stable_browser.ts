@@ -21,7 +21,7 @@ import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
 import { _commandError, _commandFinally, _preCommand, _validateSelectors, _screenshot } from "./command_common.js";
 import { register } from "module";
-import { registerNetworkEvents } from "./network.js";
+import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -96,6 +96,7 @@ class StableBrowser {
 
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
+    registerDownloadEvent(this.page);
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
@@ -111,6 +112,7 @@ class StableBrowser {
         context.page = page;
         context.pages.push(page);
         registerNetworkEvents(this.world, this, context, this.page);
+        registerDownloadEvent(this.page);
         page.on("close", async () => {
           if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
