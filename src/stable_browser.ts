@@ -110,6 +110,7 @@ class StableBrowser {
         if (this.configuration && this.configuration.closePopups === true) {
           console.log("close unexpected popups");
           await page.close();
+          return;
         }
         context.pageLoading.status = true;
         this.page = page;
