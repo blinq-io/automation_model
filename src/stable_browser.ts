@@ -107,6 +107,10 @@ class StableBrowser {
     context.playContext.on(
       "page",
       async function (page) {
+        if (this.configuration && this.configuration.closePopups === true) {
+          console.log("close unexpected popups");
+          await page.close();
+        }
         context.pageLoading.status = true;
         this.page = page;
         context.page = page;
