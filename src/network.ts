@@ -13,7 +13,11 @@ function _getNetworkFile(world: any = null, stable: any = null, context: any = n
   }
   return networkFile;
 }
-
+function registerDownloadEvent(page: any) {
+  if (page) {
+    page.on("download", (download: any) => download.path().then(console.log));
+  }
+}
 function registerNetworkEvents(world: any, stable: any, context: any, page: any) {
   const networkFile = _getNetworkFile(world, stable, context);
   function saveNetworkData() {
@@ -125,4 +129,4 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
     console.error("No page found to register network events");
   }
 }
-export { registerNetworkEvents };
+export { registerNetworkEvents, registerDownloadEvent };
