@@ -8,6 +8,7 @@ import {
   BrowserContextOptions,
 } from "playwright";
 import type { Cookie, LocalStorage } from "./environment.js";
+import fs from "fs";
 
 type StorageState = {
   cookies: Cookie[];
@@ -37,9 +38,15 @@ class BrowserManager {
     }
   }
 
-  async createBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+  async createBrowser(
+    headless = false,
+    storageState?: StorageState,
+    extensionPath?: string,
+    userDataDirPath?: string,
+    downloadsPath?: string
+  ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath);
+    await browser.init(headless, storageState, extensionPath, userDataDirPath, downloadsPath);
     this.browsers.push(browser);
     return browser;
   }
@@ -60,7 +67,21 @@ class Browser {
     this.page = null;
   }
 
-  async init(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+  async init(
+    headless = false,
+    storageState?: StorageState,
+    extensionPath?: string,
+    userDataDirPath?: string,
+    downloadsPath?: string
+  ) {
+    if (!downloadsPath) {
+      downloadsPath = "downloads";
+    }
+    // check if downloads path exists
+    if (!fs.existsSync(downloadsPath)) {
+      fs.mkdirSync(downloadsPath, { recursive: true });
+    }
+
     let viewport = null;
     if (process.env.HEADLESS === "true") {
       headless = true;
@@ -117,22 +138,27 @@ class Browser {
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+          downloadsPath: downloadsPath,
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+          downloadsPath: downloadsPath,
         });
       } else {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+          downloadsPath: downloadsPath,
         });
       }
-
-      let contextOptions = {} as BrowserContextOptions;
+      // downloadsPath
+      let contextOptions = {
+        acceptDownloads: true,
+      } as BrowserContextOptions;
       if (storageState) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
@@ -163,10 +189,3 @@ const browserManager = new BrowserManager();
 
 export { browserManager };
 export type { BrowserManager, Browser };
-// let browser = await browserManager.createBrowser();
-// browser.page.goto("https://www.cnn.com");
-// let browser2 = await browserManager.createBrowser();
-// await browser2.page.goto("https://www.google.com");
-// // sleep for 2 seconds
-// await new Promise((r) => setTimeout(r, 1000));
-// await browserManager.closeAll();
