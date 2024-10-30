@@ -67,13 +67,7 @@ const getContext = async function (
   if (stable && stable.context) {
     stable.context.downloadsPath = downloadsPath;
   }
-  let browser = await browserManager.createBrowser(
-    headless,
-    storageState,
-    extensionPath,
-    userDataDirPath,
-    downloadsPath
-  );
+  let browser = await browserManager.createBrowser(headless, storageState, extensionPath, userDataDirPath);
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
