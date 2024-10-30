@@ -55,6 +55,18 @@ const getContext = async function (
     }
   }
   const storageState = { cookies, origins };
+  let downloadsPath = "downloads";
+  if (world && world.reportFolder) {
+    downloadsPath = path.join(world.reportFolder, "downloads");
+  } else if (stable && stable.context && stable.context.reportFolder) {
+    downloadsPath = path.join(stable.context.reportFolder, "downloads");
+  }
+  if (world) {
+    world.downloadsPath = downloadsPath;
+  }
+  if (stable && stable.context) {
+    stable.context.downloadsPath = downloadsPath;
+  }
   let browser = await browserManager.createBrowser(headless, storageState, extensionPath, userDataDirPath);
   let context = new TestContext();
   context.browser = browser.browser;

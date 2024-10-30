@@ -12,7 +12,7 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
-import { decrypt } from "./utils.js";
+import { decrypt, maskValue, replaceWithLocalTestData } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
@@ -20,6 +20,8 @@ import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
 import { _commandError, _commandFinally, _preCommand, _validateSelectors, _screenshot } from "./command_common.js";
+import { register } from "module";
+import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 type Params = Record<string, string>;
 
 const Types = {
@@ -93,6 +95,8 @@ class StableBrowser {
     context.pageLoading = { status: false };
 
     this.registerEventListeners(this.context);
+    registerNetworkEvents(this.world, this, this.context, this.page);
+    registerDownloadEvent(this.page, this.world, this.context);
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
@@ -103,11 +107,17 @@ class StableBrowser {
     context.playContext.on(
       "page",
       async function (page) {
+        if (this.configuration && this.configuration.closePopups === true) {
+          console.log("close unexpected popups");
+          await page.close();
+          return;
+        }
         context.pageLoading.status = true;
         this.page = page;
         context.page = page;
         context.pages.push(page);
-
+        registerNetworkEvents(this.world, this, context, this.page);
+        registerDownloadEvent(this.page, this.world, context);
         page.on("close", async () => {
           if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
@@ -1210,23 +1220,24 @@ class StableBrowser {
   }
 
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
+    _value = unEscapeString(_value);
+    const newValue = await this._replaceWithLocalData(_value, world);
     const state = {
       selectors,
       _params,
-      value: unEscapeString(_value),
+      value: newValue,
+      originalValue: _value,
       options,
       world,
       type: Types.FILL,
       text: `Click type input with value: ${_value}`,
       operation: "clickType",
-      log: "***** clickType on " + selectors.element_name + " with value " + _value + "*****\n",
+      log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
 
-    const newValue = await this._replaceWithLocalData(state.value, world);
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
       _value = newValue;
-      state.value = newValue;
     }
     try {
       await _preCommand(state, this);
@@ -2479,31 +2490,7 @@ class StableBrowser {
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
-    if (!value) {
-      return value;
-    }
-
-    // find all the accurance of {{(.*?)}} and replace with the value
-    let regex = /{{(.*?)}}/g;
-    let matches = value.match(regex);
-    if (matches) {
-      const testData = this.getTestData(world);
-
-      for (let i = 0; i < matches.length; i++) {
-        let match = matches[i];
-        let key = match.substring(2, match.length - 2);
-
-        let newValue = objectPath.get(testData, key, null);
-
-        if (newValue !== null) {
-          value = value.replace(match, newValue);
-        }
-      }
-    }
-    if ((value.startsWith("secret:") || value.startsWith("totp:")) && _decrypt) {
-      return await decrypt(value, null, totpWait);
-    }
-    return value;
+    return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
   }
   _getLoadTimeout(options) {
     let timeout = 15000;

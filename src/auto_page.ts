@@ -40,26 +40,31 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
   if (world && world.context) {
     return world.context;
   }
+  if (!reportFolder) {
+    reportFolder = _findEmptyFolder();
+    if (world && world.attach) {
+      world.attach(reportFolder, { mediaType: "text/plain" });
+    }
+  }
+  const screenshotPath = reportFolder + "/screenshots/";
+  if (!fs.existsSync(screenshotPath)) {
+    fs.mkdirSync(screenshotPath, { recursive: true });
+  }
+  if (world) {
+    world.reportFolder = reportFolder;
+    world.screenshotPath = screenshotPath;
+    world.screenshot = true;
+  }
   context = await getContext(null, headless, world, null, null, true, null, moveToRight);
   if (world) {
     world.context = context;
-    world.screenshot = true;
-    if (!reportFolder) {
-      reportFolder = _findEmptyFolder();
-      if (world.attach) {
-        world.attach(reportFolder, { mediaType: "text/plain" });
-        world.attach(JSON.stringify(context.environment), {
-          mediaType: "application/json+env",
-        });
-      }
+    if (world.attach) {
+      world.attach(JSON.stringify(context.environment), {
+        mediaType: "application/json+env",
+      });
     }
-    world.screenshotPath = reportFolder + "/screenshots/";
-    if (!fs.existsSync(world.screenshotPath)) {
-      fs.mkdirSync(world.screenshotPath, { recursive: true });
-    }
-    world.reportFolder = reportFolder;
-    context.reportFolder = reportFolder;
   }
+  context.reportFolder = reportFolder;
 
   if (doNavigate) {
     await navigate(path);
