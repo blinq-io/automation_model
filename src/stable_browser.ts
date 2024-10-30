@@ -96,7 +96,7 @@ class StableBrowser {
 
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
-    registerDownloadEvent(this.page);
+    registerDownloadEvent(this.page, this.world, this.context);
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
@@ -112,7 +112,7 @@ class StableBrowser {
         context.page = page;
         context.pages.push(page);
         registerNetworkEvents(this.world, this, context, this.page);
-        registerDownloadEvent(this.page);
+        registerDownloadEvent(this.page, this.world, context);
         page.on("close", async () => {
           if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
