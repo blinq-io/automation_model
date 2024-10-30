@@ -38,15 +38,9 @@ class BrowserManager {
     }
   }
 
-  async createBrowser(
-    headless = false,
-    storageState?: StorageState,
-    extensionPath?: string,
-    userDataDirPath?: string,
-    downloadsPath?: string
-  ) {
+  async createBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath, downloadsPath);
+    await browser.init(headless, storageState, extensionPath, userDataDirPath);
     this.browsers.push(browser);
     return browser;
   }
@@ -68,20 +62,14 @@ class Browser {
     this.page = null;
   }
 
-  async init(
-    headless = false,
-    storageState?: StorageState,
-    extensionPath?: string,
-    userDataDirPath?: string,
-    downloadsPath?: string
-  ) {
-    if (!downloadsPath) {
-      downloadsPath = "downloads";
-    }
-    // check if downloads path exists
-    if (!fs.existsSync(downloadsPath)) {
-      fs.mkdirSync(downloadsPath, { recursive: true });
-    }
+  async init(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+    // if (!downloadsPath) {
+    //   downloadsPath = "downloads";
+    // }
+    // // check if downloads path exists
+    // if (!fs.existsSync(downloadsPath)) {
+    //   fs.mkdirSync(downloadsPath, { recursive: true });
+    // }
     this.headless = headless;
     let viewport = null;
     if (process.env.HEADLESS === "true") {
@@ -139,21 +127,21 @@ class Browser {
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          downloadsPath: downloadsPath,
+          //downloadsPath: downloadsPath,
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          downloadsPath: downloadsPath,
+          //downloadsPath: downloadsPath,
         });
       } else {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          downloadsPath: downloadsPath,
+          //downloadsPath: downloadsPath,
         });
       }
       // downloadsPath
