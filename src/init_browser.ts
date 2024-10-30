@@ -61,6 +61,12 @@ const getContext = async function (
   } else if (stable && stable.context && stable.context.reportFolder) {
     downloadsPath = path.join(stable.context.reportFolder, "downloads");
   }
+  if (world) {
+    world.downloadsPath = downloadsPath;
+  }
+  if (stable && stable.context) {
+    stable.context.downloadsPath = downloadsPath;
+  }
   let browser = await browserManager.createBrowser(
     headless,
     storageState,

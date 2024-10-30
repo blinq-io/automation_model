@@ -13,9 +13,25 @@ function _getNetworkFile(world: any = null, stable: any = null, context: any = n
   }
   return networkFile;
 }
-function registerDownloadEvent(page: any) {
+function registerDownloadEvent(page: any, world: any, context: any) {
   if (page) {
-    page.on("download", (download: any) => download.path().then(console.log));
+    let downloadPath = "./downloads";
+    if (world && world.downloadsPath) {
+      downloadPath = world.downloadsPath;
+    } else if (context && context.downloadsPath) {
+      downloadPath = context.downloadsPath;
+    }
+    if (!fs.existsSync(downloadPath)) {
+      fs.mkdirSync(downloadPath);
+    }
+    page.on("download", async (download: any) => {
+      const suggestedFilename = download.suggestedFilename(); // Get the original file name
+      const filePath = `${downloadPath}/${suggestedFilename}`;
+
+      // Save the download with the original name
+      await download.saveAs(filePath);
+      console.log(`Downloaded file saved as: ${filePath}`);
+    });
   }
 }
 function registerNetworkEvents(world: any, stable: any, context: any, page: any) {
