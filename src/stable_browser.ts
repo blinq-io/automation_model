@@ -916,7 +916,8 @@ class StableBrowser {
         }
       } catch (e) {
         if (performance.now() - startTime > timeout) {
-          throw e;
+          // throw e;
+          await _commandError({ text: "simpleClick", operation: "simpleClick", elementDescription, info: {} }, e, this);
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -946,7 +947,12 @@ class StableBrowser {
         }
       } catch (e) {
         if (performance.now() - startTime > timeout) {
-          throw e;
+          // throw e;
+          await _commandError(
+            { text: "simpleClickType", operation: "simpleClickType", value, elementDescription, info: {} },
+            e,
+            this
+          );
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -1236,7 +1242,8 @@ class StableBrowser {
       }
     } catch (e) {
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "setDateTime", operation: "setDateTime", selectors, value, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -1882,7 +1889,12 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError(
+        { text: "extractAttribute", operation: "extractAttribute", selectors, attribute, variable },
+        e,
+        this
+      );
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -1982,7 +1994,12 @@ class StableBrowser {
       } catch (e) {
         errorCount++;
         if (errorCount > 3) {
-          throw e;
+          // throw e;
+          await _commandError(
+            { text: "extractEmailData", operation: "extractEmailData", emailAddress, info: {} },
+            e,
+            this
+          );
         }
         // ignore
       }
@@ -2097,7 +2114,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "verifyPagePath", operation: "verifyPagePath", pathPart, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2217,7 +2235,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "verifyTextExistInPage", operation: "verifyTextExistInPage", text, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2297,7 +2316,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "visualVerification", operation: "visualVerification", text, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2363,7 +2383,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "getTableData", operation: "getTableData", selectors, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2522,7 +2543,12 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError(
+        { text: "analyzeTable", operation: "analyzeTable", selectors, query, operator, value },
+        e,
+        this
+      );
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2630,6 +2656,7 @@ class StableBrowser {
       await this.page.close();
     } catch (e) {
       console.log(".");
+      await _commandError({ text: "closePage", operation: "closePage", info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
@@ -2670,6 +2697,7 @@ class StableBrowser {
       await this.page.setViewportSize({ width: width, height: hight });
     } catch (e) {
       console.log(".");
+      await _commandError({ text: "setViewportSize", operation: "setViewportSize", width, hight, info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
@@ -2705,6 +2733,7 @@ class StableBrowser {
       await this.page.reload();
     } catch (e) {
       console.log(".");
+      await _commandError({ text: "reloadPage", operation: "reloadPage", info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
