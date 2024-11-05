@@ -526,19 +526,24 @@ class StableBrowser {
         _params
       );
       if (!locatorString) {
+        info.failCause.textNotFound = true;
+        info.failCause.lastError = "failed to locate element by text: " + locatorSearch.text;
         return;
       }
       locator = this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
+      let text = this._fixUsingParams(locatorSearch.text, _params);
       let result = await this._locateElementByText(
         scope,
-        this._fixUsingParams(locatorSearch.text, _params),
+        text,
         locatorSearch.tag,
         false,
         locatorSearch.partial === true,
         _params
       );
       if (result.elementCount === 0) {
+        info.failCause.textNotFound = true;
+        info.failCause.lastError = "failed to locate element by text: " + text;
         return;
       }
       locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
@@ -553,7 +558,11 @@ class StableBrowser {
     // if (locatorSearch.css && locatorSearch.css.includes("href=")) {
     //   cssHref = true;
     // }
+
     let count = await locator.count();
+    if (count > 0 && !info.failCause.count) {
+      info.failCause.count = count;
+    }
     //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
@@ -571,6 +580,8 @@ class StableBrowser {
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
       } else {
+        info.failCause.visible = visible;
+        info.failCause.enabled = enabled;
         if (!info.printMessages) {
           info.printMessages = {};
         }
@@ -582,6 +593,11 @@ class StableBrowser {
     }
   }
   async closeUnexpectedPopups(info, _params) {
+    if (!info) {
+      info = {};
+      info.failCause = {};
+      info.log = "";
+    }
     if (this.configuration.popupHandlers && this.configuration.popupHandlers.length > 0) {
       if (!info) {
         info = {};
@@ -639,7 +655,12 @@ class StableBrowser {
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
-  async _findFrameScope(selectors, timeout = 30000) {
+  async _findFrameScope(selectors, timeout = 30000, info) {
+    if (!info) {
+      info = {};
+      info.failCause = {};
+      info.log = "";
+    }
     let scope = this.page;
     if (selectors.frame) {
       return selectors.frame;
@@ -692,6 +713,8 @@ class StableBrowser {
         if (!scope) {
           info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (performance.now() - startTime > timeout) {
+            info.failCause.iframeNotFound = true;
+            info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -705,8 +728,8 @@ class StableBrowser {
     }
     return scope;
   }
-  async _getDocumentBody(selectors, timeout = 30000) {
-    let scope = await this._findFrameScope(selectors, timeout);
+  async _getDocumentBody(selectors, timeout = 30000, info) {
+    let scope = await this._findFrameScope(selectors, timeout, info);
 
     return scope.evaluate(() => {
       var bodyContent = document.body.innerHTML;
@@ -714,12 +737,17 @@ class StableBrowser {
     });
   }
   async _locate_internal(selectors, info, _params?: Params, timeout = 30000) {
+    if (!info) {
+      info = {};
+      info.failCause = {};
+      info.log = "";
+    }
     let highPriorityTimeout = 5000;
     let visibleOnlyTimeout = 6000;
     let startTime = performance.now();
     let locatorsCount = 0;
     //let arrayMode = Array.isArray(selectors);
-    let scope = await this._findFrameScope(selectors, timeout);
+    let scope = await this._findFrameScope(selectors, timeout, info);
     let selectorsLocators = null;
     selectorsLocators = selectors.locators;
     // group selectors by priority
@@ -818,7 +846,8 @@ class StableBrowser {
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
-
+    info.failCause.locatorNotFound = true;
+    info.failCause.lastError = "failed to locate unique element";
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
   async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly) {
@@ -847,6 +876,9 @@ class StableBrowser {
           unique: true,
         });
         result.locatorIndex = i;
+      }
+      if (foundLocators.length > 1) {
+        info.failCause.foundMultiple = true;
       }
     }
     return result;
@@ -927,7 +959,6 @@ class StableBrowser {
       if (state.options && state.options.context) {
         state.selectors.locators[0].text = state.options.context;
       }
-
       try {
         await state.element.click();
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1110,6 +1141,7 @@ class StableBrowser {
 
     try {
       await _preCommand(state, this);
+
       let value = await this._replaceWithLocalData(state.value, this);
       try {
         await state.element.evaluateHandle((el, value) => {
@@ -1242,7 +1274,6 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.value = _value;
-
       if (options === null || options === undefined || !options.press) {
         try {
           let currentValue = await state.element.inputValue();
