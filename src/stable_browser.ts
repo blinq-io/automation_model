@@ -361,7 +361,7 @@ class StableBrowser {
     let result = await this._locateElementByText(
       scope,
       this._fixUsingParams(text, _params),
-      "*",
+      "*:not(script, style, head)",
       false,
       false,
       _params
@@ -421,7 +421,7 @@ class StableBrowser {
         }
         document.collectAllShadowDomElements = collectAllShadowDomElements;
         if (!tag) {
-          tag = "*";
+          tag = "*:not(script, style, head)";
         }
         let regexpSearch = document.getRegex(text);
         if (regexpSearch) {
@@ -2117,7 +2117,14 @@ class StableBrowser {
         for (let i = 0; i < frames.length; i++) {
           if (dateAlternatives.date) {
             for (let j = 0; j < dateAlternatives.dates.length; j++) {
-              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, true, {});
+              const result = await this._locateElementByText(
+                frames[i],
+                dateAlternatives.dates[j],
+                "*:not(script, style, head)",
+                true,
+                true,
+                {}
+              );
               result.frame = frames[i];
               results.push(result);
             }
@@ -2126,7 +2133,7 @@ class StableBrowser {
               const result = await this._locateElementByText(
                 frames[i],
                 numberAlternatives.numbers[j],
-                "*",
+                "*:not(script, style, head)",
                 true,
                 true,
                 {}
@@ -2135,7 +2142,14 @@ class StableBrowser {
               results.push(result);
             }
           } else {
-            const result = await this._locateElementByText(frames[i], text, "*", true, true, {});
+            const result = await this._locateElementByText(
+              frames[i],
+              text,
+              "*:not(script, style, head)",
+              true,
+              true,
+              {}
+            );
             result.frame = frames[i];
             results.push(result);
           }
