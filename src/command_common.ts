@@ -1,3 +1,4 @@
+import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { maskValue } from "./utils.js";
 
 export async function _preCommand(state: any, stable: any) {
@@ -59,10 +60,14 @@ export async function _commandError(state: any, error: any, stable: any) {
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
   state.info.screenshotPath = screenshotPath;
+  const errorClassification = getHumanReadableErrorMessage(error);
+  state.info.errorType = errorClassification.errorType;
+  state.info.errorMessage = errorClassification.errorMessage;
   Object.assign(error, { info: state.info });
   state.error = error;
   throw error;
 }
+
 export async function _screenshot(state: any, stable: any) {
   const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
