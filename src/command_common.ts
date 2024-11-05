@@ -63,7 +63,7 @@ export async function _commandError(state: any, error: any, stable: any) {
   state.info.screenshotPath = screenshotPath;
   state.info.failCause.error = error;
   state.info.failCause.fail = true;
-  const errorClassification = getHumanReadableErrorMessage(error, state.info);
+  const errorClassification = getHumanReadableErrorMessage(error);
   state.info.errorType = errorClassification.errorType;
   state.info.errorMessage = errorClassification.errorMessage;
   Object.assign(error, { info: state.info });
