@@ -65,7 +65,7 @@ export async function _commandError(state: any, error: any, stable: any) {
 
   state.info.failCause.error = error;
   state.info.failCause.fail = true;
-  const errorClassification = getHumanReadableErrorMessage(error);
+  const errorClassification = getHumanReadableErrorMessage(error, state.info);
   state.info.errorType = errorClassification.errorType;
   state.info.errorMessage = errorClassification.errorMessage;
 
