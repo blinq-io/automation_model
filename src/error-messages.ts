@@ -169,7 +169,13 @@ function classifyJSError(error: Error): ErrorClassification {
   };
 }
 const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => {
-  const failCause = info.failCause;
+  const failCause = info?.failCause;
+  if (!failCause) {
+    return {
+      errorType: "UnknownError",
+      errorMessage: error.message,
+    };
+  }
   if (failCause.texxtNotFound) {
     return {
       errorType: "TextNotFoundError",
