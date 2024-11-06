@@ -1168,33 +1168,29 @@ class StableBrowser {
     }
   }
   async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
-    _validateSelectors(selectors);
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    const info = {};
-    info.log = "";
-    info.operation = Types.SET_DATE_TIME;
-    info.selectors = selectors;
-    info.value = value;
+    const state = {
+      selectors,
+      _params,
+      value: await this._replaceWithLocalData(value, this),
+      options,
+      world,
+      type: Types.SET_DATE_TIME,
+      text: `Set date time value: ${value}`,
+      operation: "setDateTime",
+      log: "***** set date time value " + selectors.element_name + " *****\n",
+      throwError: false,
+    };
     try {
-      value = await this._replaceWithLocalData(value, this);
-      let element = await this._locate(selectors, info, _params);
-      //insert red border around the element
-      await this.scrollIfNeeded(element, info);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      await this._highlightElements(element);
-
+      await _preCommand(state, this);
       try {
-        await element.click();
+        await state.element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
-          value = dayjs(value).format(format);
-          await element.fill(value);
+          state.value = dayjs(state.value).format(format);
+          await state.element.fill(state.value);
         } else {
-          const dateTimeValue = await getDateTimeValue({ value, element });
-          await element.evaluateHandle((el, dateTimeValue) => {
+          const dateTimeValue = await getDateTimeValue({ value: state.value, element: state.element });
+          await state.element.evaluateHandle((el, dateTimeValue) => {
             el.value = ""; // clear input
             el.value = dateTimeValue;
           }, dateTimeValue);
@@ -1206,19 +1202,18 @@ class StableBrowser {
         }
       } catch (err) {
         //await this.closeUnexpectedPopups();
-        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.error("setting date time input failed " + JSON.stringify(state.info));
         this.logger.info("Trying again");
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        info.screenshotPath = screenshotPath;
-        Object.assign(err, { info: info });
+        await _screenshot(state, this);
+        Object.assign(err, { info: state.info });
         await element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
-          value = dayjs(value).format(format);
-          await element.fill(value);
+          state.value = dayjs(state.value).format(format);
+          await state.element.fill(state.value);
         } else {
-          const dateTimeValue = await getDateTimeValue({ value, element });
-          await element.evaluateHandle((el, dateTimeValue) => {
+          const dateTimeValue = await getDateTimeValue({ value: state.value, element: state.element });
+          await state.element.evaluateHandle((el, dateTimeValue) => {
             el.value = ""; // clear input
             el.value = dateTimeValue;
           }, dateTimeValue);
@@ -1230,31 +1225,9 @@ class StableBrowser {
         }
       }
     } catch (e) {
-      error = e;
-      // throw e;
-      await _commandError({ text: "setDateTime", operation: "setDateTime", selectors, value, info }, e, this);
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.SET_DATE_TIME,
-        screenshotId,
-        value: value,
-        text: `setDateTime input with value: ${value}`,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error === null || error === void 0 ? void 0 : error.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
 
@@ -2098,15 +2071,22 @@ class StableBrowser {
     }
   }
   async verifyTextExistInPage(text, options = {}, world = null) {
-    const startTime = Date.now();
+    text = unEscapeString(text);
+    const state = {
+      text_search: text,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
+      text: `Verify text exists in page`,
+      operation: "verifyTextExistInPage",
+      log: "***** verify text " + text + " exists in page *****\n",
+    };
+
     const timeout = this._getLoadTimeout(options);
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const info = {};
-    info.log = "***** verify text " + text + " exists in page *****\n";
-    info.operation = "verifyTextExistInPage";
 
     const newValue = await this._replaceWithLocalData(text, world);
     if (newValue !== text) {
@@ -2114,10 +2094,11 @@ class StableBrowser {
       text = newValue;
     }
 
-    info.text = text;
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
     try {
+      await _preCommand(state, this);
+      state.info.text = text;
       while (true) {
         const frames = this.page.frames();
         let results = [];
@@ -2161,7 +2142,7 @@ class StableBrowser {
             results.push(result);
           }
         }
-        info.results = results;
+        state.info.results = results;
         const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
 
         if (resultWithElementsFound.length === 0) {
@@ -2177,44 +2158,19 @@ class StableBrowser {
           await this._highlightElements(frame, dataAttribute);
           const element = await frame.$(dataAttribute);
           if (element) {
-            await this.scrollIfNeeded(element, info);
+            await this.scrollIfNeeded(element, state.info);
             await element.dispatchEvent("bvt_verify_page_contains_text");
           }
         }
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        return info;
+        await _screenshot(state, this);
+        return state.info;
       }
 
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      this.logger.error("verify text exist in page failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      // throw e;
-      await _commandError({ text: "verifyTextExistInPage", operation: "verifyTextExistInPage", text, info }, e, this);
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
-        text: "Verify text exists in page",
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
   _getServerUrl() {
@@ -2605,38 +2561,27 @@ class StableBrowser {
     }
   }
   async closePage(options = {}, world = null) {
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    const info = {};
+    const state = {
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.CLOSE_PAGE,
+      text: `Close page`,
+      operation: "closePage",
+      log: "***** close page *****\n",
+      throwError: false,
+    };
+
     try {
+      await _preCommand(state, this);
       await this.page.close();
     } catch (e) {
       console.log(".");
-      await _commandError({ text: "closePage", operation: "closePage", info }, e, this);
+      await _commandError(state, e, this);
     } finally {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        type: Types.CLOSE_PAGE,
-        text: "close page",
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
   async setViewportSize(width: number, hight: number, options = {}, world = null) {

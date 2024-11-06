@@ -20,6 +20,9 @@ export async function _preCommand(state: any, stable: any) {
   if (state.highlight !== false) {
     state.highlight = true;
   }
+  if (state.throwError !== false) {
+    state.throwError = true;
+  }
   state.info = {};
   if (state.value) {
     state.value = stable._fixUsingParams(state.value, state._params);
@@ -28,6 +31,7 @@ export async function _preCommand(state: any, stable: any) {
   if (state.attribute) {
     state.info.attribute = state.attribute;
   }
+
   state.startTime = Date.now();
   state.info.selectors = state.selectors;
   state.info.log = state.log ? state.log : "";
@@ -73,7 +77,9 @@ export async function _commandError(state: any, error: any, stable: any) {
   Object.assign(error, { info: state.info });
   state.error = error;
   state.commandError = true;
-  throw error;
+  if (state.throwError) {
+    throw error;
+  }
 }
 
 export async function _screenshot(state: any, stable: any) {
@@ -87,7 +93,7 @@ export function _commandFinally(state: any, stable: any) {
   }
   state.endTime = Date.now();
   const reportObject = {
-    element_name: state.selectors.element_name,
+    element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
     text: state.text,
     value: state.originalValue ? maskValue(state.originalValue) : state.value,

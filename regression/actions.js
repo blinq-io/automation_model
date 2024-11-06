@@ -122,6 +122,17 @@ describe("Actions Tests", function () {
     );
     console.log("info object: " + JSON.stringify(info, null, 2));
   });
+  it("verifyTextExistInPage", async function () {
+    let info = null;
+    //let key = "section2";
+    console.log(`verifyTextExistInPage let_me_in"`);
+    info = await context.stable.verifyTextExistInPage(
+      "let_me_in",
+      { screenshotPath: "./temp/6.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+  });
   it("extract", async function () {
     let info = null;
     let key = "button_login";
@@ -131,7 +142,7 @@ describe("Actions Tests", function () {
       "inner_text",
       "login_name",
       null,
-      { screenshotPath: "./temp/6.png", screenshot: true },
+      { screenshotPath: "./temp/7.png", screenshot: true },
       null
     );
     console.log("info object: " + JSON.stringify(info, null, 2));
