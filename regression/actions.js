@@ -1,5 +1,7 @@
 import { initContext, closeContext } from "../build/lib/auto_page.js";
 import fs from "fs";
+import path from "path";
+import { expect } from "chai";
 
 let context = null;
 describe("Actions Tests", function () {
@@ -119,5 +121,22 @@ describe("Actions Tests", function () {
       null
     );
     console.log("info object: " + JSON.stringify(info, null, 2));
+  });
+  it("extract", async function () {
+    let info = null;
+    let key = "button_login";
+    console.log(`extract "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    info = await context.stable.extractAttribute(
+      locElements[key],
+      "inner_text",
+      "login_name",
+      null,
+      { screenshotPath: "./temp/6.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+    const dataFilePath = path.join(context.reportFolder, "data.json");
+    const data = JSON.parse(fs.readFileSync(dataFilePath));
+    expect(data.login_name).to.equal("LOGIN");
   });
 });

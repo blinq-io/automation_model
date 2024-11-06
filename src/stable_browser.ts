@@ -1836,77 +1836,47 @@ class StableBrowser {
     }
   }
   async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
-    _validateSelectors(selectors);
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
+    const state = {
+      selectors,
+      _params,
+      attribute,
+      variable,
+      options,
+      world,
+      type: Types.EXTRACT,
+      text: `Extract attribute from element`,
+      operation: "extractAttribute",
+      log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
+    };
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const info = {};
-    info.log = "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n";
-    info.operation = "extract";
-    info.selectors = selectors;
     try {
-      const element = await this._locate(selectors, info, _params);
-      await this._highlightElements(element);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await _preCommand(state, this);
       switch (attribute) {
         case "inner_text":
-          info.value = await element.innerText();
+          state.value = await state.element.innerText();
           break;
         case "href":
-          info.value = await element.getAttribute("href");
+          state.value = await state.element.getAttribute("href");
           break;
         case "value":
-          info.value = await element.inputValue();
+          state.value = await state.element.inputValue();
           break;
         default:
-          info.value = await element.getAttribute(attribute);
+          state.value = await state.element.getAttribute(attribute);
           break;
       }
-      this[variable] = info.value;
+      state.info.value = state.value;
+      this[variable] = state.value;
       if (world) {
-        world[variable] = info.value;
+        world[variable] = state.value;
       }
-      this.setTestData({ [variable]: info.value }, world);
-      this.logger.info("set test data: " + variable + "=" + info.value);
-      return info;
+      this.setTestData({ [variable]: state.value }, world);
+      this.logger.info("set test data: " + variable + "=" + state.value);
+      return state.info;
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      this.logger.error("extract failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      // throw e;
-      await _commandError(
-        { text: "extractAttribute", operation: "extractAttribute", selectors, attribute, variable },
-        e,
-        this
-      );
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.EXTRACT_ATTRIBUTE,
-        variable: variable,
-        value: info.value,
-        text: "Extract attribute from element",
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
   async extractEmailData(emailAddress, options, world) {
