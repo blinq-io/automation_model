@@ -168,11 +168,51 @@ function classifyJSError(error: Error): ErrorClassification {
     errorMessage: error.message,
   };
 }
-const getHumanReadableErrorMessage = (error: Error): ErrorClassification => {
-  const { errorType, errorMessage } = classifyPlaywrightError(error);
-  if (errorType === "UnknownError") {
-    return classifyJSError(error);
+const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => {
+  const failCause = info?.failCause;
+  if (!failCause) {
+    return {
+      errorType: "UnknownError",
+      errorMessage: error.message,
+    };
   }
-  return { errorType, errorMessage };
+  if (failCause.texxtNotFound) {
+    return {
+      errorType: "TextNotFoundError",
+      errorMessage: failCause.lastError,
+    };
+  }
+  if (failCause.iframeNotFound) {
+    return {
+      errorType: "IframeNotFoundError",
+      errorMessage: failCause.lastError,
+    };
+  }
+  if (failCause.locatorNotFound) {
+    return {
+      errorType: "ElementNotFoundError",
+      errorMessage: failCause.lastError,
+    };
+  }
+  if (failCause.foundMultiple) {
+    return {
+      errorType: "MultipleElementsFoundError",
+      errorMessage: failCause.lastError ?? `Found ${failCause.count} elements`,
+    };
+  }
+  return {
+    errorType: "UnknownError",
+    errorMessage: error.message,
+  };
+};
+const getHumanReadableErrorMessage = (error: Error, info: any): ErrorClassification => {
+  let errorClassification = classifyErrorFromInfo(error, info);
+  if (errorClassification.errorType === "UnknownError") {
+    errorClassification = classifyPlaywrightError(error);
+  }
+  if (errorClassification.errorType === "UnknownError") {
+    errorClassification = classifyJSError(error);
+  }
+  return errorClassification;
 };
 export { getHumanReadableErrorMessage };
