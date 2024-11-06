@@ -2146,7 +2146,7 @@ class StableBrowser {
         const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
 
         if (resultWithElementsFound.length === 0) {
-          if (Date.now() - startTime > timeout) {
+          if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${text} not found in page`);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
