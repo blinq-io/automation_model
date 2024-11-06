@@ -26,6 +26,9 @@ export async function _preCommand(state: any, stable: any) {
     state.value = stable._fixUsingParams(state.value, state._params);
     state.info.value = state.value;
   }
+  if (state.attribute) {
+    state.info.attribute = state.attribute;
+  }
   state.startTime = Date.now();
   state.info.selectors = state.selectors;
   state.info.log = state.log ? state.log : "";
