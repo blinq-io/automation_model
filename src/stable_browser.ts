@@ -50,6 +50,7 @@ const Types = {
   VERIFY_VISUAL: "verify_visual",
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
+  WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
 };
 export const apps = {};
 class StableBrowser {
@@ -2184,6 +2185,98 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+
+  async waitForTextToDisappear(text, options = {}, world = null) {
+    text = unEscapeString(text);
+    const state = {
+      text_search: text,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
+      text: `Verify text does not exist in page`,
+      operation: "verifyTextNotExistInPage",
+      log: "***** verify text " + text + " does not exist in page *****\n",
+    };
+
+    const timeout = this._getLoadTimeout(options);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const newValue = await this._replaceWithLocalData(text, world);
+    if (newValue !== text) {
+      this.logger.info(text + "=" + newValue);
+      text = newValue;
+    }
+
+    let dateAlternatives = findDateAlternatives(text);
+    let numberAlternatives = findNumberAlternatives(text);
+    try {
+      await _preCommand(state, this);
+      state.info.text = text;
+      while (true) {
+        const frames = this.page.frames();
+        let results = [];
+        for (let i = 0; i < frames.length; i++) {
+          if (dateAlternatives.date) {
+            for (let j = 0; j < dateAlternatives.dates.length; j++) {
+              const result = await this._locateElementByText(
+                frames[i],
+                dateAlternatives.dates[j],
+                "*:not(script, style, head)",
+                true,
+                true,
+                {}
+              );
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else if (numberAlternatives.number) {
+            for (let j = 0; j < numberAlternatives.numbers.length; j++) {
+              const result = await this._locateElementByText(
+                frames[i],
+                numberAlternatives.numbers[j],
+                "*:not(script, style, head)",
+                true,
+                true,
+                {}
+              );
+              result.frame = frames[i];
+              results.push(result);
+            }
+          } else {
+            const result = await this._locateElementByText(
+              frames[i],
+              text,
+              "*:not(script, style, head)",
+              true,
+              true,
+              {}
+            );
+            result.frame = frames[i];
+            results.push(result);
+          }
+        }
+        state.info.results = results;
+        const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
+
+        if (resultWithElementsFound.length === 0) {
+          await _screenshot(state, this);
+          return state.info;
+        }
+        if (Date.now() - state.startTime > timeout) {
+          throw new Error(`Text ${text} found in page`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+  }
+
   _getServerUrl() {
     let serviceUrl = "https://api.blinq.io";
     if (process.env.NODE_ENV_BLINQ === "dev") {
