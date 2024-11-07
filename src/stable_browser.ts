@@ -2172,7 +2172,7 @@ class StableBrowser {
     }
   }
 
-  async verifyTextNotExistInPage(text, options = {}, world = null) {
+  async waitForTextToDisappear(text, options = {}, world = null) {
     text = unEscapeString(text);
     const state = {
       text_search: text,
