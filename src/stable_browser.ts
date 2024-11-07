@@ -50,7 +50,7 @@ const Types = {
   VERIFY_VISUAL: "verify_visual",
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
-  VERIFY_ELEMENT_NOT_CONTAINS_TEXT: "verify_element_not_contains_text",
+  WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
 };
 export const apps = {};
 class StableBrowser {
@@ -2195,7 +2195,7 @@ class StableBrowser {
       locate: false,
       scroll: false,
       highlight: false,
-      type: Types.VERIFY_ELEMENT_DOES_NOT_CONTAIN_TEXT,
+      type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
       text: `Verify text does not exist in page`,
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
