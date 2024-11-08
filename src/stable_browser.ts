@@ -1839,10 +1839,7 @@ class StableBrowser {
           break;
       }
       state.info.value = state.value;
-      this[variable] = state.value;
-      if (world) {
-        world[variable] = state.value;
-      }
+
       this.setTestData({ [variable]: state.value }, world);
       this.logger.info("set test data: " + variable + "=" + state.value);
       return state.info;
