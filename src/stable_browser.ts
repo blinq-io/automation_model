@@ -352,7 +352,7 @@ class StableBrowser {
     let result = await this._locateElementByText(
       scope,
       this._fixUsingParams(text, _params),
-      "*",
+      "*:not(script, style, head)",
       false,
       false,
       _params
@@ -412,7 +412,7 @@ class StableBrowser {
         }
         document.collectAllShadowDomElements = collectAllShadowDomElements;
         if (!tag) {
-          tag = "*";
+          tag = "*:not(script, style, head)";
         }
         let regexpSearch = document.getRegex(text);
         if (regexpSearch) {
@@ -526,19 +526,24 @@ class StableBrowser {
         _params
       );
       if (!locatorString) {
+        info.failCause.textNotFound = true;
+        info.failCause.lastError = "failed to locate element by text: " + locatorSearch.text;
         return;
       }
       locator = this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
+      let text = this._fixUsingParams(locatorSearch.text, _params);
       let result = await this._locateElementByText(
         scope,
-        this._fixUsingParams(locatorSearch.text, _params),
+        text,
         locatorSearch.tag,
         false,
         locatorSearch.partial === true,
         _params
       );
       if (result.elementCount === 0) {
+        info.failCause.textNotFound = true;
+        info.failCause.lastError = "failed to locate element by text: " + text;
         return;
       }
       locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
@@ -553,7 +558,11 @@ class StableBrowser {
     // if (locatorSearch.css && locatorSearch.css.includes("href=")) {
     //   cssHref = true;
     // }
+
     let count = await locator.count();
+    if (count > 0 && !info.failCause.count) {
+      info.failCause.count = count;
+    }
     //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
@@ -571,6 +580,8 @@ class StableBrowser {
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
       } else {
+        info.failCause.visible = visible;
+        info.failCause.enabled = enabled;
         if (!info.printMessages) {
           info.printMessages = {};
         }
@@ -582,6 +593,11 @@ class StableBrowser {
     }
   }
   async closeUnexpectedPopups(info, _params) {
+    if (!info) {
+      info = {};
+      info.failCause = {};
+      info.log = "";
+    }
     if (this.configuration.popupHandlers && this.configuration.popupHandlers.length > 0) {
       if (!info) {
         info = {};
@@ -639,7 +655,12 @@ class StableBrowser {
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
-  async _findFrameScope(selectors, timeout = 30000) {
+  async _findFrameScope(selectors, timeout = 30000, info) {
+    if (!info) {
+      info = {};
+      info.failCause = {};
+      info.log = "";
+    }
     let scope = this.page;
     if (selectors.frame) {
       return selectors.frame;
@@ -692,6 +713,8 @@ class StableBrowser {
         if (!scope) {
           info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (performance.now() - startTime > timeout) {
+            info.failCause.iframeNotFound = true;
+            info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -705,8 +728,8 @@ class StableBrowser {
     }
     return scope;
   }
-  async _getDocumentBody(selectors, timeout = 30000) {
-    let scope = await this._findFrameScope(selectors, timeout);
+  async _getDocumentBody(selectors, timeout = 30000, info) {
+    let scope = await this._findFrameScope(selectors, timeout, info);
 
     return scope.evaluate(() => {
       var bodyContent = document.body.innerHTML;
@@ -714,12 +737,17 @@ class StableBrowser {
     });
   }
   async _locate_internal(selectors, info, _params?: Params, timeout = 30000) {
+    if (!info) {
+      info = {};
+      info.failCause = {};
+      info.log = "";
+    }
     let highPriorityTimeout = 5000;
     let visibleOnlyTimeout = 6000;
     let startTime = performance.now();
     let locatorsCount = 0;
     //let arrayMode = Array.isArray(selectors);
-    let scope = await this._findFrameScope(selectors, timeout);
+    let scope = await this._findFrameScope(selectors, timeout, info);
     let selectorsLocators = null;
     selectorsLocators = selectors.locators;
     // group selectors by priority
@@ -818,7 +846,8 @@ class StableBrowser {
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
-
+    info.failCause.locatorNotFound = true;
+    info.failCause.lastError = "failed to locate unique element";
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
   async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly) {
@@ -848,6 +877,9 @@ class StableBrowser {
         });
         result.locatorIndex = i;
       }
+      if (foundLocators.length > 1) {
+        info.failCause.foundMultiple = true;
+      }
     }
     return result;
   }
@@ -875,7 +907,8 @@ class StableBrowser {
         }
       } catch (e) {
         if (performance.now() - startTime > timeout) {
-          throw e;
+          // throw e;
+          await _commandError({ text: "simpleClick", operation: "simpleClick", elementDescription, info: {} }, e, this);
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -905,7 +938,12 @@ class StableBrowser {
         }
       } catch (e) {
         if (performance.now() - startTime > timeout) {
-          throw e;
+          // throw e;
+          await _commandError(
+            { text: "simpleClickType", operation: "simpleClickType", value, elementDescription, info: {} },
+            e,
+            this
+          );
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -927,7 +965,6 @@ class StableBrowser {
       if (state.options && state.options.context) {
         state.selectors.locators[0].text = state.options.context;
       }
-
       try {
         await state.element.click();
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1110,6 +1147,7 @@ class StableBrowser {
 
     try {
       await _preCommand(state, this);
+
       let value = await this._replaceWithLocalData(state.value, this);
       try {
         await state.element.evaluateHandle((el, value) => {
@@ -1130,33 +1168,29 @@ class StableBrowser {
     }
   }
   async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
-    _validateSelectors(selectors);
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    const info = {};
-    info.log = "";
-    info.operation = Types.SET_DATE_TIME;
-    info.selectors = selectors;
-    info.value = value;
+    const state = {
+      selectors,
+      _params,
+      value: await this._replaceWithLocalData(value, this),
+      options,
+      world,
+      type: Types.SET_DATE_TIME,
+      text: `Set date time value: ${value}`,
+      operation: "setDateTime",
+      log: "***** set date time value " + selectors.element_name + " *****\n",
+      throwError: false,
+    };
     try {
-      value = await this._replaceWithLocalData(value, this);
-      let element = await this._locate(selectors, info, _params);
-      //insert red border around the element
-      await this.scrollIfNeeded(element, info);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      await this._highlightElements(element);
-
+      await _preCommand(state, this);
       try {
-        await element.click();
+        await state.element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
-          value = dayjs(value).format(format);
-          await element.fill(value);
+          state.value = dayjs(state.value).format(format);
+          await state.element.fill(state.value);
         } else {
-          const dateTimeValue = await getDateTimeValue({ value, element });
-          await element.evaluateHandle((el, dateTimeValue) => {
+          const dateTimeValue = await getDateTimeValue({ value: state.value, element: state.element });
+          await state.element.evaluateHandle((el, dateTimeValue) => {
             el.value = ""; // clear input
             el.value = dateTimeValue;
           }, dateTimeValue);
@@ -1168,19 +1202,18 @@ class StableBrowser {
         }
       } catch (err) {
         //await this.closeUnexpectedPopups();
-        this.logger.error("setting date time input failed " + JSON.stringify(info));
+        this.logger.error("setting date time input failed " + JSON.stringify(state.info));
         this.logger.info("Trying again");
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        info.screenshotPath = screenshotPath;
-        Object.assign(err, { info: info });
+        await _screenshot(state, this);
+        Object.assign(err, { info: state.info });
         await element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
-          value = dayjs(value).format(format);
-          await element.fill(value);
+          state.value = dayjs(state.value).format(format);
+          await state.element.fill(state.value);
         } else {
-          const dateTimeValue = await getDateTimeValue({ value, element });
-          await element.evaluateHandle((el, dateTimeValue) => {
+          const dateTimeValue = await getDateTimeValue({ value: state.value, element: state.element });
+          await state.element.evaluateHandle((el, dateTimeValue) => {
             el.value = ""; // clear input
             el.value = dateTimeValue;
           }, dateTimeValue);
@@ -1192,30 +1225,9 @@ class StableBrowser {
         }
       }
     } catch (e) {
-      error = e;
-      throw e;
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.SET_DATE_TIME,
-        screenshotId,
-        value: value,
-        text: `setDateTime input with value: ${value}`,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error === null || error === void 0 ? void 0 : error.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
 
@@ -1242,7 +1254,6 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.value = _value;
-
       if (options === null || options === undefined || !options.press) {
         try {
           let currentValue = await state.element.inputValue();
@@ -1798,72 +1809,44 @@ class StableBrowser {
     }
   }
   async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
-    _validateSelectors(selectors);
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
+    const state = {
+      selectors,
+      _params,
+      attribute,
+      variable,
+      options,
+      world,
+      type: Types.EXTRACT,
+      text: `Extract attribute from element`,
+      operation: "extractAttribute",
+      log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
+    };
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const info = {};
-    info.log = "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n";
-    info.operation = "extract";
-    info.selectors = selectors;
     try {
-      const element = await this._locate(selectors, info, _params);
-      await this._highlightElements(element);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      await _preCommand(state, this);
       switch (attribute) {
         case "inner_text":
-          info.value = await element.innerText();
+          state.value = await state.element.innerText();
           break;
         case "href":
-          info.value = await element.getAttribute("href");
+          state.value = await state.element.getAttribute("href");
           break;
         case "value":
-          info.value = await element.inputValue();
+          state.value = await state.element.inputValue();
           break;
         default:
-          info.value = await element.getAttribute(attribute);
+          state.value = await state.element.getAttribute(attribute);
           break;
       }
-      this[variable] = info.value;
-      if (world) {
-        world[variable] = info.value;
-      }
-      this.setTestData({ [variable]: info.value }, world);
-      this.logger.info("set test data: " + variable + "=" + info.value);
-      return info;
+      state.info.value = state.value;
+
+      this.setTestData({ [variable]: state.value }, world);
+      this.logger.info("set test data: " + variable + "=" + state.value);
+      return state.info;
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      this.logger.error("extract failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      throw e;
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        element_name: selectors.element_name,
-        type: Types.EXTRACT_ATTRIBUTE,
-        variable: variable,
-        value: info.value,
-        text: "Extract attribute from element",
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
   async extractEmailData(emailAddress, options, world) {
@@ -1940,7 +1923,12 @@ class StableBrowser {
       } catch (e) {
         errorCount++;
         if (errorCount > 3) {
-          throw e;
+          // throw e;
+          await _commandError(
+            { text: "extractEmailData", operation: "extractEmailData", emailAddress, info: {} },
+            e,
+            this
+          );
         }
         // ignore
       }
@@ -2055,7 +2043,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "verifyPagePath", operation: "verifyPagePath", pathPart, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2079,15 +2068,22 @@ class StableBrowser {
     }
   }
   async verifyTextExistInPage(text, options = {}, world = null) {
-    const startTime = Date.now();
+    text = unEscapeString(text);
+    const state = {
+      text_search: text,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
+      text: `Verify text exists in page`,
+      operation: "verifyTextExistInPage",
+      log: "***** verify text " + text + " exists in page *****\n",
+    };
+
     const timeout = this._getLoadTimeout(options);
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const info = {};
-    info.log = "***** verify text " + text + " exists in page *****\n";
-    info.operation = "verifyTextExistInPage";
 
     const newValue = await this._replaceWithLocalData(text, world);
     if (newValue !== text) {
@@ -2095,17 +2091,25 @@ class StableBrowser {
       text = newValue;
     }
 
-    info.text = text;
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
     try {
+      await _preCommand(state, this);
+      state.info.text = text;
       while (true) {
         const frames = this.page.frames();
         let results = [];
         for (let i = 0; i < frames.length; i++) {
           if (dateAlternatives.date) {
             for (let j = 0; j < dateAlternatives.dates.length; j++) {
-              const result = await this._locateElementByText(frames[i], dateAlternatives.dates[j], "*", true, true, {});
+              const result = await this._locateElementByText(
+                frames[i],
+                dateAlternatives.dates[j],
+                "*:not(script, style, head)",
+                true,
+                true,
+                {}
+              );
               result.frame = frames[i];
               results.push(result);
             }
@@ -2114,7 +2118,7 @@ class StableBrowser {
               const result = await this._locateElementByText(
                 frames[i],
                 numberAlternatives.numbers[j],
-                "*",
+                "*:not(script, style, head)",
                 true,
                 true,
                 {}
@@ -2123,16 +2127,23 @@ class StableBrowser {
               results.push(result);
             }
           } else {
-            const result = await this._locateElementByText(frames[i], text, "*", true, true, {});
+            const result = await this._locateElementByText(
+              frames[i],
+              text,
+              "*:not(script, style, head)",
+              true,
+              true,
+              {}
+            );
             result.frame = frames[i];
             results.push(result);
           }
         }
-        info.results = results;
+        state.info.results = results;
         const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
 
         if (resultWithElementsFound.length === 0) {
-          if (Date.now() - startTime > timeout) {
+          if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${text} not found in page`);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -2144,43 +2155,19 @@ class StableBrowser {
           await this._highlightElements(frame, dataAttribute);
           const element = await frame.$(dataAttribute);
           if (element) {
-            await this.scrollIfNeeded(element, info);
+            await this.scrollIfNeeded(element, state.info);
             await element.dispatchEvent("bvt_verify_page_contains_text");
           }
         }
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        return info;
+        await _screenshot(state, this);
+        return state.info;
       }
 
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      this.logger.error("verify text exist in page failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      throw e;
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
-        text: "Verify text exists in page",
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
   _getServerUrl() {
@@ -2240,7 +2227,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "visualVerification", operation: "visualVerification", text, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2306,7 +2294,8 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError({ text: "getTableData", operation: "getTableData", selectors, info }, e, this);
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2465,7 +2454,12 @@ class StableBrowser {
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
-      throw e;
+      // throw e;
+      await _commandError(
+        { text: "analyzeTable", operation: "analyzeTable", selectors, query, operator, value },
+        e,
+        this
+      );
     } finally {
       const endTime = Date.now();
       this._reportToWorld(world, {
@@ -2564,37 +2558,27 @@ class StableBrowser {
     }
   }
   async closePage(options = {}, world = null) {
-    const startTime = Date.now();
-    let error = null;
-    let screenshotId = null;
-    let screenshotPath = null;
-    const info = {};
+    const state = {
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.CLOSE_PAGE,
+      text: `Close page`,
+      operation: "closePage",
+      log: "***** close page *****\n",
+      throwError: false,
+    };
+
     try {
+      await _preCommand(state, this);
       await this.page.close();
     } catch (e) {
       console.log(".");
+      await _commandError(state, e, this);
     } finally {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
-      const endTime = Date.now();
-      this._reportToWorld(world, {
-        type: Types.CLOSE_PAGE,
-        text: "close page",
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      _commandFinally(state, this);
     }
   }
   async setViewportSize(width: number, hight: number, options = {}, world = null) {
@@ -2613,6 +2597,7 @@ class StableBrowser {
       await this.page.setViewportSize({ width: width, height: hight });
     } catch (e) {
       console.log(".");
+      await _commandError({ text: "setViewportSize", operation: "setViewportSize", width, hight, info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
@@ -2648,6 +2633,7 @@ class StableBrowser {
       await this.page.reload();
     } catch (e) {
       console.log(".");
+      await _commandError({ text: "reloadPage", operation: "reloadPage", info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));

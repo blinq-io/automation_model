@@ -1,3 +1,4 @@
+import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { maskValue } from "./utils.js";
 
 export async function _preCommand(state: any, stable: any) {
@@ -19,15 +20,23 @@ export async function _preCommand(state: any, stable: any) {
   if (state.highlight !== false) {
     state.highlight = true;
   }
+  if (state.throwError !== false) {
+    state.throwError = true;
+  }
   state.info = {};
   if (state.value) {
     state.value = stable._fixUsingParams(state.value, state._params);
     state.info.value = state.value;
   }
+  if (state.attribute) {
+    state.info.attribute = state.attribute;
+  }
+
   state.startTime = Date.now();
   state.info.selectors = state.selectors;
   state.info.log = state.log ? state.log : "";
   state.info.operation = state.operation;
+  state.info.failCause = {};
   state.error = null;
   state.screenshotId = null;
   state.screenshotPath = null;
@@ -51,6 +60,7 @@ export async function _preCommand(state: any, stable: any) {
       // ignore
     }
   }
+  state.info.failCause.operationFailed = true;
 }
 export async function _commandError(state: any, error: any, stable: any) {
   stable.logger.error(state.text + " failed " + state.info.log);
@@ -58,19 +68,32 @@ export async function _commandError(state: any, error: any, stable: any) {
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
   state.info.screenshotPath = screenshotPath;
+
+  // state.info.failCause.error = error;
+  state.info.failCause.fail = true;
+  const errorClassification = getHumanReadableErrorMessage(error, state.info);
+  state.info.errorType = errorClassification.errorType;
+  state.info.errorMessage = errorClassification.errorMessage;
   Object.assign(error, { info: state.info });
   state.error = error;
-  throw error;
+  state.commandError = true;
+  if (state.throwError) {
+    throw error;
+  }
 }
+
 export async function _screenshot(state: any, stable: any) {
   const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
 }
 export function _commandFinally(state: any, stable: any) {
+  if (state && !state.commandError === true) {
+    state.info.failCause = {};
+  }
   state.endTime = Date.now();
   const reportObject = {
-    element_name: state.selectors.element_name,
+    element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
     text: state.text,
     value: state.originalValue ? maskValue(state.originalValue) : state.value,
