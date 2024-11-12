@@ -316,6 +316,7 @@ class Api {
         result = res.data;
       } catch (e) {
         error = e;
+        process.env.NO_RETRAIN = "false";
         throw error;
       } finally {
         const endTime = Date.now();
