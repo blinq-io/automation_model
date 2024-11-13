@@ -9,6 +9,7 @@ import {
 } from "playwright";
 import type { Cookie, LocalStorage } from "./environment.js";
 import fs from "fs";
+import path from "path";
 
 type StorageState = {
   cookies: Cookie[];
@@ -38,30 +39,45 @@ class BrowserManager {
     }
   }
 
-  async createBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+  async createBrowser(
+    headless = false,
+    storageState?: StorageState,
+    extensionPath?: string,
+    userDataDirPath?: string,
+    reportFolder?: string
+  ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath);
+    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder);
     this.browsers.push(browser);
     return browser;
   }
-  async getBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
-    if (this.browsers.length === 0) {
-      return await this.createBrowser(headless, storageState, extensionPath, userDataDirPath);
-    }
-    return this.browsers[0];
-  }
+  // async getBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+  //   if (this.browsers.length === 0) {
+  //     return await this.createBrowser(headless, storageState, extensionPath, userDataDirPath);
+  //   }
+  //   return this.browsers[0];
+  // }
 }
 class Browser {
   browser: PlaywrightBrowser | null;
   context: BrowserContext | null;
   page: Page | null;
+  headless: boolean = false;
+  reportFolder: string | null = null;
+  trace: boolean = false;
   constructor() {
     this.browser = null;
     this.context = null;
     this.page = null;
   }
 
-  async init(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
+  async init(
+    headless = false,
+    storageState?: StorageState,
+    extensionPath?: string,
+    userDataDirPath?: string,
+    reportFolder?: string
+  ) {
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
     // }
@@ -69,6 +85,10 @@ class Browser {
     // if (!fs.existsSync(downloadsPath)) {
     //   fs.mkdirSync(downloadsPath, { recursive: true });
     // }
+    this.headless = headless;
+    if (reportFolder) {
+      this.reportFolder = reportFolder;
+    }
     let viewport = null;
     if (process.env.HEADLESS === "true") {
       headless = true;
@@ -159,11 +179,23 @@ class Browser {
         this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
       }
     }
+    if (process.env.TRACE === "true" && this.context) {
+      this.trace = true;
+      await this.context.tracing.start({ screenshots: true, snapshots: true });
+    }
 
     this.page = await this.context!.newPage();
   }
 
   async close() {
+    if (this.context && this.trace) {
+      const traceFolder = path.join(this.reportFolder!, "trace");
+      const traceFile = path.join(traceFolder, "trace.zip");
+      if (!fs.existsSync(traceFolder)) {
+        fs.mkdirSync(traceFolder, { recursive: true });
+      }
+      await this.context.tracing.stop({ path: traceFile });
+    }
     if (this.browser !== null) {
       await this.browser.close();
       this.browser = null;

@@ -150,8 +150,23 @@ class StableBrowser {
     }
     let navigate = false;
     if (!apps[appName]) {
+<<<<<<< HEAD
       let newContext = await getContext(null, false, this.logger, appName, false, this);
       navigate = true;
+=======
+      let newContext = await getContext(
+        null,
+        this.context.headless ? this.context.headless : false,
+        this,
+        this.logger,
+        appName,
+        false,
+        this,
+        -1,
+        this.context.reportFolder
+      );
+      newContextCreated = true;
+>>>>>>> c631a77 (update)
       apps[appName] = {
         context: newContext,
         browser: newContext.browser,
