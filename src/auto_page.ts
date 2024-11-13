@@ -55,7 +55,7 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
     world.screenshotPath = screenshotPath;
     world.screenshot = true;
   }
-  context = await getContext(null, headless, world, null, null, true, null, moveToRight);
+  context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder);
   if (world) {
     world.context = context;
     if (world.attach) {

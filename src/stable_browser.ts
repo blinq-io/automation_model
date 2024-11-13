@@ -157,7 +157,9 @@ class StableBrowser {
         this.logger,
         appName,
         false,
-        this
+        this,
+        -1,
+        this.context.reportFolder
       );
       newContextCreated = true;
       apps[appName] = {

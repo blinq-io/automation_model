@@ -19,7 +19,8 @@ const getContext = async function (
   appName?: string | null,
   createStable = true,
   stable: StableBrowser | null = null,
-  moveToRight = -1
+  moveToRight = -1,
+  reportFolder: string | null = null
 ) {
   if (environment === null) {
     environment = initEnvironment();
@@ -56,9 +57,10 @@ const getContext = async function (
   }
   const storageState = { cookies, origins };
   let downloadsPath = "downloads";
-  if (world && world.reportFolder) {
-    downloadsPath = path.join(world.reportFolder, "downloads");
+  if (reportFolder) {
+    downloadsPath = path.join(reportFolder, "downloads");
   } else if (stable && stable.context && stable.context.reportFolder) {
+    reportFolder = stable.context.reportFolder;
     downloadsPath = path.join(stable.context.reportFolder, "downloads");
   }
   if (world) {
@@ -67,7 +69,13 @@ const getContext = async function (
   if (stable && stable.context) {
     stable.context.downloadsPath = downloadsPath;
   }
-  let browser = await browserManager.createBrowser(headless, storageState, extensionPath, userDataDirPath);
+  let browser = await browserManager.createBrowser(
+    headless,
+    storageState,
+    extensionPath,
+    userDataDirPath,
+    reportFolder ? reportFolder : "."
+  );
   let context = new TestContext();
   context.browser = browser.browser;
   context.playContext = browser.context;
@@ -75,6 +83,7 @@ const getContext = async function (
   context.headless = headless;
   context.environment = environment;
   context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
+  context.reportFolder = reportFolder;
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
   } else {
