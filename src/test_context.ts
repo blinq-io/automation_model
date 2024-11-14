@@ -14,6 +14,7 @@ class TestContext {
   navigate = false;
   headless = false;
   browserName: string | null = null;
+  browserObject: any = null;
   constructor() {}
 }
 export { TestContext };

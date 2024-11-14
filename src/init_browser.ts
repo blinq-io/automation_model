@@ -78,6 +78,7 @@ const getContext = async function (
   );
   let context = new TestContext();
   context.browser = browser.browser;
+  context.browserObject = browser;
   context.playContext = browser.context;
   context.page = browser.page;
   context.headless = headless;
