@@ -65,6 +65,7 @@ class Browser {
   headless: boolean = false;
   reportFolder: string | null = null;
   trace: boolean = false;
+  traceFolder: string | null = null;
   constructor() {
     this.browser = null;
     this.context = null;
@@ -181,6 +182,12 @@ class Browser {
     }
     if (process.env.TRACE === "true" && this.context) {
       this.trace = true;
+      const traceFolder = path.join(this.reportFolder!, "trace");
+      //const traceFile = path.join(traceFolder, "trace.zip");
+      if (!fs.existsSync(traceFolder)) {
+        fs.mkdirSync(traceFolder, { recursive: true });
+      }
+      this.traceFolder = traceFolder;
       await this.context.tracing.start({ screenshots: true, snapshots: true });
     }
 
@@ -188,14 +195,9 @@ class Browser {
   }
 
   async close() {
-    if (this.context && this.trace) {
-      const traceFolder = path.join(this.reportFolder!, "trace");
-      const traceFile = path.join(traceFolder, "trace.zip");
-      if (!fs.existsSync(traceFolder)) {
-        fs.mkdirSync(traceFolder, { recursive: true });
-      }
-      await this.context.tracing.stop({ path: traceFile });
-    }
+    // if (this.context && this.trace) {
+    //   await this.context.tracing.stop({ path: traceFile });
+    // }
     if (this.browser !== null) {
       await this.browser.close();
       this.browser = null;
