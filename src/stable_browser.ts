@@ -2782,7 +2782,7 @@ class StableBrowser {
     }
     world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
-  beforeStep(world, stepName) {
+  async beforeStep(world, stepName) {
     this.stepName = stepName;
     this.logger.info("step: " + stepName);
     if (!this.stepIndex) {
@@ -2792,15 +2792,15 @@ class StableBrowser {
     }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
-        this.context.browserObject.context.tracing.startChunk({ title: stepName });
+        await this.context.browserObject.context.tracing.startChunk({ title: stepName });
       }
     }
   }
-  afterStep(world) {
+  async afterStep(world) {
     this.stepName = null;
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
-        this.context.browserObject.context.tracing.stopChunk({
+        await this.context.browserObject.context.tracing.stopChunk({
           path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
         });
       }
