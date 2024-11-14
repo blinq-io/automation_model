@@ -2785,6 +2785,30 @@ class StableBrowser {
     }
     world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
+  beforeStep(world, stepName) {
+    this.stepName = stepName;
+    this.logger.info("step: " + stepName);
+    if (!this.stepIndex) {
+      this.stepIndex = 0;
+    } else {
+      this.stepIndex++;
+    }
+    if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
+      if (this.context.browserObject.context) {
+        this.context.browserObject.context.tracing.startChunk({ title: stepName });
+      }
+    }
+  }
+  afterStep(world) {
+    this.stepName = null;
+    if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
+      if (this.context.browserObject.context) {
+        this.context.browserObject.context.tracing.stopChunk({
+          path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
+        });
+      }
+    }
+  }
 }
 type JsonTimestamp = number;
 type JsonResultPassed = {
