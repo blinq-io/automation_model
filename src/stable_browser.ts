@@ -2785,8 +2785,8 @@ class StableBrowser {
     }
     world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
-  async beforeStep(world, stepName) {
-    this.stepName = stepName;
+  async beforeStep(world, step) {
+    this.stepName = step.pickleStep.text;
     this.logger.info("step: " + stepName);
     if (!this.stepIndex) {
       this.stepIndex = 0;
@@ -2799,7 +2799,7 @@ class StableBrowser {
       }
     }
   }
-  async afterStep(world) {
+  async afterStep(world, step) {
     this.stepName = null;
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
