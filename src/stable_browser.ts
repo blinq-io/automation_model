@@ -2784,15 +2784,15 @@ class StableBrowser {
   }
   async beforeStep(world, step) {
     this.stepName = step.pickleStep.text;
-    this.logger.info("step: " + stepName);
-    if (!this.stepIndex) {
+    this.logger.info("step: " + this.stepName);
+    if (this.stepIndex === undefined) {
       this.stepIndex = 0;
     } else {
       this.stepIndex++;
     }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
-        await this.context.browserObject.context.tracing.startChunk({ title: stepName });
+        await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
       }
     }
   }
