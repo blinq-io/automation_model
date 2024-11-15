@@ -521,6 +521,15 @@ class StableBrowser {
     info,
     visibleOnly = true
   ) {
+    if (!info) {
+      info = {};
+    }
+    if (!info.failCause) {
+      info.failCause = {};
+    }
+    if (!info.log) {
+      info.log = "";
+    }
     let locatorSearch = selectorHierarchy[index];
     try {
       locatorSearch = JSON.parse(this._fixUsingParams(JSON.stringify(locatorSearch), _params));
