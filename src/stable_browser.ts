@@ -2782,6 +2782,30 @@ class StableBrowser {
     }
     world.attach(JSON.stringify(properties), { mediaType: "application/json" });
   }
+  async beforeStep(world, step) {
+    this.stepName = step.pickleStep.text;
+    this.logger.info("step: " + this.stepName);
+    if (this.stepIndex === undefined) {
+      this.stepIndex = 0;
+    } else {
+      this.stepIndex++;
+    }
+    if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
+      if (this.context.browserObject.context) {
+        await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
+      }
+    }
+  }
+  async afterStep(world, step) {
+    this.stepName = null;
+    if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
+      if (this.context.browserObject.context) {
+        await this.context.browserObject.context.tracing.stopChunk({
+          path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
+        });
+      }
+    }
+  }
 }
 type JsonTimestamp = number;
 type JsonResultPassed = {
