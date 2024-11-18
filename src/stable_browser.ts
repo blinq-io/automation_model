@@ -988,12 +988,12 @@ class StableBrowser {
       }
       try {
         await state.element.click();
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         // await this.closeUnexpectedPopups();
         state.element = await this._locate(selectors, state.info, _params);
         await state.element.dispatchEvent("click");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       await this.waitForPageLoad();
       return state.info;
