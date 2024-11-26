@@ -54,6 +54,183 @@ function getTableData(table: Element) {
 // @ts-ignore
 document.getTableData = getTableData;
 
+function getTableData2(table) {
+  // Scan the table and build a tree
+  function scanTable(root, nodeArray, tableData) {
+    const role = document.getRole(root);
+    if (
+      role &&
+      (role === Roles.CELL || role === Roles.ROW || role === Roles.COLUMNHEADER || role === Roles.ROWHEADER)
+    ) {
+      const rec = root.getBoundingClientRect();
+      const node = {
+        tag: root.tagName,
+        role,
+        rec: rec ? [rec.x, rec.y, rec.width, rec.height] : null,
+        children: [],
+      };
+      if (role === Roles.CELL || role === Roles.COLUMNHEADER || role === Roles.ROWHEADER) {
+        node.text = document.getVisibleText(root);
+      }
+      if (role === Roles.COLUMNHEADER) {
+        tableData.columnsCount++;
+        tableData.columnHeaders.push(node);
+      }
+      if (role === Roles.ROW) {
+        tableData.rowsCount++;
+        tableData.rows.push(node);
+      }
+      nodeArray.push(node);
+      nodeArray = node.children;
+    }
+    const children = Array.from(root.children);
+    for (let i = 0; i < children.length; i++) {
+      scanTable(children[i], nodeArray, tableData);
+    }
+  }
+
+  const tableData = {
+    rowsCount: 0,
+    columnsCount: 0,
+    nodes: [], // Initialize nodes as an empty array
+    rows: [],
+    columnHeaders: [],
+  };
+
+  // Pass the root table element and initialize the tree
+  scanTable(table, tableData.nodes, tableData);
+
+  return tableData;
+}
+
+function getVisibleText(thElement) {
+  // if (!(thElement instanceof HTMLTableCellElement && thElement.tagName === 'TH')) {
+  //     throw new Error('Provided element is not a valid TH element.');
+  // }
+
+  // Helper function to recursively collect visible text
+  function getText(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent.trim(); // Return text content of text nodes
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tagName = node.tagName.toUpperCase();
+
+      if (tagName === "BR") {
+        return "\n"; // Treat <br> as a newline
+      }
+
+      if (getComputedStyle(node).display === "none") {
+        return ""; // Ignore invisible elements
+      }
+
+      // Recursively process child nodes
+      return Array.from(node.childNodes).map(getText).join("");
+    }
+
+    return ""; // Ignore other node types
+  }
+
+  return getText(thElement)
+    .replace(/\n\s*\n/g, "\n")
+    .trim(); // Clean up multiple newlines
+}
+document.getVisibleText = getVisibleText;
+
+// @ts-ignore
+document.getTableData2 = getTableData2;
+const Roles = {
+  LINK: "link",
+  BUTTON: "button",
+  CHECKBOX: "checkbox",
+  RADIO: "radio",
+  SLIDER: "slider",
+  TEXTBOX: "textbox",
+  PRESENTATION: "presentation",
+  IMG: "img",
+  LIST: "list",
+  LISTITEM: "listitem",
+  TABLE: "table",
+  COLUMNHEADER: "columnheader",
+  ROWHEADER: "rowheader",
+  CELL: "cell",
+  ROW: "row",
+  NAVIGATION: "navigation",
+  BANNER: "banner",
+  CONTENTINFO: "contentinfo",
+  MAIN: "main",
+  ARTICLE: "article",
+  REGION: "region",
+  COMPLEMENTARY: "complementary",
+  FORM: "form",
+  LISTBOX: "listbox",
+  COMBOBOX: "combobox",
+};
+function getRole(element) {
+  if (!element || typeof element.getAttribute !== "function") {
+    return null;
+  }
+  const tagName = element.tagName.toLowerCase();
+  function getInputRole(el) {
+    const type = el.type;
+    if (["button", "submit", "reset", "image"].includes(type)) {
+      return Roles.BUTTON;
+    }
+    if (type === "checkbox") return Roles.CHECKBOX;
+    if (type === "radio") return Roles.RADIO;
+    if (type === "range") return Roles.SLIDER;
+    if (["email", "tel", "text", "search", "url", "password"].includes(type)) {
+      return Roles.TEXTBOX;
+    }
+    return null;
+  }
+  function getImageRole(el) {
+    return el.getAttribute("alt") === "" ? Roles.PRESENTATION : Roles.IMG;
+  }
+  const implicitRoles = {
+    a: (el) => (el.hasAttribute("href") ? Roles.LINK : null),
+    button: Roles.BUTTON,
+    input: getInputRole,
+    select: (el) => (el.hasAttribute("multiple") || el.size > 1 ? Roles.LISTBOX : Roles.COMBOBOX),
+    textarea: Roles.TEXTBOX,
+    img: getImageRole,
+    ul: Roles.LIST,
+    ol: Roles.LIST,
+    li: Roles.LISTITEM,
+    table: Roles.TABLE,
+    th: (el) => {
+      const scope = el.getAttribute("scope");
+      if (scope === "col" || el.closest("thead")) {
+        return Roles.COLUMNHEADER;
+      }
+      if (scope === "row") {
+        return Roles.ROWHEADER;
+      }
+      // Fallback: infer based on context
+      const parentRow = el.closest("tr");
+      return parentRow && parentRow.parentNode.tagName.toLowerCase() === "thead" ? Roles.COLUMNHEADER : Roles.ROWHEADER;
+    },
+    td: Roles.CELL,
+    tr: Roles.ROW,
+    nav: Roles.NAVIGATION,
+    header: Roles.BANNER,
+    footer: Roles.CONTENTINFO,
+    form: (el) => (el.hasAttribute("name") ? Roles.FORM : null),
+    main: Roles.MAIN,
+    article: Roles.ARTICLE,
+    section: Roles.REGION,
+    aside: Roles.COMPLEMENTARY,
+  };
+  const role = element.getAttribute("role");
+  if (role) {
+    return role;
+  }
+  const implicitRole = implicitRoles[tagName];
+  return typeof implicitRole === "function" ? implicitRole(element) : implicitRole || null;
+}
+document.getRole = getRole;
+
 // locator                        | operator | value
 // table.rows                     | >=       | 1
 // table[1]["Availability"].text  | equals   | 100%
