@@ -2,6 +2,7 @@ import { get } from "http";
 import { initContext } from "../build/lib/auto_page.js";
 import { closeBrowser } from "../build/lib/init_browser.js";
 import { existsSync, mkdirSync, rmdirSync } from "fs";
+import { getTableData2 } from "../build/lib/table_analyze.js";
 
 const name = "login";
 const path = "/";
@@ -127,6 +128,13 @@ const login = async function (username, password) {
   // await context.stable.simpleClick("Login button", _params, options, null);
   // await context.stable.verifyTextExistInPage("/Log\\s+In/mg", {}, null);
   // Fill username field with "username"
+  await context.stable.goto("https://accessibility.psu.edu/tableshtml/complextablehtml/");
+  const info = {};
+  info.log = "";
+  const element = await context.stable._locate({ locators: [{ css: "table" }] }, info, null, 10000);
+  const data = await getTableData2(context.stable.page, element);
+
+  console.log(JSON.stringify(data, null, 2));
   await context.stable.clickType(elements["textbox_username"], username, false, _params, options, null);
   // Fill password field with "password"
   options.screenshotPath = getScreenShotPath();
