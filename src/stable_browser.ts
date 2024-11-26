@@ -245,7 +245,7 @@ class StableBrowser {
         context.networkLogger.push(obj);
         this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+network" });
       } catch (error) {
-        console.error("Error in request listener", error);
+        // console.error("Error in request listener", error);
         context.networkLogger.push({
           error: "not able to listen",
           message: error.message,
