@@ -2,6 +2,7 @@ import { get } from "http";
 import { initContext } from "../build/lib/auto_page.js";
 import { closeBrowser } from "../build/lib/init_browser.js";
 import { existsSync, mkdirSync, rmdirSync } from "fs";
+import { getTableData2 } from "../build/lib/table_analyze.js";
 
 const name = "login";
 const path = "/";
