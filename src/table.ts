@@ -85,7 +85,7 @@ analyzeObject examples:
         }
         return result;
       case "FIND_ROW":
-        for (let i = 1; i < this.tableData.rows.length; i++) {
+        for (let i = 0; i < this.tableData.rows.length; i++) {
           const index = _searchStringArrayInCellsArray(analyzeObject.cells, this.tableData.rows[i].children);
           if (index !== -1) {
             result.status = true;
@@ -98,28 +98,40 @@ analyzeObject examples:
         // ts-ignore
         result.error = "Row not found";
         return result;
-      case "VALIDATE_GRID": {
-        // const rowResult = this.analyze({
-        //   type: "FIND_ROW",
-        //   cells: analyzeObject.grid[0],
-        // });
-        // if (!rowResult.status) {
-        //   result.error = "First row not found";
-        //   return result;
-        // }
-        // if (analyzeObject.grid.length !== this.tableData.rows.length) {
-        //   return result;
-        // }
-        // for (let i = 0; i < analyzeObject.grid.length; i++) {
-        //   if (i === 0) {
-        //     const index = _searchStringArrayInCellsArray(analyzeObject.grid[i], this.tableData.rows[i].children);
-
-        //     if (!_searchStringArrayInCellsArray(analyzeObject.grid[i], this.tableData.rows[i].children)) {
-        //       return result;
-        //     }
-        //   }
-        //   result.status = true;
-        //   result.cells = this.tableData.rows;
+      case "VALIDATE_CELL": {
+        if (
+          //!analyzeObject.column_name ||
+          !analyzeObject.row_anchor_value ||
+          !analyzeObject.expected_value
+        ) {
+          result.error = "Missing parameters, expected: row_anchor_value, expected_value";
+          return result;
+        }
+        // find all the rows that contain the row_anchor_value
+        let rows = [];
+        for (let i = 0; i < this.tableData.rows.length; i++) {
+          if (
+            _searchStringArrayInCellsArray([analyzeObject.row_anchor_value], this.tableData.rows[i].children) !== -1
+          ) {
+            rows.push(this.tableData.rows[i]);
+          }
+        }
+        if (rows.length === 0) {
+          result.error = "Row containing the anchor value not found";
+          return result;
+        }
+        // within the found rows find a cell with the expected value
+        for (let i = 0; i < rows.length; i++) {
+          const index = _searchStringArrayInCellsArray([analyzeObject.expected_value], rows[i].children);
+          if (index !== -1) {
+            result.status = true;
+            result.cells = rows[i].children[index];
+            result.rowIndex = i;
+            result.cellIndex = index;
+            return result;
+          }
+        }
+        result.error = "Cell not found";
         return result;
       }
 

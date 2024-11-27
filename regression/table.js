@@ -81,4 +81,19 @@ describe("Actions Tests", function () {
 
     expect(result.status).to.equal(true);
   });
+  it("validate cell", async function () {
+    let info = {};
+    info.log = "";
+    const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
+    const table = new Table();
+    await table.initFromElement(context.stable.page, element);
+    let result = table.analyze({
+      type: "VALIDATE_CELL",
+      row_anchor_value: "Blue",
+      expected_value: "bleu",
+    });
+
+    expect(result.status).to.equal(true);
+    expect(result.cells.text).to.equal("bleu");
+  });
 });
