@@ -103,6 +103,15 @@ function getScreenShotPath() {
 }
 const context = await initContext(path, true, false);
 const login = async function (username, password) {
+  // const config = {
+  //   method: "GET",
+  //   url: "http://localhost:3070/login",
+  //   headers: [],
+  //   authType: "none",
+  //   queryParams: [],
+  //   settings: {},
+  // };
+  // await context.api.request(config, {}, {}, this);
   // if screenshot folder exist delete it
   if (existsSync("./screenshots")) {
     rmdirSync("./screenshots", { recursive: true });

@@ -19,7 +19,14 @@ import readline from "readline";
 import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
-import { _commandError, _commandFinally, _preCommand, _validateSelectors, _screenshot } from "./command_common.js";
+import {
+  _commandError,
+  _commandFinally,
+  _preCommand,
+  _validateSelectors,
+  _screenshot,
+  _reportToWorld,
+} from "./command_common.js";
 import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 type Params = Record<string, string>;
@@ -2067,7 +2074,7 @@ class StableBrowser {
       await _commandError({ text: "verifyPagePath", operation: "verifyPagePath", pathPart, info }, e, this);
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.VERIFY_PAGE_PATH,
         text: "Verify page path",
         screenshotId,
@@ -2343,7 +2350,7 @@ class StableBrowser {
       await _commandError({ text: "visualVerification", operation: "visualVerification", text, info }, e, this);
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.VERIFY_VISUAL,
         text: "Visual verification",
         screenshotId,
@@ -2410,7 +2417,7 @@ class StableBrowser {
       await _commandError({ text: "getTableData", operation: "getTableData", selectors, info }, e, this);
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         element_name: selectors.element_name,
         type: Types.GET_TABLE_DATA,
         text: "Get table data",
@@ -2574,7 +2581,7 @@ class StableBrowser {
       );
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         element_name: selectors.element_name,
         type: Types.ANALYZE_TABLE,
         text: "Analyze table",
@@ -2650,7 +2657,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
         text: "Wait for page load",
         screenshotId,
@@ -2714,7 +2721,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.SET_VIEWPORT,
         text: "set viewport size to " + width + "x" + hight,
         screenshotId,
@@ -2750,7 +2757,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
         text: "page relaod",
         screenshotId,
@@ -2785,12 +2792,7 @@ class StableBrowser {
       console.log("#-#");
     }
   }
-  _reportToWorld(world, properties: JsonCommandReport) {
-    if (!world || !world.attach) {
-      return;
-    }
-    world.attach(JSON.stringify(properties), { mediaType: "application/json" });
-  }
+
   async beforeStep(world, step) {
     this.stepName = step.pickleStep.text;
     this.logger.info("step: " + this.stepName);
@@ -2831,7 +2833,7 @@ type JsonResultFailed = {
 };
 
 type JsonCommandResult = JsonResultPassed | JsonResultFailed;
-type JsonCommandReport = {
+export type JsonCommandReport = {
   type: string;
   value?: string;
   text: string;
