@@ -2703,6 +2703,10 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  saveTestDataAsGlobal(options: any, world: any) {
+    const dataFile = this._getDataFile(world);
+    process.env.GLOBAL_TEST_DATA_FILE = dataFile;
+  }
   async setViewportSize(width: number, hight: number, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;

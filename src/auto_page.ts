@@ -46,6 +46,16 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
       world.attach(reportFolder, { mediaType: "text/plain" });
     }
   }
+  const globalTestDataFile = process.env.GLOBAL_TEST_DATA_FILE;
+  if (globalTestDataFile) {
+    // check if file exists
+    if (!fs.existsSync(globalTestDataFile)) {
+      console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.TEST_DATA_FILE);
+    } else {
+      // copy the test data file to the report folder as data.json
+      fs.copyFileSync(globalTestDataFile, reportFolder + "/data.json");
+    }
+  }
   const screenshotPath = reportFolder + "/screenshots/";
   if (!fs.existsSync(screenshotPath)) {
     fs.mkdirSync(screenshotPath, { recursive: true });
