@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import path from "path";
 import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
+import { _reportToWorld } from "./command_common.js";
 
 interface Config {
   url: string;
@@ -172,11 +173,12 @@ class Api {
       //@ts-ignore
       axiosConfig.headers["Authorization"] = `Basic ${btoa(`${config.tokens.username}:${config.tokens.password}`)}`;
     }
-    const res = await this.axiosClientRequest<T>(axiosConfig);
 
     const tests = config.tests;
     let testsPassed = 0;
+    let res: any = {};
     try {
+      res = await this.axiosClientRequest<T>(axiosConfig);
       if (res.status != config.status) {
         throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${config.status}`);
       }
@@ -221,11 +223,15 @@ class Api {
           throw new Error("Tests failed");
         }
       }
+      return res;
     } catch (e) {
       error = e;
       process.env.NO_RETRAIN = "false";
+      this.logger.error("Error while sending request " + error.message ? error.message : error.code);
+      error.stack = "";
       throw error;
     } finally {
+      const statusText = res.statusText ? res.statusText : error ? error.code : null;
       const endTime = Date.now();
       const properties = {
         element_name: "API",
@@ -236,6 +242,7 @@ class Api {
               status: "FAILED",
               startTime,
               endTime,
+              message: error.message ? error.message : error.code,
             }
           : {
               status: "PASSED",
@@ -248,22 +255,10 @@ class Api {
           headers: res.headers,
           status: res.status,
           data: res.data,
-          statusText: res.statusText,
+          statusText,
         },
       };
-      if (world && world.attach) {
-        world.attach(JSON.stringify(properties), {
-          mediaType: "application/json",
-        });
-      }
-
-      if (error) {
-        //@ts-ignore
-        const err = new Error(error.message);
-        err.stack = "";
-        throw err;
-      }
-      return res;
+      _reportToWorld(world, properties);
     }
   }
   async requestWithAuth(methodName: string, world: any, token: string, params: any) {

@@ -1,4 +1,5 @@
 import { getHumanReadableErrorMessage } from "./error-messages.js";
+import { JsonCommandReport } from "./stable_browser.js";
 import { maskValue } from "./utils.js";
 
 export async function _preCommand(state: any, stable: any) {
@@ -117,7 +118,7 @@ export function _commandFinally(state: any, stable: any) {
   if (state.originalValue && state.info) {
     state.info.value = maskValue(state.originalValue);
   }
-  stable._reportToWorld(state.world, reportObject);
+  _reportToWorld(state.world, reportObject);
 }
 export function _validateSelectors(selectors: any) {
   if (!selectors) {
@@ -132,4 +133,10 @@ export function _validateSelectors(selectors: any) {
   if (selectors.locators.length === 0) {
     throw new Error("selectors.locators expected to be non empty array");
   }
+}
+export function _reportToWorld(world: any, properties: any) {
+  if (!world || !world.attach) {
+    return;
+  }
+  world.attach(JSON.stringify(properties), { mediaType: "application/json" });
 }
