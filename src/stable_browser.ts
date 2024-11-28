@@ -66,6 +66,7 @@ class StableBrowser {
   networkLogger = null;
   configuration = null;
   appName = "main";
+  tags = null;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -2703,6 +2704,7 @@ class StableBrowser {
   saveTestDataAsGlobal(options: any, world: any) {
     const dataFile = this._getDataFile(world);
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
+    this.logger.info("Save the scenario test data as global for the following scenarios.");
   }
   async setViewportSize(width: number, hight: number, options = {}, world = null) {
     const startTime = Date.now();
@@ -2808,6 +2810,13 @@ class StableBrowser {
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
+      }
+    }
+    if (this.tags === null && step && step.pickle && step.pickle.tags) {
+      this.tags = step.pickle.tags.map((tag) => tag.name);
+      // check if @global_test_data tag is present
+      if (this.tags.includes("@global_test_data")) {
+        this.saveTestDataAsGlobal({}, world);
       }
     }
   }
