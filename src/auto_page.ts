@@ -27,6 +27,12 @@ const _findEmptyFolder = (folder?: string) => {
   if (!fs.existsSync(folder)) {
     fs.mkdirSync(folder);
   }
+  if (process.env.REPORT_FOLDER) {
+    return process.env.REPORT_FOLDER;
+  }
+  if (process.env.REPORT_ID) {
+    return path.join(folder, process.env.REPORT_ID);
+  }
   let nextIndex = 1;
   while (fs.existsSync(path.join(folder, nextIndex.toString()))) {
     nextIndex++;
