@@ -16,6 +16,7 @@ function classifyPlaywrightError(error: Error): ErrorClassification {
 
   // Network Errors
   if (
+    errorMessage.includes("connect econnrefused") ||
     errorMessage.includes("net::") ||
     errorMessage.includes("network") ||
     errorMessage.includes("connection refused") ||
@@ -176,7 +177,7 @@ const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => 
       errorMessage: error.message,
     };
   }
-  if (failCause.texxtNotFound) {
+  if (failCause.textNotFound) {
     return {
       errorType: "TextNotFoundError",
       errorMessage: failCause.lastError,
@@ -207,6 +208,11 @@ const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => 
 };
 
 const getHumanReadableErrorMessage = (error: Error, info: any): ErrorClassification => {
+  // @ts-ignore
+  if (error.errors && error.errors.length > 0) {
+    // @ts-ignore
+    return getHumanReadableErrorMessage(error.errors[0], info);
+  }
   let errorClassification = classifyErrorFromInfo(error, info);
   if (errorClassification.errorType === "UnknownError") {
     errorClassification = classifyPlaywrightError(error);
