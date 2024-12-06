@@ -32,7 +32,7 @@ interface Config {
     | null
     | undefined;
   tokens: { token: string; username: string; password: string };
-  authType: "bearer" | "basic" | "none";
+  authType: "Bearer" | "Basic" | "None";
   isStaticToken: boolean;
   status: number;
 }
@@ -160,10 +160,10 @@ class Api {
         enabled: header.enabled,
       };
     });
-    if (config.authType === "bearer") {
+    if (config.authType === "Bearer") {
       //@ts-ignore
       config.tokens.token = repStrWParamTData(config.tokens.token, params, testData);
-    } else if (config.authType === "basic") {
+    } else if (config.authType === "Basic") {
       //@ts-ignore
       config.tokens.username = repStrWParamTData(config.tokens.username, params, testData);
       //@ts-ignore
@@ -185,10 +185,10 @@ class Api {
       maxRedirects: config.settings.maxRedirects,
       validateStatus: config.settings.strictHttpParser ? (status: any) => status >= 200 && status < 300 : null,
     };
-    if (config.authType === "bearer") {
+    if (config.authType === "Bearer") {
       //@ts-ignore
       axiosConfig.headers["Authorization"] = `Bearer ${config.tokens.token}`;
-    } else if (config.authType === "basic" && config.tokens.username && config.tokens.password) {
+    } else if (config.authType === "Basic" && config.tokens.username && config.tokens.password) {
       //@ts-ignore
       axiosConfig.headers["Authorization"] = `Basic ${btoa(`${config.tokens.username}:${config.tokens.password}`)}`;
     }
