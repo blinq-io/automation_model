@@ -19,6 +19,7 @@ import readline from "readline";
 import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
+import { randomUUID } from "crypto";
 import {
   _commandError,
   _commandFinally,
@@ -1720,11 +1721,9 @@ class StableBrowser {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
       }
-      let nextIndex = 1;
-      while (fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))) {
-        nextIndex++;
-      }
-      const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
+      // to make sure the path doesn't start with -
+      const uuidStr = "id_" + randomUUID();
+      const screenshotPath = path.join(world.screenshotPath, uuidStr + ".png");
       try {
         await this.takeScreenshot(screenshotPath);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
@@ -1737,7 +1736,7 @@ class StableBrowser {
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
-      result.screenshotId = nextIndex;
+      result.screenshotId = uuidStr;
       result.screenshotPath = screenshotPath;
       if (info && info.box) {
         await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
