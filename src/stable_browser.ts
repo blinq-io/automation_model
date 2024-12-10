@@ -887,6 +887,9 @@ class StableBrowser {
       if (performance.now() - startTime > highPriorityTimeout) {
         info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
+        if (this.configuration && this.configuration.load_all_lazy === true) {
+          await this.scrollPageToLoadLazyElements();
+        }
       }
       if (performance.now() - startTime > visibleOnlyTimeout) {
         info.log += "visible only timeout, will try all elements" + "\n";
@@ -2667,9 +2670,6 @@ class StableBrowser {
 
     try {
       await Promise.all(promiseArray);
-      if (this.isRecording === false && this.configuration.load_all_lazy === true) {
-        await this.scrollPageToLoadLazyElements();
-      }
     } catch (e) {
       if (e.label === "networkidle") {
         console.log("waited for the network to be idle timeout");
