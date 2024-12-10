@@ -55,6 +55,15 @@ describe("Actions Tests", function () {
     section2: {
       locators: [{ css: ".MuiCardContent-root" }],
     },
+    button_google: {
+      locators: [{ text: "Google", tag: "a" }],
+    },
+    date: {
+      locators: [{ priority: 1, css: "#dateInput" }],
+    },
+    time: {
+      locators: [{ priority: 1, css: "#timeInput" }],
+    },
   };
   it("click", async function () {
     let info = null;
@@ -149,5 +158,56 @@ describe("Actions Tests", function () {
     const dataFilePath = path.join(context.reportFolder, "data.json");
     const data = JSON.parse(fs.readFileSync(dataFilePath));
     expect(data.login_name).to.equal("LOGIN");
+  });
+  it("closePage", async function () {
+    let info = null;
+    let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/form/";
+    await context.stable.goto(url);
+    let key = "button_google";
+    console.log(`click "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    info = await context.stable.click(
+      locElements[key],
+      null,
+      { screenshotPath: "./temp/8.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+    console.log("closePage");
+    info = await context.stable.closePage({ screenshotPath: "./temp/9.png", screenshot: true }, null);
+    console.log("info object: " + JSON.stringify(info, null, 2));
+    console.log(`verifyTextExistInPage Hi you"`);
+    info = await context.stable.verifyTextExistInPage(
+      "Hi you",
+      { screenshotPath: "./temp/10.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+  });
+  it("setDateTime", async function () {
+    let info = null;
+    let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
+    await context.stable.goto(url);
+    let key = "date";
+    info = await context.stable.setDateTime(
+      locElements[key],
+      "2024-11-08",
+      null,
+      false,
+      null,
+      { screenshotPath: "./temp/11.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+    key = "time";
+    info = await context.stable.setDateTime(
+      locElements[key],
+      "2024-11-08T12:30:00",
+      null,
+      false,
+      null,
+      { screenshotPath: "./temp/12.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
   });
 });
