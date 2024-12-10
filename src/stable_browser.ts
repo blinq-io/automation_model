@@ -796,6 +796,7 @@ class StableBrowser {
     let visibleOnlyTimeout = 6000;
     let startTime = performance.now();
     let locatorsCount = 0;
+    let lazy_scroll = false;
     //let arrayMode = Array.isArray(selectors);
     let scope = await this._findFrameScope(selectors, timeout, info);
     let selectorsLocators = null;
@@ -887,7 +888,8 @@ class StableBrowser {
       if (performance.now() - startTime > highPriorityTimeout) {
         info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
-        if (this.configuration && this.configuration.load_all_lazy === true) {
+        if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
+          lazy_scroll = true;
           await this.scrollPageToLoadLazyElements();
         }
       }
