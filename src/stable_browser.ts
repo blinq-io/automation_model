@@ -68,6 +68,7 @@ class StableBrowser {
   configuration = null;
   appName = "main";
   tags = null;
+  isRecording = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -107,6 +108,25 @@ class StableBrowser {
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
+  }
+  async scrollPageToLoadLazyElements() {
+    let lastHeight = await this.page.evaluate(() => document.body.scrollHeight);
+    let retry = 0;
+    while (true) {
+      await this.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      let newHeight = await this.page.evaluate(() => document.body.scrollHeight);
+      if (newHeight === lastHeight) {
+        break;
+      }
+      lastHeight = newHeight;
+      retry++;
+      if (retry > 10) {
+        break;
+      }
+    }
+
+    await this.page.evaluate(() => window.scrollTo(0, 0));
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
@@ -2647,6 +2667,9 @@ class StableBrowser {
 
     try {
       await Promise.all(promiseArray);
+      if (this.isRecording === false && this.configuration.load_all_lazy === true) {
+        await this.scrollPageToLoadLazyElements();
+      }
     } catch (e) {
       if (e.label === "networkidle") {
         console.log("waited for the network to be idle timeout");
