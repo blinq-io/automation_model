@@ -108,6 +108,25 @@ class StableBrowser {
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
   }
+  async scrollPageToLoadLazyElements() {
+    let lastHeight = await this.page.evaluate(() => document.body.scrollHeight);
+    let retry = 0;
+    while (true) {
+      await this.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      let newHeight = await this.page.evaluate(() => document.body.scrollHeight);
+      if (newHeight === lastHeight) {
+        break;
+      }
+      lastHeight = newHeight;
+      retry++;
+      if (retry > 10) {
+        break;
+      }
+    }
+
+    await this.page.evaluate(() => window.scrollTo(0, 0));
+  }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
     this.registerRequestListener(this.page, context, this.webLogFile);
