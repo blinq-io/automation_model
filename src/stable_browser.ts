@@ -687,6 +687,7 @@ class StableBrowser {
             await dialogCloseLocator.click();
             // wait for the dialog to close
             await dialogCloseLocator.waitFor({ state: "hidden" });
+          } catch (e) {
           } finally {
             await scope?.evaluate(() => {
               window.__isClosingPopups = false;
