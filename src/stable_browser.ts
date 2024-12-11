@@ -657,7 +657,7 @@ class StableBrowser {
       for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
         handlerGroup.push(this.configuration.popupHandlers[i].locator);
       }
-      const scopes = [this.page, ...this.page.frames()];
+      const scopes = this.page.frames().filter((frame) => frame.url() !== "about:blank");
       let result = null;
       let scope = null;
       for (let i = 0; i < scopes.length; i++) {
