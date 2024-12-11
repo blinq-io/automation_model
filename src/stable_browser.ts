@@ -1761,13 +1761,13 @@ class StableBrowser {
         //     this.logger.info("unable to save screenshot " + screenshotPath);
         //   }
         // });
+        result.screenshotId = uuidStr;
+        result.screenshotPath = screenshotPath;
+        if (info && info.box) {
+          await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
+        }
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
-      }
-      result.screenshotId = uuidStr;
-      result.screenshotPath = screenshotPath;
-      if (info && info.box) {
-        await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
       }
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
