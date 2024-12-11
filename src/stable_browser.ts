@@ -679,9 +679,19 @@ class StableBrowser {
         }
         if (result.foundElements.length > 0) {
           let dialogCloseLocator = result.foundElements[0].locator;
-          await dialogCloseLocator.click();
-          // wait for the dialog to close
-          await dialogCloseLocator.waitFor({ state: "hidden" });
+
+          try {
+            await scope?.evaluate(() => {
+              window.__isClosingPopups = true;
+            });
+            await dialogCloseLocator.click();
+            // wait for the dialog to close
+            await dialogCloseLocator.waitFor({ state: "hidden" });
+          } catch (error) {
+            await scope?.evaluate(() => {
+              window.__isClosingPopups = false;
+            });
+          }
           return { rerun: true };
         }
       }
