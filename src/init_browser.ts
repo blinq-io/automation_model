@@ -42,6 +42,7 @@ const getContext = async function (
   }
   let extensionPath = undefined;
   let userDataDirPath = undefined;
+  let userAgent = undefined;
   let aiConfigFile = "ai_config.json";
   if (process.env.PROJECT_PATH) {
     aiConfigFile = path.join(process.env.PROJECT_PATH, "ai_config.json");
@@ -53,6 +54,14 @@ const getContext = async function (
     }
     if (configuration.extensionPath) {
       extensionPath = configuration.extensionPath;
+    }
+
+    if(configuration.defaultBrowser){[
+      process.env.BROWSER = configuration.defaultBrowser
+    ]}
+
+    if(configuration.overrideUserAgent){
+      userAgent = configuration.overrideUserAgent;
     }
   }
   const storageState = { cookies, origins };
@@ -74,7 +83,8 @@ const getContext = async function (
     storageState,
     extensionPath,
     userDataDirPath,
-    reportFolder ? reportFolder : "."
+    reportFolder ? reportFolder : ".",
+    userAgent
   );
   let context = new TestContext();
   context.browser = browser.browser;
