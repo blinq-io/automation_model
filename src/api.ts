@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from "fs";
 import path from "path";
 import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
+import { _commandFinally, _reportToWorld } from "./command_common.js";
+import { getHumanReadableErrorMessage } from "./error-messages.js";
 
 interface Config {
   url: string;
@@ -30,7 +32,7 @@ interface Config {
     | null
     | undefined;
   tokens: { token: string; username: string; password: string };
-  authType: "bearer" | "basic" | "none";
+  authType: "Bearer" | "Basic" | "None";
   isStaticToken: boolean;
   status: number;
 }
@@ -125,6 +127,24 @@ class Api {
     const startTime = Date.now();
     let result: any = null;
 
+    const state: any = {
+      startTime,
+      params,
+      testData,
+      world,
+      element_name: "API",
+      type: "api_test",
+      text: `Api test`,
+      info: {},
+    };
+
+    const info = {
+      tests: config.tests,
+      testsPassed: 0,
+      failCause: {},
+    };
+    state.info = info;
+
     let error: any = null;
     const fixedUrl = repStrWParamTData(config.url, params, testData);
     const fixedQueryParams = config.queryParams.map((param) => {
@@ -140,10 +160,10 @@ class Api {
         enabled: header.enabled,
       };
     });
-    if (config.authType === "bearer") {
+    if (config.authType === "Bearer") {
       //@ts-ignore
       config.tokens.token = repStrWParamTData(config.tokens.token, params, testData);
-    } else if (config.authType === "basic") {
+    } else if (config.authType === "Basic") {
       //@ts-ignore
       config.tokens.username = repStrWParamTData(config.tokens.username, params, testData);
       //@ts-ignore
@@ -165,23 +185,24 @@ class Api {
       maxRedirects: config.settings.maxRedirects,
       validateStatus: config.settings.strictHttpParser ? (status: any) => status >= 200 && status < 300 : null,
     };
-    if (config.authType === "bearer") {
+    if (config.authType === "Bearer") {
       //@ts-ignore
       axiosConfig.headers["Authorization"] = `Bearer ${config.tokens.token}`;
-    } else if (config.authType === "basic" && config.tokens.username && config.tokens.password) {
+    } else if (config.authType === "Basic" && config.tokens.username && config.tokens.password) {
       //@ts-ignore
       axiosConfig.headers["Authorization"] = `Basic ${btoa(`${config.tokens.username}:${config.tokens.password}`)}`;
     }
-    const res = await this.axiosClientRequest<T>(axiosConfig);
 
-    const tests = config.tests;
-    let testsPassed = 0;
+    // const tests = config.tests;
+    // let testsPassed = 0;
+    let res: any = {};
     try {
+      res = await this.axiosClientRequest<T>(axiosConfig);
       if (res.status != config.status) {
         throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${config.status}`);
       }
-      if (tests) {
-        tests?.forEach((test) => {
+      if (info.tests) {
+        info.tests?.forEach((test) => {
           test.fail = true;
           const receivedValue = getValue(res.data, test.pattern);
           if (!hasValue(receivedValue)) {
@@ -215,68 +236,64 @@ class Api {
           }
         });
 
-        const testsFailed = tests.filter((test) => test.fail);
-        testsPassed = tests.length - testsFailed.length;
+        const testsFailed = info.tests.filter((test) => test.fail);
+        info.testsPassed = info.tests.length - testsFailed.length;
+
+        state.info.headers = res.headers;
+        state.info.status = res.status;
+        state.info.data = res.data;
         if (testsFailed.length > 0) {
           throw new Error("Tests failed");
         }
       }
+      return res;
     } catch (e) {
       error = e;
       process.env.NO_RETRAIN = "false";
+      this.logger.error("Error while sending request " + error.message ? error.message : error.code);
+      error.stack = "";
+      state.info.failCause.fail = true;
+      const errorClassification = getHumanReadableErrorMessage(error, state.info);
+      state.info.errorType = errorClassification.errorType;
+      state.info.errorMessage = errorClassification.errorMessage;
+
+      Object.assign(error, { info: state.info });
+      state.error = error;
+      state.commandError = true;
       throw error;
     } finally {
-      const endTime = Date.now();
-      const properties = {
-        element_name: "API",
-        type: "api_test",
-        text: `Api test  `,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: {
-          tests,
-          testsPassed,
-          headers: res.headers,
-          status: res.status,
-          data: res.data,
-          statusText: res.statusText,
-        },
-      };
-      if (world && world.attach) {
-        world.attach(JSON.stringify(properties), {
-          mediaType: "application/json",
-        });
-      }
-
-      if (error) {
-        //@ts-ignore
-        const err = new Error(error.message);
-        err.stack = "";
-        throw err;
-      }
-      return res;
+      const statusText = res.statusText ? res.statusText : error ? error.code : null;
+      state.info.statusText = statusText;
+      _commandFinally(state, this);
     }
   }
   async requestWithAuth(methodName: string, world: any, token: string, params: any) {
     const startTime = Date.now();
-    let error = null,
-      tests: any = {},
-      res: any = null,
-      testsPassed = 0;
+    let error: any = null,
+      // tests: any = {},
+      res: any = null;
+    // testsPassed = 0;
+
+    const state: any = {
+      startTime,
+      params,
+      world,
+      element_name: "API",
+      type: "api_test",
+      text: `Api test for ${methodName}`,
+      info: {},
+    };
     const apiFilePath = path.join("./features", "apis", methodName + ".json");
     let result = null;
     if (existsSync(apiFilePath)) {
       try {
         const apiRequests = JSON.parse(readFileSync(apiFilePath, "utf8"));
+        const info = {
+          tests: apiRequests.tests,
+          testsPassed: 0,
+          failCause: {},
+        };
+        state.info = info;
         const useAuthHeaders = apiRequests.useAuthHeaders;
         const config = JSON.parse(apiRequests.config);
         if (useAuthHeaders) {
@@ -286,8 +303,8 @@ class Api {
           };
         }
         res = await this.axiosClientRequest(JSON.parse(apiRequests.config));
-        tests = apiRequests.tests;
-        tests?.forEach((test: any) => {
+        info.tests = apiRequests.tests;
+        info.tests?.forEach((test: any) => {
           test.fail = true;
           const path = test === null || test === void 0 ? void 0 : test.pattern.split(".");
           let lengthExists = false;
@@ -309,55 +326,36 @@ class Api {
         if (res.status != statusCode) {
           throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${statusCode}`);
         }
-        const testsFailed = tests.filter((test: any) => test.fail);
-        testsPassed = tests.length - testsFailed.length;
+        const testsFailed = info.tests.filter((test: any) => test.fail);
+        info.testsPassed = info.tests.length - testsFailed.length;
+        state.info.headers = res.headers;
+        state.info.status = res.status;
+        state.info.data = res.data;
         if (testsFailed.length > 0) {
           throw new Error("Tests failed");
         }
-        result = res.data;
+        return res;
       } catch (e) {
         error = e;
         process.env.NO_RETRAIN = "false";
+        this.logger.error("Error while sending request " + error.message ? error.message : error.code);
+        error.stack = "";
+        state.info.failCause.fail = true;
+        const errorClassification = getHumanReadableErrorMessage(error, state.info);
+        state.info.errorType = errorClassification.errorType;
+        state.info.errorMessage = errorClassification.errorMessage;
+
+        Object.assign(error, { info: state.info });
+        state.error = error;
+        state.commandError = true;
+        if (error?.stack) {
+          error.stack = "";
+        }
         throw error;
       } finally {
-        const endTime = Date.now();
-        const properties = {
-          element_name: "API",
-          type: "api_test",
-          text: `Api test for ${methodName}`,
-          result: error
-            ? {
-                status: "FAILED",
-                startTime,
-                endTime,
-              }
-            : {
-                status: "PASSED",
-                startTime,
-                endTime,
-              },
-          info: {
-            tests,
-            testsPassed,
-            headers: res.headers,
-            status: res.status,
-            data: res.data,
-            statusText: res.statusText,
-          },
-        };
-        if (world && world.attach) {
-          world.attach(JSON.stringify(properties), {
-            mediaType: "application/json",
-          });
-        }
-
-        if (error) {
-          //@ts-ignore
-          const err = new Error(error.message);
-          err.stack = "";
-          throw err;
-        }
-        return result;
+        const statusText = res.statusText ? res.statusText : error ? error.code : null;
+        state.info.statusText = statusText;
+        _commandFinally(state, this);
       }
     }
   }

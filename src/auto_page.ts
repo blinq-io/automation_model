@@ -27,6 +27,12 @@ const _findEmptyFolder = (folder?: string) => {
   if (!fs.existsSync(folder)) {
     fs.mkdirSync(folder);
   }
+  if (process.env.REPORT_FOLDER) {
+    return process.env.REPORT_FOLDER;
+  }
+  if (process.env.REPORT_ID) {
+    return path.join(folder, process.env.REPORT_ID);
+  }
   let nextIndex = 1;
   while (fs.existsSync(path.join(folder, nextIndex.toString()))) {
     nextIndex++;
@@ -44,6 +50,16 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
     reportFolder = _findEmptyFolder();
     if (world && world.attach) {
       world.attach(reportFolder, { mediaType: "text/plain" });
+    }
+  }
+  const globalTestDataFile = process.env.GLOBAL_TEST_DATA_FILE;
+  if (globalTestDataFile) {
+    // check if file exists
+    if (!fs.existsSync(globalTestDataFile)) {
+      console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.TEST_DATA_FILE);
+    } else {
+      // copy the test data file to the report folder as data.json
+      fs.copyFileSync(globalTestDataFile, reportFolder + "/data.json");
     }
   }
   const screenshotPath = reportFolder + "/screenshots/";

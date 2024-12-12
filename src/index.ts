@@ -7,3 +7,4 @@ export * from "./browser_manager.js";
 export * from "./analyze_helper.js";
 export * from "./find_function.js";
 export * from "./utils.js";
+export * from "./table.js";

@@ -19,7 +19,15 @@ import readline from "readline";
 import { getContext } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
-import { _commandError, _commandFinally, _preCommand, _validateSelectors, _screenshot } from "./command_common.js";
+import { randomUUID } from "crypto";
+import {
+  _commandError,
+  _commandFinally,
+  _preCommand,
+  _validateSelectors,
+  _screenshot,
+  _reportToWorld,
+} from "./command_common.js";
 import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 type Params = Record<string, string>;
@@ -59,6 +67,7 @@ class StableBrowser {
   networkLogger = null;
   configuration = null;
   appName = "main";
+  tags = null;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -98,6 +107,25 @@ class StableBrowser {
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
+  }
+  async scrollPageToLoadLazyElements() {
+    let lastHeight = await this.page.evaluate(() => document.body.scrollHeight);
+    let retry = 0;
+    while (true) {
+      await this.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      let newHeight = await this.page.evaluate(() => document.body.scrollHeight);
+      if (newHeight === lastHeight) {
+        break;
+      }
+      lastHeight = newHeight;
+      retry++;
+      if (retry > 10) {
+        break;
+      }
+    }
+
+    await this.page.evaluate(() => window.scrollTo(0, 0));
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
@@ -244,7 +272,7 @@ class StableBrowser {
         context.networkLogger.push(obj);
         this.world?.attach(JSON.stringify(obj), { mediaType: "application/json+network" });
       } catch (error) {
-        console.error("Error in request listener", error);
+        // console.error("Error in request listener", error);
         context.networkLogger.push({
           error: "not able to listen",
           message: error.message,
@@ -649,9 +677,20 @@ class StableBrowser {
         }
         if (result.foundElements.length > 0) {
           let dialogCloseLocator = result.foundElements[0].locator;
-          await dialogCloseLocator.click();
-          // wait for the dialog to close
-          await dialogCloseLocator.waitFor({ state: "hidden" });
+
+          try {
+            await scope?.evaluate(() => {
+              window.__isClosingPopups = true;
+            });
+            await dialogCloseLocator.click();
+            // wait for the dialog to close
+            await dialogCloseLocator.waitFor({ state: "hidden" });
+          } catch (e) {
+          } finally {
+            await scope?.evaluate(() => {
+              window.__isClosingPopups = false;
+            });
+          }
           return { rerun: true };
         }
       }
@@ -766,6 +805,7 @@ class StableBrowser {
     let visibleOnlyTimeout = 6000;
     let startTime = performance.now();
     let locatorsCount = 0;
+    let lazy_scroll = false;
     //let arrayMode = Array.isArray(selectors);
     let scope = await this._findFrameScope(selectors, timeout, info);
     let selectorsLocators = null;
@@ -857,6 +897,10 @@ class StableBrowser {
       if (performance.now() - startTime > highPriorityTimeout) {
         info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
+        if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
+          lazy_scroll = true;
+          await this.scrollPageToLoadLazyElements();
+        }
       }
       if (performance.now() - startTime > visibleOnlyTimeout) {
         info.log += "visible only timeout, will try all elements" + "\n";
@@ -1712,11 +1756,9 @@ class StableBrowser {
       if (!fs.existsSync(world.screenshotPath)) {
         fs.mkdirSync(world.screenshotPath, { recursive: true });
       }
-      let nextIndex = 1;
-      while (fs.existsSync(path.join(world.screenshotPath, nextIndex + ".png"))) {
-        nextIndex++;
-      }
-      const screenshotPath = path.join(world.screenshotPath, nextIndex + ".png");
+      // to make sure the path doesn't start with -
+      const uuidStr = "id_" + randomUUID();
+      const screenshotPath = path.join(world.screenshotPath, uuidStr + ".png");
       try {
         await this.takeScreenshot(screenshotPath);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
@@ -1729,7 +1771,7 @@ class StableBrowser {
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
       }
-      result.screenshotId = nextIndex;
+      result.screenshotId = uuidStr;
       result.screenshotPath = screenshotPath;
       if (info && info.box) {
         await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
@@ -2067,7 +2109,7 @@ class StableBrowser {
       await _commandError({ text: "verifyPagePath", operation: "verifyPagePath", pathPart, info }, e, this);
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.VERIFY_PAGE_PATH,
         text: "Verify page path",
         screenshotId,
@@ -2343,7 +2385,7 @@ class StableBrowser {
       await _commandError({ text: "visualVerification", operation: "visualVerification", text, info }, e, this);
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.VERIFY_VISUAL,
         text: "Visual verification",
         screenshotId,
@@ -2410,7 +2452,7 @@ class StableBrowser {
       await _commandError({ text: "getTableData", operation: "getTableData", selectors, info }, e, this);
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         element_name: selectors.element_name,
         type: Types.GET_TABLE_DATA,
         text: "Get table data",
@@ -2574,7 +2616,7 @@ class StableBrowser {
       );
     } finally {
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         element_name: selectors.element_name,
         type: Types.ANALYZE_TABLE,
         text: "Analyze table",
@@ -2650,7 +2692,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
         text: "Wait for page load",
         screenshotId,
@@ -2693,6 +2735,11 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  saveTestDataAsGlobal(options: any, world: any) {
+    const dataFile = this._getDataFile(world);
+    process.env.GLOBAL_TEST_DATA_FILE = dataFile;
+    this.logger.info("Save the scenario test data as global for the following scenarios.");
+  }
   async setViewportSize(width: number, hight: number, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -2714,7 +2761,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.SET_VIEWPORT,
         text: "set viewport size to " + width + "x" + hight,
         screenshotId,
@@ -2750,7 +2797,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const endTime = Date.now();
-      this._reportToWorld(world, {
+      _reportToWorld(world, {
         type: Types.GET_PAGE_STATUS,
         text: "page relaod",
         screenshotId,
@@ -2785,12 +2832,7 @@ class StableBrowser {
       console.log("#-#");
     }
   }
-  _reportToWorld(world, properties: JsonCommandReport) {
-    if (!world || !world.attach) {
-      return;
-    }
-    world.attach(JSON.stringify(properties), { mediaType: "application/json" });
-  }
+
   async beforeStep(world, step) {
     this.stepName = step.pickleStep.text;
     this.logger.info("step: " + this.stepName);
@@ -2802,6 +2844,13 @@ class StableBrowser {
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
+      }
+    }
+    if (this.tags === null && step && step.pickle && step.pickle.tags) {
+      this.tags = step.pickle.tags.map((tag) => tag.name);
+      // check if @global_test_data tag is present
+      if (this.tags.includes("@global_test_data")) {
+        this.saveTestDataAsGlobal({}, world);
       }
     }
   }
@@ -2831,7 +2880,7 @@ type JsonResultFailed = {
 };
 
 type JsonCommandResult = JsonResultPassed | JsonResultFailed;
-type JsonCommandReport = {
+export type JsonCommandReport = {
   type: string;
   value?: string;
   text: string;
