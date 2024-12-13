@@ -44,11 +44,10 @@ class BrowserManager {
     storageState?: StorageState,
     extensionPath?: string,
     userDataDirPath?: string,
-    reportFolder?: string,
-    userAgent?: string
+    reportFolder?: string
   ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder, userAgent);
+    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder);
     this.browsers.push(browser);
     return browser;
   }
@@ -78,8 +77,7 @@ class Browser {
     storageState?: StorageState,
     extensionPath?: string,
     userDataDirPath?: string,
-    reportFolder?: string,
-    userAgent?: string
+    reportFolder?: string
   ) {
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
@@ -157,24 +155,6 @@ class Browser {
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
           //downloadsPath: downloadsPath,
         });
-      }
-      else if(process.env.BROWSER === "Google Chrome") {
-        this.browser = await chromium.launch({
-          headless: headless,
-          timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          channel: "chrome"
-          //downloadsPath: downloadsPath,
-        });
-      }
-      else if(process.env.BROWSER === "Microsoft Edge"){
-        this.browser = await chromium.launch({
-          headless: headless,
-          timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          channel: "msedge"
-          //downloadsPath: downloadsPath,
-        });
       } else {
         this.browser = await chromium.launch({
           headless: headless,
@@ -194,10 +174,6 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
-      }
-
-      if(userAgent){
-        contextOptions.userAgent = userAgent;
       }
 
       if (!this.context && this.browser) {
