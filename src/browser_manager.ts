@@ -44,10 +44,12 @@ class BrowserManager {
     storageState?: StorageState,
     extensionPath?: string,
     userDataDirPath?: string,
-    reportFolder?: string
+    reportFolder?: string,
+    userAgent?: string,
+    channel?: string
   ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder);
+    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder, userAgent, channel);
     this.browsers.push(browser);
     return browser;
   }
@@ -77,7 +79,9 @@ class Browser {
     storageState?: StorageState,
     extensionPath?: string,
     userDataDirPath?: string,
-    reportFolder?: string
+    reportFolder?: string,
+    userAgent?: string,
+    channel?: string
   ) {
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
@@ -155,6 +159,16 @@ class Browser {
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
           //downloadsPath: downloadsPath,
         });
+      } else if (channel) {
+        {
+          this.browser = await chromium.launch({
+            headless: headless,
+            timeout: 0,
+            args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+            channel: channel,
+            //downloadsPath: downloadsPath,
+          });
+        }
       } else {
         this.browser = await chromium.launch({
           headless: headless,
