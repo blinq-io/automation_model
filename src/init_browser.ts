@@ -42,6 +42,7 @@ const getContext = async function (
   }
   let extensionPath = undefined;
   let userDataDirPath = undefined;
+  let userAgent = undefined;
   let aiConfigFile = "ai_config.json";
   let channel = undefined;
   if (process.env.PROJECT_PATH) {
