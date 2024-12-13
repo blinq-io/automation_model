@@ -44,6 +44,7 @@ const getContext = async function (
   let userDataDirPath = undefined;
   let userAgent = undefined;
   let aiConfigFile = "ai_config.json";
+  let channel = undefined;
   if (process.env.PROJECT_PATH) {
     aiConfigFile = path.join(process.env.PROJECT_PATH, "ai_config.json");
   }
@@ -56,9 +57,12 @@ const getContext = async function (
       extensionPath = configuration.extensionPath;
     }
 
-    if(configuration.defaultBrowser){[
-      process.env.BROWSER = configuration.defaultBrowser
-    ]}
+    if(configuration.useGoogleChrome === true){
+      channel = "chrome"
+    }
+    else if(configuration.useMicrosoftEdge === true){
+      channel = "msedge"
+    }
 
     if(configuration.overrideUserAgent){
       userAgent = configuration.overrideUserAgent;
@@ -84,7 +88,8 @@ const getContext = async function (
     extensionPath,
     userDataDirPath,
     reportFolder ? reportFolder : ".",
-    userAgent
+    userAgent,
+    channel
   );
   let context = new TestContext();
   context.browser = browser.browser;

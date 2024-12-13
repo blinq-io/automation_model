@@ -45,10 +45,11 @@ class BrowserManager {
     extensionPath?: string,
     userDataDirPath?: string,
     reportFolder?: string,
-    userAgent?: string
+    userAgent?: string,
+    channel?: string
   ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder, userAgent);
+    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder, userAgent, channel);
     this.browsers.push(browser);
     return browser;
   }
@@ -79,7 +80,8 @@ class Browser {
     extensionPath?: string,
     userDataDirPath?: string,
     reportFolder?: string,
-    userAgent?: string
+    userAgent?: string,
+    channel?: string
   ) {
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
@@ -158,24 +160,17 @@ class Browser {
           //downloadsPath: downloadsPath,
         });
       }
-      else if(process.env.BROWSER === "Google Chrome") {
+      else if(channel){ {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          channel: "chrome"
+          channel: channel,
           //downloadsPath: downloadsPath,
         });
       }
-      else if(process.env.BROWSER === "Microsoft Edge"){
-        this.browser = await chromium.launch({
-          headless: headless,
-          timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          channel: "msedge"
-          //downloadsPath: downloadsPath,
-        });
-      } else {
+    }
+      else {
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
