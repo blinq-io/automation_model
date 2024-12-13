@@ -190,6 +190,10 @@ class Browser {
         contextOptions.viewport = viewport;
       }
 
+      if(userAgent){
+        contextOptions.userAgent = userAgent;
+      }
+
       if (!this.context && this.browser) {
         this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
       }
