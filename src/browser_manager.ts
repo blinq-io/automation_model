@@ -171,6 +171,7 @@ class Browser {
       }
     }
       else {
+
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
@@ -189,10 +190,6 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
-      }
-
-      if(userAgent){
-        contextOptions.userAgent = userAgent;
       }
 
       if (!this.context && this.browser) {
