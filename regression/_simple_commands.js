@@ -5,25 +5,38 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
 let context = null;
-
-//{"status":true,"result":{"elementNumber":2,"reason":"The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.","name":"locate_element"}}
-describe("Actions Tests", function () {
-  const handlers = [
-    // Intercept "GET https://example.com/user" requests...
-    http.post("*/api/runs/locate-element/locate", () => {
-      // ...and respond to them using this JSON response.
-      return HttpResponse.json({
+const server = setupServer(
+  rest.post("*/api/runs/locate-element/locate", (req, res, ctx) => {
+    return res(
+      ctx.json({
         status: true,
         result: {
           elementNumber: 2,
-          reason:
-            "The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.",
+          reason: "The element with elementNumber 2 is a button with the name 'Login'...",
           name: "locate_element",
         },
-      });
-    }),
-  ];
-  const server = setupServer(...handlers);
+      })
+    );
+  })
+);
+//{"status":true,"result":{"elementNumber":2,"reason":"The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.","name":"locate_element"}}
+describe("Actions Tests", function () {
+  // const handlers = [
+  //   // Intercept "GET https://example.com/user" requests...
+  //   http.post("*/api/runs/locate-element/locate", () => {
+  //     // ...and respond to them using this JSON response.
+  //     return HttpResponse.json({
+  //       status: true,
+  //       result: {
+  //         elementNumber: 2,
+  //         reason:
+  //           "The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.",
+  //         name: "locate_element",
+  //       },
+  //     });
+  //   }),
+  // ];
+  // const server = setupServer(...handlers);
   before(async function () {
     server.listen();
     // check if temp directory exists
