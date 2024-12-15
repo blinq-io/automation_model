@@ -46,10 +46,20 @@ class BrowserManager {
     userDataDirPath?: string,
     reportFolder?: string,
     userAgent?: string,
-    channel?: string
+    channel?: string,
+    aiConfig?: any
   ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder, userAgent, channel);
+    await browser.init(
+      headless,
+      storageState,
+      extensionPath,
+      userDataDirPath,
+      reportFolder,
+      userAgent,
+      channel,
+      aiConfig
+    );
     this.browsers.push(browser);
     return browser;
   }
@@ -81,8 +91,12 @@ class Browser {
     userDataDirPath?: string,
     reportFolder?: string,
     userAgent?: string,
-    channel?: string
+    channel?: string,
+    aiConfig?: any
   ) {
+    if (!aiConfig) {
+      aiConfig = {};
+    }
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
     // }
@@ -178,9 +192,14 @@ class Browser {
         });
       }
       // downloadsPath
-      let contextOptions = {
-        acceptDownloads: true,
-      } as BrowserContextOptions;
+      let contextOptions: any = {};
+      if (aiConfig.contextOptions) {
+        contextOptions = aiConfig.contextOptions;
+        console.log("contextOptions: " + JSON.stringify(contextOptions));
+      }
+      if (!contextOptions["acceptDownloads"]) {
+        contextOptions["acceptDownloads"] = true;
+      }
       if (storageState) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
@@ -190,7 +209,7 @@ class Browser {
         contextOptions.viewport = viewport;
       }
 
-      if(userAgent){
+      if (userAgent) {
         contextOptions.userAgent = userAgent;
       }
 
