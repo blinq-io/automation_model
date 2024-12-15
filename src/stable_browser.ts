@@ -720,6 +720,7 @@ class StableBrowser {
       info.failCause = {};
       info.log = "";
     }
+    let startTime = Date.now();
     let scope = this.page;
     if (selectors.frame) {
       return selectors.frame;
@@ -771,7 +772,7 @@ class StableBrowser {
         }
         if (!scope) {
           info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
-          if (performance.now() - startTime > timeout) {
+          if (Date.now() - startTime > timeout) {
             info.failCause.iframeNotFound = true;
             info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
@@ -803,7 +804,7 @@ class StableBrowser {
     }
     let highPriorityTimeout = 5000;
     let visibleOnlyTimeout = 6000;
-    let startTime = performance.now();
+    let startTime = Date.now();
     let locatorsCount = 0;
     let lazy_scroll = false;
     //let arrayMode = Array.isArray(selectors);
@@ -891,10 +892,10 @@ class StableBrowser {
           return maxCountElement.locator;
         }
       }
-      if (performance.now() - startTime > timeout) {
+      if (Date.now() - startTime > timeout) {
         break;
       }
-      if (performance.now() - startTime > highPriorityTimeout) {
+      if (Date.now() - startTime > highPriorityTimeout) {
         info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
         if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
@@ -902,7 +903,7 @@ class StableBrowser {
           await this.scrollPageToLoadLazyElements();
         }
       }
-      if (performance.now() - startTime > visibleOnlyTimeout) {
+      if (Date.now() - startTime > visibleOnlyTimeout) {
         info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
@@ -970,7 +971,7 @@ class StableBrowser {
           return;
         }
       } catch (e) {
-        if (performance.now() - startTime > timeout) {
+        if (Date.now() - startTime > timeout) {
           // throw e;
           await _commandError({ text: "simpleClick", operation: "simpleClick", elementDescription, info: {} }, e, this);
         }
@@ -1001,7 +1002,7 @@ class StableBrowser {
           return;
         }
       } catch (e) {
-        if (performance.now() - startTime > timeout) {
+        if (Date.now() - startTime > timeout) {
           // throw e;
           await _commandError(
             { text: "simpleClickType", operation: "simpleClickType", value, elementDescription, info: {} },
