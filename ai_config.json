@@ -60,5 +60,14 @@
                 "role": "columnheader"
             }
         }
-    ]
+    ],
+    "contextOptions": {
+        "geolocation": {
+            "latitude": 37.7749,
+            "longitude": -122.4194
+        },
+        "permissions": [
+            "geolocation"
+        ]
+    }
 }
