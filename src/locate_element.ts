@@ -1,5 +1,5 @@
 import fs, { access } from "fs";
-import { get } from "http";
+import axios from "axios";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -183,10 +183,11 @@ export async function locate_element(
   }
   traverseDFS(frameDump[0]);
   let serviceUrl = context.stable._getServerUrl();
-  const request = {
-    method: "POST",
+  const config = {
+    method: "post",
     url: `${serviceUrl}/api/runs/locate-element/locate`,
     headers: {
+      "x-source": "true",
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.TOKEN}`,
     },
@@ -197,7 +198,8 @@ export async function locate_element(
       value: value,
     }),
   };
-  let result = await context.api.request(request);
+
+  let result = await axios.request(config);
   //console.log(JSON.stringify(frameDump[0]));
   if (result.status !== 200 || !result.data || result.data.status !== true || !result.data.result) {
     console.error("Failed to locate element");
