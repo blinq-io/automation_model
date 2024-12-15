@@ -1,7 +1,7 @@
 import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
 import { getContext } from "../build/lib/init_browser.js";
 import fs from "fs";
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, res } from "msw";
 import { setupServer } from "msw/node";
 
 let context = null;
