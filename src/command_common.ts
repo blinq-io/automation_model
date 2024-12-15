@@ -8,7 +8,11 @@ export async function _preCommand(state: any, stable: any) {
   }
   if (state.selectors) {
     _validateSelectors(state.selectors);
+    const originalSelectors = state.selectors;
     state.selectors = JSON.parse(JSON.stringify(state.selectors));
+    if (originalSelectors.frame) {
+      state.selectors.frame = originalSelectors.frame;
+    }
   }
   if (state.locate !== false) {
     state.locate = true;
@@ -65,6 +69,12 @@ export async function _preCommand(state: any, stable: any) {
   state.info.failCause.operationFailed = true;
 }
 export async function _commandError(state: any, error: any, stable: any) {
+  if (!state.info) {
+    state.info = {};
+  }
+  if (!state.info.failCause) {
+    state.info.failCause = {};
+  }
   stable.logger.error(state.text + " failed " + state.info.log);
   const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
