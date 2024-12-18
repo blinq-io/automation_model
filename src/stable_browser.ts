@@ -614,7 +614,7 @@ class StableBrowser {
     //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
-    if (locatorSearch.index && locatorSearch.index < count) {
+    if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
       foundLocators.push(locator.nth(locatorSearch.index));
       return;
     }
