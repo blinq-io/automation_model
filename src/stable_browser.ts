@@ -59,6 +59,7 @@ const Types = {
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
   WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
+  VERIFY_ATTRIBUTE: "verify_element_attribute",
 };
 export const apps = {};
 class StableBrowser {
@@ -1905,6 +1906,45 @@ class StableBrowser {
 
       this.setTestData({ [variable]: state.value }, world);
       this.logger.info("set test data: " + variable + "=" + state.value);
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+  }
+  async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      attribute,
+      value,
+      options,
+      world,
+      type: Types.VERIFY_ATTRIBUTE,
+      text: `Verify element attribute`,
+      operation: "verifyAttribute",
+      log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    let val;
+    try {
+      await _preCommand(state, this);
+      switch (attribute) {
+        case "innerText":
+          val = await state.element.innerText();
+          break;
+        case "value":
+          val = await state.element.inputValue();
+          break;
+        default:
+          val = await state.element.getAttribute(attribute);
+          break;
+      }
+      if (val !== value) {
+        throw new Error(`Attribute ${attribute} value is ${val} but expected ${value}`);
+      }
+      state.info.value = val;
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
