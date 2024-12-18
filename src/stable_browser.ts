@@ -1932,13 +1932,13 @@ class StableBrowser {
       await _preCommand(state, this);
       switch (attribute) {
         case "innerText":
-          val = await state.element.innerText();
+          val = String(await state.element.innerText());
           break;
         case "value":
-          val = await state.element.inputValue();
+          val = String(await state.element.inputValue());
           break;
         default:
-          val = await state.element.getAttribute(attribute);
+          val = String(await state.element.getAttribute(attribute));
           break;
       }
       let regex;
