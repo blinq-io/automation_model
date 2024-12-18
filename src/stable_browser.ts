@@ -1945,7 +1945,15 @@ class StableBrowser {
           val = await state.element.getAttribute(attribute);
           break;
       }
-      if (val !== value) {
+      let regex;
+      if (value.startsWith("/") && value.endsWith("/")) {
+        const patternBody = value.slice(1, -1);
+        regex = new RegExp(patternBody, "g");
+      } else {
+        const escapedPattern = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        regex = new RegExp(escapedPattern, "g");
+      }
+      if (!val.match(regex)) {
         throw new Error(`Attribute ${attribute} value is ${val} but expected ${value}`);
       }
       state.info.value = val;
