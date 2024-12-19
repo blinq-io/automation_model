@@ -949,6 +949,19 @@ class StableBrowser {
     return result;
   }
   async simpleClick(elementDescription, _params?: Params, options = {}, world = null) {
+    const state = {
+      locate: false,
+      scroll: false,
+      highlight: false,
+      _params,
+      options,
+      world,
+      type: Types.CLICK,
+      text: "Click element",
+      operation: "simpleClick",
+      log: "***** click on " + elementDescription + " *****\n",
+    };
+    _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -971,15 +984,33 @@ class StableBrowser {
           return;
         }
       } catch (e) {
-        if (Date.now() - startTime > timeout) {
+        if (performance.now() - startTime > timeout) {
           // throw e;
-          await _commandError({ text: "simpleClick", operation: "simpleClick", elementDescription, info: {} }, e, this);
+          try {
+            await _commandError(state, "timeout looking for " + elementDescription, this);
+          } finally {
+            _commandFinally(state, this);
+          }
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
+
   async simpleClickType(elementDescription, value, _params?: Params, options = {}, world = null) {
+    const state = {
+      locate: false,
+      scroll: false,
+      highlight: false,
+      _params,
+      options,
+      world,
+      type: Types.FILL,
+      text: "Fill element",
+      operation: "simpleClickType",
+      log: "***** click type on " + elementDescription + " *****\n",
+    };
+    _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1002,13 +1033,13 @@ class StableBrowser {
           return;
         }
       } catch (e) {
-        if (Date.now() - startTime > timeout) {
+        if (performance.now() - startTime > timeout) {
           // throw e;
-          await _commandError(
-            { text: "simpleClickType", operation: "simpleClickType", value, elementDescription, info: {} },
-            e,
-            this
-          );
+          try {
+            await _commandError(state, "timeout looking for " + elementDescription, this);
+          } finally {
+            _commandFinally(state, this);
+          }
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
