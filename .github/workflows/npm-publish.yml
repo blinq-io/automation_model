@@ -7,10 +7,8 @@ on:
   push:
     branches: ["main"]
 
-
 permissions:
-    contents: write
-
+  contents: write
 
 jobs:
   build-javascript-client:
@@ -30,7 +28,6 @@ jobs:
         run: npx playwright install
         working-directory: ${{ github.workspace }}
 
-
       - name: Fetch current version from npm with tag 'latest'
         id: npm_version
         run: |
@@ -44,7 +41,7 @@ jobs:
           IFS='.' read -r -a version_parts <<< "$current_version"
           preid="main"
           patch_version=$((version_parts[2]+1))
-          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}-${preid}"
+          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}"
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
@@ -55,8 +52,6 @@ jobs:
       - name: Update package-lock.json
         run: npm install --package-lock-only
         working-directory: ${{ github.workspace }}
-
-
 
       - run: npm run build
         working-directory: ${{ github.workspace }}
