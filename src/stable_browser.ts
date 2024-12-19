@@ -1936,13 +1936,19 @@ class StableBrowser {
       await _preCommand(state, this);
       switch (attribute) {
         case "innerText":
-          val = await state.element.innerText();
+          val = String(await state.element.innerText());
           break;
         case "value":
-          val = await state.element.inputValue();
+          val = String(await state.element.inputValue());
+          break;
+        case "checked":
+          val = String(await state.element.isChecked());
+          break;
+        case "disabled":
+          val = String(await state.element.isDisabled());
           break;
         default:
-          val = await state.element.getAttribute(attribute);
+          val = String(await state.element.getAttribute(attribute));
           break;
       }
       let regex;
@@ -1954,7 +1960,7 @@ class StableBrowser {
         regex = new RegExp(escapedPattern, "g");
       }
       if (!val.match(regex)) {
-        throw new Error(`Attribute ${attribute} value is ${val} but expected ${value}`);
+        throw new Error(`The ${attribute} attribute has a value of "${val}", but the expected value is "${value}"`);
       }
       state.info.value = val;
       return state.info;
