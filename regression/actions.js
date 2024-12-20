@@ -210,4 +210,17 @@ describe("Actions Tests", function () {
     );
     console.log("info object: " + JSON.stringify(info, null, 2));
   });
+  it("verifyAttribute", async function () {
+    let info = null;
+    let key = "button_login";
+    console.log(`verifyAttribute "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    info = await context.stable.verifyAttribute(
+      locElements[key],
+      "innerText",
+      "LOGIN",
+      { screenshotPath: "./temp/13.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+  });
 });
