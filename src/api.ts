@@ -205,7 +205,7 @@ class Api {
         info.tests?.forEach((test) => {
           test.fail = true;
           const receivedValue = getValue(res.data, test.pattern);
-          if (!hasValue(receivedValue)) {
+          if (receivedValue === undefined) {
             throw new Error(`The path ${test.pattern} does not exist in the response`);
           }
           switch (test.operator) {
