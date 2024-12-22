@@ -84,7 +84,10 @@ export async function _commandError(state: any, error: any, stable: any) {
   }
   stable.logger.error(state.text + " failed");
   if (state.info.locatorLog) {
-    stable.logger.error(state.info.locatorLog.toString());
+    const lines = state.info.locatorLog.toString().split("\n");
+    for (let line of lines) {
+      stable.logger.error(line);
+    }
   }
   const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
