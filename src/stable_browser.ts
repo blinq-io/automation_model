@@ -947,7 +947,10 @@ class StableBrowser {
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     if (info.locatorLog) {
-      this.logger.debug(info.locatorLog.toString());
+      const lines = info.locatorLog.toString().split("\n");
+      for (let line of lines) {
+        this.logger.debug(line);
+      }
     }
     //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
