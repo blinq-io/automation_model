@@ -1,4 +1,6 @@
+import { stat } from "fs";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
+import { LocatorLog } from "./locator_log.js";
 import { JsonCommandReport } from "./stable_browser.js";
 import { maskValue } from "./utils.js";
 
@@ -41,6 +43,11 @@ export async function _preCommand(state: any, stable: any) {
   state.startTime = Date.now();
   state.info.selectors = state.selectors;
   state.info.log = state.log ? state.log : "";
+  if (state.selectors) {
+    state.info.locatorLog = new LocatorLog();
+    state.info.locatorLog.mission = state.info.log.trim();
+  }
+
   state.info.operation = state.operation;
   state.info.failCause = {};
   state.error = null;
@@ -75,7 +82,13 @@ export async function _commandError(state: any, error: any, stable: any) {
   if (!state.info.failCause) {
     state.info.failCause = {};
   }
-  stable.logger.error(state.text + " failed " + state.info.log);
+  stable.logger.error(state.text + " failed");
+  if (state.info.locatorLog) {
+    const lines = state.info.locatorLog.toString().split("\n");
+    for (let line of lines) {
+      stable.logger.error(line);
+    }
+  }
   const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
@@ -123,6 +136,7 @@ export function _commandFinally(state: any, stable: any) {
           endTime: state.endTime,
         },
     info: state.info,
+    locatorLog: state.info.locatorLog ? state.info.locatorLog.toString() : null,
   };
   if (state.originalValue && state.info) {
     state.info.value = maskValue(state.originalValue);
