@@ -22,7 +22,11 @@ function registerDownloadEvent(page: any, world: any, context: any) {
       downloadPath = context.downloadsPath;
     }
     if (!fs.existsSync(downloadPath)) {
-      fs.mkdirSync(downloadPath);
+      try {
+        fs.mkdirSync(downloadPath);
+      } catch (e) {
+        // ignore
+      }
     }
     page.on("download", async (download: any) => {
       const suggestedFilename = download.suggestedFilename(); // Get the original file name
