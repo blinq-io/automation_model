@@ -946,12 +946,12 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
-    if (info.locatorLog) {
-      const lines = info.locatorLog.toString().split("\n");
-      for (let line of lines) {
-        this.logger.debug(line);
-      }
-    }
+    // if (info.locatorLog) {
+    //   const lines = info.locatorLog.toString().split("\n");
+    //   for (let line of lines) {
+    //     this.logger.debug(line);
+    //   }
+    // }
     //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
     info.failCause.lastError = "failed to locate unique element";
