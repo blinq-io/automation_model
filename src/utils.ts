@@ -12,6 +12,7 @@ function encrypt(text: string, key: string | null = null) {
   return CryptoJS.AES.encrypt(text, key).toString();
 }
 
+
 // Function to decrypt a string
 async function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
   if (!key) {
