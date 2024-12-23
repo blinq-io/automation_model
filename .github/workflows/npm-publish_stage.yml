@@ -67,3 +67,17 @@ jobs:
           npm-token: ${{ secrets.NPM_PASSWORD }}
           npm-tag: "stage"
           working-directory: ${{ github.workspace }}/build
+
+  dispatch:
+    name: Dispatch to Target Repository
+    runs-on: ubuntu-latest
+    needs: build-javascript-client
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TOKEN_GITHUB }}
+          repository: blinq-io/ai-qa
+          event-type: trigger-cucumber-stage
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+
