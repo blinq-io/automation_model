@@ -34,6 +34,7 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
     }
     return otp;
   }
+  
   if (encryptedText.startsWith("mask:")) {
     return encryptedText.substring(5);
   }
