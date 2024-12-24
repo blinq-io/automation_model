@@ -132,7 +132,7 @@ class StableBrowser {
   }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
-    this.registerRequestListener(this.page, context, this.webLogFile);
+    // this.registerRequestListener(this.page, context, this.webLogFile);
     if (!context.pageLoading) {
       context.pageLoading = { status: false };
     }
