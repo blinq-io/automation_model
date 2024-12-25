@@ -92,7 +92,8 @@ const getContext = async function (
     reportFolder ? reportFolder : ".",
     userAgent,
     channel,
-    configuration
+    configuration,
+    initScripts
   );
   let context = new TestContext();
   context.browser = browser.browser;
@@ -102,34 +103,6 @@ const getContext = async function (
   context.environment = environment;
   context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
   context.reportFolder = reportFolder;
-
-  if (initScripts && context.playContext) {
-    if (initScripts.recorderCjs) {
-      await context.playContext.addInitScript({
-        content: `
-          (() => {
-          const module = {};
-          ${initScripts.recorderCjs}
-          const sss = new (module.exports.InjectedScript())(
-            window,
-            true,
-            "javascript",
-            [],
-            ${0},
-            "${context.browserName}",
-            []
-          );
-        })();`,
-      });
-    }
-    if (initScripts.scripts) {
-      for (let script of initScripts.scripts) {
-        await context.playContext.addInitScript({
-          content: script,
-        });
-      }
-    }
-  }
 
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
