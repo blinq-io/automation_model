@@ -7,6 +7,7 @@ import { StableBrowser } from "./stable_browser.js";
 import { Browser as PlaywrightBrowser } from "playwright";
 import { Browser } from "./browser_manager.js";
 import { Api } from "./api.js";
+import { InitScripts } from "./generation_scripts.js";
 
 // let environment = null;
 
@@ -20,7 +21,8 @@ const getContext = async function (
   createStable = true,
   stable: StableBrowser | null = null,
   moveToRight = -1,
-  reportFolder: string | null = null
+  reportFolder: string | null = null,
+  initScripts: InitScripts | null = null
 ) {
   if (environment === null) {
     environment = initEnvironment();
@@ -101,6 +103,35 @@ const getContext = async function (
   context.environment = environment;
   context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
   context.reportFolder = reportFolder;
+
+  if (initScripts && context.playContext) {
+    if (initScripts.recorderCjs) {
+      await context.playContext.addInitScript({
+        content: `
+          (() => {
+          const module = {};
+          ${initScripts.recorderCjs}
+          const sss = new (module.exports.InjectedScript())(
+            window,
+            true,
+            "javascript",
+            [],
+            ${0},
+            "${context.browserName}",
+            []
+          );
+        })();`,
+      });
+    }
+    if (initScripts.scripts) {
+      for (let script of initScripts.scripts) {
+        await context.playContext.addInitScript({
+          content: script,
+        });
+      }
+    }
+  }
+
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
   } else {
