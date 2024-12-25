@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
+import { InitScripts } from "./generation_scripts.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
@@ -39,7 +40,14 @@ const _findEmptyFolder = (folder?: string) => {
   }
   return path.join(folder, nextIndex.toString());
 };
-const initContext = async (path: string, doNavigate = true, headless = false, world: any = null, moveToRight = -1) => {
+const initContext = async (
+  path: string,
+  doNavigate = true,
+  headless = false,
+  world: any = null,
+  moveToRight = -1,
+  initScript: InitScripts | null = null
+) => {
   if (context) {
     return context;
   }
@@ -71,7 +79,7 @@ const initContext = async (path: string, doNavigate = true, headless = false, wo
     world.screenshotPath = screenshotPath;
     world.screenshot = true;
   }
-  context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder);
+  context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder, initScript);
   if (world) {
     world.context = context;
     if (world.attach) {
