@@ -10,6 +10,7 @@ import {
 import type { Cookie, LocalStorage } from "./environment.js";
 import fs from "fs";
 import path from "path";
+import { InitScripts } from "./generation_scripts.js";
 
 type StorageState = {
   cookies: Cookie[];
@@ -47,7 +48,8 @@ class BrowserManager {
     reportFolder?: string,
     userAgent?: string,
     channel?: string,
-    aiConfig?: any
+    aiConfig?: any,
+    initScripts: InitScripts | null = null
   ) {
     const browser = new Browser();
     await browser.init(
@@ -58,7 +60,8 @@ class BrowserManager {
       reportFolder,
       userAgent,
       channel,
-      aiConfig
+      aiConfig,
+      initScripts
     );
     this.browsers.push(browser);
     return browser;
@@ -92,7 +95,8 @@ class Browser {
     reportFolder?: string,
     userAgent?: string,
     channel?: string,
-    aiConfig?: any
+    aiConfig?: any,
+    initScripts: InitScripts | null = null
   ) {
     if (!aiConfig) {
       aiConfig = {};
@@ -226,6 +230,33 @@ class Browser {
       }
       this.traceFolder = traceFolder;
       await this.context.tracing.start({ screenshots: true, snapshots: true });
+    }
+    if (initScripts && this.context) {
+      if (initScripts.recorderCjs) {
+        await this.context.addInitScript({
+          content: `
+            (() => {
+            const module = {};
+            ${initScripts.recorderCjs}
+            const sss = new (module.exports.InjectedScript())(
+              window,
+              true,
+              "javascript",
+              [],
+              ${0},
+              "${this.browser?.browserType().name()}",
+              []
+            );
+          })();`,
+        });
+      }
+      if (initScripts.scripts) {
+        for (let script of initScripts.scripts) {
+          await this.context.addInitScript({
+            content: script,
+          });
+        }
+      }
     }
 
     this.page = await this.context!.newPage();
