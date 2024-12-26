@@ -59,6 +59,7 @@ const Types = {
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
   WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
+  VERIFY_ATTRIBUTE: "verify_element_attribute",
 };
 export const apps = {};
 class StableBrowser {
@@ -1905,6 +1906,59 @@ class StableBrowser {
 
       this.setTestData({ [variable]: state.value }, world);
       this.logger.info("set test data: " + variable + "=" + state.value);
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+  }
+  async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      attribute,
+      value,
+      options,
+      world,
+      type: Types.VERIFY_ATTRIBUTE,
+      text: `Verify element attribute`,
+      operation: "verifyAttribute",
+      log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    let val;
+    try {
+      await _preCommand(state, this);
+      switch (attribute) {
+        case "innerText":
+          val = String(await state.element.innerText());
+          break;
+        case "value":
+          val = String(await state.element.inputValue());
+          break;
+        case "checked":
+          val = String(await state.element.isChecked());
+          break;
+        case "disabled":
+          val = String(await state.element.isDisabled());
+          break;
+        default:
+          val = String(await state.element.getAttribute(attribute));
+          break;
+      }
+      let regex;
+      if (value.startsWith("/") && value.endsWith("/")) {
+        const patternBody = value.slice(1, -1);
+        regex = new RegExp(patternBody, "g");
+      } else {
+        const escapedPattern = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        regex = new RegExp(escapedPattern, "g");
+      }
+      if (!val.match(regex)) {
+        throw new Error(`The ${attribute} attribute has a value of "${val}", but the expected value is "${value}"`);
+      }
+      state.info.value = val;
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
