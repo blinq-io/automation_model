@@ -116,7 +116,9 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
             data.size = 0;
           }
           saveNetworkData();
-          world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          if (world && world.attach) {
+            world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          }
         } else {
           console.error("No data found for request ID", requestId);
         }
@@ -137,7 +139,9 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
           data.status = "Failed";
           data.size = 0;
           saveNetworkData();
-          world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          if (world && world.attach) {
+            world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          }
         } else {
           console.error("No data found for request ID", requestId);
         }
