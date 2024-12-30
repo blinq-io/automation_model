@@ -30,9 +30,10 @@ import {
 } from "./command_common.js";
 import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
+import { LocatorLog } from "./locator_log.js";
 type Params = Record<string, string>;
 
-const Types = {
+export const Types = {
   CLICK: "click_element",
   NAVIGATE: "navigate", ///
   FILL: "fill_element",
@@ -557,10 +558,13 @@ class StableBrowser {
     }
     if (!info.log) {
       info.log = "";
+      info.locatorLog = new LocatorLog(selectorHierarchy);
     }
     let locatorSearch = selectorHierarchy[index];
+    let originalLocatorSearch = "";
     try {
-      locatorSearch = JSON.parse(this._fixUsingParams(JSON.stringify(locatorSearch), _params));
+      originalLocatorSearch = this._fixUsingParams(JSON.stringify(locatorSearch), _params);
+      locatorSearch = JSON.parse(originalLocatorSearch);
     } catch (e) {
       console.error(e);
     }
@@ -617,7 +621,13 @@ class StableBrowser {
     let visibleLocator = null;
     if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
       foundLocators.push(locator.nth(locatorSearch.index));
+      if (info.locatorLog) {
+        info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+      }
       return;
+    }
+    if (info.locatorLog && count === 0) {
+      info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
     }
 
     for (let j = 0; j < count; j++) {
@@ -628,14 +638,25 @@ class StableBrowser {
       }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
+        if (info.locatorLog) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+        }
       } else {
         info.failCause.visible = visible;
         info.failCause.enabled = enabled;
         if (!info.printMessages) {
           info.printMessages = {};
         }
+        if (info.locatorLog && !visible) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
+        }
+        if (info.locatorLog && !enabled) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
+        }
+
         if (!info.printMessages[j.toString()]) {
-          info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+          //info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+
           info.printMessages[j.toString()] = true;
         }
       }
@@ -651,7 +672,7 @@ class StableBrowser {
       if (!info) {
         info = {};
       }
-      info.log += "scan for popup handlers" + "\n";
+      //info.log += "scan for popup handlers" + "\n";
       const handlerGroup = [];
       for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
         handlerGroup.push(this.configuration.popupHandlers[i].locator);
@@ -751,9 +772,11 @@ class StableBrowser {
         }
         return framescope;
       };
+      let fLocator = null;
       while (true) {
         let frameFound = false;
         if (selectors.nestFrmLoc) {
+          fLocator = selectors.nestFrmLoc;
           scope = await findFrame(selectors.nestFrmLoc, scope);
           frameFound = true;
           break;
@@ -762,6 +785,7 @@ class StableBrowser {
           for (let i = 0; i < selectors.frameLocators.length; i++) {
             let frameLocator = selectors.frameLocators[i];
             if (frameLocator.css) {
+              fLocator = frameLocator.css;
               scope = scope.frameLocator(frameLocator.css);
               frameFound = true;
               break;
@@ -769,10 +793,15 @@ class StableBrowser {
           }
         }
         if (!frameFound && selectors.iframe_src) {
+          fLocator = selectors.iframe_src;
           scope = this.page.frame({ url: selectors.iframe_src });
         }
         if (!scope) {
-          info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
+          if (info && info.locatorLog) {
+            info.locatorLog.setFrameSearchStatus("frame-" + fLocator, "NOT_FOUND");
+          }
+
+          //info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (Date.now() - startTime > timeout) {
             info.failCause.iframeNotFound = true;
             info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
@@ -780,6 +809,9 @@ class StableBrowser {
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } else {
+          if (info && info.locatorLog) {
+            info.locatorLog.setFrameSearchStatus("frame-" + fLocator, "FOUND");
+          }
           break;
         }
       }
@@ -802,6 +834,7 @@ class StableBrowser {
       info = {};
       info.failCause = {};
       info.log = "";
+      info.locatorLog = new LocatorLog(selectors);
     }
     let highPriorityTimeout = 5000;
     let visibleOnlyTimeout = 6000;
@@ -911,7 +944,13 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
-    info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
+    // if (info.locatorLog) {
+    //   const lines = info.locatorLog.toString().split("\n");
+    //   for (let line of lines) {
+    //     this.logger.debug(line);
+    //   }
+    // }
+    //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
     info.failCause.lastError = "failed to locate unique element";
     throw new Error("failed to locate first element no elements found, " + info.log);
@@ -945,6 +984,9 @@ class StableBrowser {
       }
       if (foundLocators.length > 1) {
         info.failCause.foundMultiple = true;
+        if (info.locatorLog) {
+          info.locatorLog.setLocatorSearchStatus(locatorsGroup[i], "FOUND_NOT_UNIQUE");
+        }
       }
     }
     return result;
@@ -1421,6 +1463,7 @@ class StableBrowser {
     let screenshotPath = null;
     if (!info.log) {
       info.log = "";
+      info.locatorLog = new LocatorLog(selectors);
     }
     info.operation = "getText";
     info.selectors = selectors;
@@ -2489,6 +2532,8 @@ class StableBrowser {
     let screenshotPath = null;
     const info = {};
     info.log = "";
+    info.locatorLog = new LocatorLog(selectors);
+
     info.operation = "getTableData";
     info.selectors = selectors;
     try {

@@ -43,6 +43,7 @@ describe("Actions Tests", function () {
         { role: ["button", { name: "LOGIN" }], parameterDependent: false },
         { tagOnly: true, priority: 3, css: "button" },
       ],
+      element_name: "login button",
     },
     button_: {
       locators: [
@@ -75,6 +76,12 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/1.png", screenshot: true },
       null
     );
+    const locatorLog = info.locatorLog.toString();
+    console.log("locatorLog: " + locatorLog);
+    // verify that the locatorLog contain ***** click on login button *****
+    expect(locatorLog).to.include("***** click on login button *****");
+    expect(locatorLog).to.include('#1 {"text":"LOGIN","tag":"button"}');
+    expect(locatorLog).to.include("0s 0s FOUND");
     console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("hover", async function () {

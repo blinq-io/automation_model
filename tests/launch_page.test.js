@@ -5,7 +5,7 @@ const name = "login";
 const path = "/";
 const elements = {
   loginButton: {
-    locators: [{ role: ["button", { name: "{signin}" }] }, { css: "button" }],
+    locators: [{ role: ["button", { name: "{signin}" }] }, { css: "button", priority: 3 }],
   },
   username: {
     locators: [{ css: 'input[name="username"]' }],
@@ -17,10 +17,10 @@ const elements = {
 const context = await initContext(path, true, true);
 const login = async function () {
   let info = null;
-  info = await context.stable.verifyTextExistInPage("Accepted usernames are:", {});
-  console.log(info.log);
+  // info = await context.stable.verifyTextExistInPage("Accepted usernames are:", {});
+  // console.log(info.log);
   info = await context.stable.click(elements.loginButton, { signin: "Login" });
-  console.log(info.log);
+  console.log(info.locatorLog.toString());
   //console.log("info click sign in", JSON.stringify(info, null, 2));
   info = await context.stable.fill(elements.username, "guy");
   console.log(info.log);
