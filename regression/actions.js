@@ -230,4 +230,15 @@ describe("Actions Tests", function () {
     );
     console.log("info object: " + JSON.stringify(info, null, 2));
   });
+  it("verifyTextExistInPage regex", async function () {
+    let info = null;
+    //let key = "section2";
+    console.log(`verifyTextExistInPage let_me_in"`);
+    info = await context.stable.verifyTextExistInPage(
+      "blinq_user blinq_ /.*/",
+      { screenshotPath: "./temp/14.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+  });
 });

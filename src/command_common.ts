@@ -2,7 +2,7 @@ import { stat } from "fs";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { JsonCommandReport } from "./stable_browser.js";
-import { maskValue } from "./utils.js";
+import { _fixUsingParams, maskValue } from "./utils.js";
 
 export async function _preCommand(state: any, stable: any) {
   if (!state) {
@@ -33,7 +33,7 @@ export async function _preCommand(state: any, stable: any) {
   }
   state.info = {};
   if (state.value) {
-    state.value = stable._fixUsingParams(state.value, state._params);
+    state.value = _fixUsingParams(state.value, state._params);
     state.info.value = state.value;
   }
   if (state.attribute) {

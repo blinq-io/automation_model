@@ -12,7 +12,6 @@ function encrypt(text: string, key: string | null = null) {
   return CryptoJS.AES.encrypt(text, key).toString();
 }
 
-
 // Function to decrypt a string
 async function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
   if (!key) {
@@ -35,7 +34,7 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
     }
     return otp;
   }
-  
+
   if (encryptedText.startsWith("mask:")) {
     return encryptedText.substring(5);
   }
@@ -125,7 +124,256 @@ function maskValue(value: string) {
   }
   return value;
 }
+function _copyContext(from: any, to: any) {
+  to.browser = from.browser;
+  to.page = from.page;
+  to.context = from.context;
+}
+async function scrollPageToLoadLazyElements(page: any) {
+  let lastHeight = await page.evaluate(() => document.body.scrollHeight);
+  let retry = 0;
+  while (true) {
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    let newHeight = await page.evaluate(() => document.body.scrollHeight);
+    if (newHeight === lastHeight) {
+      break;
+    }
+    lastHeight = newHeight;
+    retry++;
+    if (retry > 10) {
+      break;
+    }
+  }
 
-// console.log(encrypt("Hello, World!", null));
-// console.log(decrypt("U2FsdGVkX1+6mavadgkMgJPIhR3IO1pDkx36TjTyoyE=", null));
-export { encrypt, decrypt, replaceWithLocalTestData, maskValue };
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
+type Params = Record<string, string>;
+function _fixUsingParams(text: string, _params: Params) {
+  if (!_params || typeof text !== "string") {
+    return text;
+  }
+  for (let key in _params) {
+    let regValue = key;
+    if (key.startsWith("_")) {
+      // remove the _ prefix
+      regValue = key.substring(1);
+    }
+    text = text.replaceAll(new RegExp("{" + regValue + "}", "g"), _params[key]);
+  }
+  return text;
+}
+function getWebLogFile(logFolder: string) {
+  if (!fs.existsSync(logFolder)) {
+    fs.mkdirSync(logFolder, { recursive: true });
+  }
+  let nextIndex = 1;
+  while (fs.existsSync(path.join(logFolder, nextIndex.toString() + ".json"))) {
+    nextIndex++;
+  }
+  const fileName = nextIndex + ".json";
+  return path.join(logFolder, fileName);
+}
+
+function _fixLocatorUsingParams(locator: any, _params: Params) {
+  // check if not null
+  if (!locator) {
+    return locator;
+  }
+  // clone the locator
+  locator = JSON.parse(JSON.stringify(locator));
+  scanAndManipulate(locator, _params);
+  return locator;
+}
+function _isObject(value: any) {
+  return value && typeof value === "object" && value.constructor === Object;
+}
+function scanAndManipulate(currentObj: any, _params: Params) {
+  for (const key in currentObj) {
+    if (typeof currentObj[key] === "string") {
+      // Perform string manipulation
+      currentObj[key] = _fixUsingParams(currentObj[key], _params);
+    } else if (_isObject(currentObj[key])) {
+      // Recursively scan nested objects
+      scanAndManipulate(currentObj[key], _params);
+    }
+  }
+}
+const KEYBOARD_EVENTS = [
+  "ALT",
+  "AltGraph",
+  "CapsLock",
+  "Control",
+  "Fn",
+  "FnLock",
+  "Hyper",
+  "Meta",
+  "NumLock",
+  "ScrollLock",
+  "Shift",
+  "Super",
+  "Symbol",
+  "SymbolLock",
+  "Enter",
+  "Tab",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+  "Backspace",
+  "Clear",
+  "Copy",
+  "CrSel",
+  "Cut",
+  "Delete",
+  "EraseEof",
+  "ExSel",
+  "Insert",
+  "Paste",
+  "Redo",
+  "Undo",
+  "Accept",
+  "Again",
+  "Attn",
+  "Cancel",
+  "ContextMenu",
+  "Escape",
+  "Execute",
+  "Find",
+  "Finish",
+  "Help",
+  "Pause",
+  "Play",
+  "Props",
+  "Select",
+  "ZoomIn",
+  "ZoomOut",
+  "BrightnessDown",
+  "BrightnessUp",
+  "Eject",
+  "LogOff",
+  "Power",
+  "PowerOff",
+  "PrintScreen",
+  "Hibernate",
+  "Standby",
+  "WakeUp",
+  "AllCandidates",
+  "Alphanumeric",
+  "CodeInput",
+  "Compose",
+  "Convert",
+  "Dead",
+  "FinalMode",
+  "GroupFirst",
+  "GroupLast",
+  "GroupNext",
+  "GroupPrevious",
+  "ModeChange",
+  "NextCandidate",
+  "NonConvert",
+  "PreviousCandidate",
+  "Process",
+  "SingleCandidate",
+  "HangulMode",
+  "HanjaMode",
+  "JunjaMode",
+  "Eisu",
+  "Hankaku",
+  "Hiragana",
+  "HiraganaKatakana",
+  "KanaMode",
+  "KanjiMode",
+  "Katakana",
+  "Romaji",
+  "Zenkaku",
+  "ZenkakuHanaku",
+  "F1",
+  "F2",
+  "F3",
+  "F4",
+  "F5",
+  "F6",
+  "F7",
+  "F8",
+  "F9",
+  "F10",
+  "F11",
+  "F12",
+  "Soft1",
+  "Soft2",
+  "Soft3",
+  "Soft4",
+  "ChannelDown",
+  "ChannelUp",
+  "Close",
+  "MailForward",
+  "MailReply",
+  "MailSend",
+  "MediaFastForward",
+  "MediaPause",
+  "MediaPlay",
+  "MediaPlayPause",
+  "MediaRecord",
+  "MediaRewind",
+  "MediaStop",
+  "MediaTrackNext",
+  "MediaTrackPrevious",
+  "AudioBalanceLeft",
+  "AudioBalanceRight",
+  "AudioBassBoostDown",
+  "AudioBassBoostToggle",
+  "AudioBassBoostUp",
+  "AudioFaderFront",
+  "AudioFaderRear",
+  "AudioSurroundModeNext",
+  "AudioTrebleDown",
+  "AudioTrebleUp",
+  "AudioVolumeDown",
+  "AudioVolumeMute",
+  "AudioVolumeUp",
+  "MicrophoneToggle",
+  "MicrophoneVolumeDown",
+  "MicrophoneVolumeMute",
+  "MicrophoneVolumeUp",
+  "TV",
+  "TV3DMode",
+  "TVAntennaCable",
+  "TVAudioDescription",
+];
+function unEscapeString(str: string) {
+  const placeholder = "__NEWLINE__";
+  str = str.replace(new RegExp(placeholder, "g"), "\n");
+  return str;
+}
+function _getServerUrl() {
+  let serviceUrl = "https://api.blinq.io";
+  if (process.env.NODE_ENV_BLINQ === "dev") {
+    serviceUrl = "https://dev.api.blinq.io";
+  } else if (process.env.NODE_ENV_BLINQ === "stage") {
+    serviceUrl = "https://stage.api.blinq.io";
+  }
+  return serviceUrl;
+}
+
+export {
+  encrypt,
+  decrypt,
+  replaceWithLocalTestData,
+  maskValue,
+  _copyContext,
+  scrollPageToLoadLazyElements,
+  _fixUsingParams,
+  getWebLogFile,
+  _fixLocatorUsingParams,
+  _isObject,
+  scanAndManipulate,
+  KEYBOARD_EVENTS,
+  unEscapeString,
+  Params,
+  _getServerUrl,
+};
