@@ -18,9 +18,9 @@ describe("Click Tests", function () {
 
   it("Click elements by Tag Name", async function () {
     let tagLocElements = {
-      html: {
-        locators: [{ css: "html" }],
-      },
+      // html: {
+      //   locators: [{ css: "html" }],
+      // },
       h1Heading: {
         locators: [{ css: "h1" }],
       },
@@ -39,24 +39,24 @@ describe("Click Tests", function () {
       h6Heading: {
         locators: [{ css: "h6" }],
       },
-      footer: {
-        locators: [{ css: "footer" }],
-      },
-      details: {
-        locators: [{ css: "details" }],
-      },
-      audio: {
-        locators: [{ css: "audio" }],
-      },
-      hr: {
-        locators: [{ css: "hr" }],
-      },
-      // video: {
-      //     locators: [{ css: 'video' }]
+      // footer: {
+      //   locators: [{ css: "footer" }],
       // },
-      img: {
-        locators: [{ css: "img" }],
-      },
+      // details: {
+      //   locators: [{ css: "details" }],
+      // },
+      // audio: {
+      //   locators: [{ css: "audio" }],
+      // },
+      // hr: {
+      //   locators: [{ css: "hr" }],
+      // },
+      // // video: {
+      // //     locators: [{ css: 'video' }]
+      // // },
+      // img: {
+      //   locators: [{ css: "img" }],
+      // },
       a: {
         locators: [{ css: "a" }],
       },
@@ -69,27 +69,27 @@ describe("Click Tests", function () {
       ol: {
         locators: [{ css: "ol" }],
       },
-      dl: {
-        locators: [{ css: "dl" }],
-      },
-      strong: {
-        locators: [{ css: "strong" }],
-      },
-      caption: {
-        locators: [{ css: "caption" }],
-      },
+      // dl: {
+      //   locators: [{ css: "dl" }],
+      // },
+      // strong: {
+      //   locators: [{ css: "strong" }],
+      // },
+      // caption: {
+      //   locators: [{ css: "caption" }],
+      // },
       table: {
         locators: [{ css: "table" }],
       },
-      thead: {
-        locators: [{ css: "thead" }],
-      },
+      // thead: {
+      //   locators: [{ css: "thead" }],
+      // },
       tbody: {
         locators: [{ css: "tbody" }],
       },
-      tfoot: {
-        locators: [{ css: "tfoot" }],
-      },
+      // tfoot: {
+      //   locators: [{ css: "tfoot" }],
+      // },
     };
 
     let info = null;

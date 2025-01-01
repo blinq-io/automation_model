@@ -16,15 +16,15 @@ export async function locate_element(
   // load the axe-core library to all of the frames in the page
   // read the axe-core library from the file system placed in the same folder as the script file, name axe.mini.js
   // Construct the path to axe.min.js relative to the current file
-  let axeMinJsPath = path.join(__dirname, "..", "axe", "axe.mini.js");
-  // Check if the file exists
-  if (!fs.existsSync(axeMinJsPath)) {
-    axeMinJsPath = path.join(__dirname, "axe", "axe.mini.js");
-  }
+  // let axeMinJsPath = path.join(__dirname, "..", "scripts", "axe.mini.js");
+  // // Check if the file exists
+  // if (!fs.existsSync(axeMinJsPath)) {
+  //   axeMinJsPath = path.join(__dirname, "scripts", "axe.mini.js");
+  // }
 
-  // Read the content of axe.min.js synchronously
-  const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
-  await Promise.all(context.stable.page.frames().map((frame: any) => frame.evaluate(axeMinJsContent)));
+  // // Read the content of axe.min.js synchronously
+  // const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
+  // await Promise.all(context.stable.page.frames().map((frame: any) => frame.evaluate(axeMinJsContent)));
 
   const frames = await context.stable.page.frames();
   // for each frame create a tree of the accessibility nodes
