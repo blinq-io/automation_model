@@ -28,6 +28,7 @@ interface Config {
         operator: "eq" | "ne" | "gt" | "lt" | "gte" | "lte" | "mat";
         pass: boolean;
         fail?: boolean;
+        receivedValue?: any;
       }[]
     | null
     | undefined;
@@ -205,6 +206,7 @@ class Api {
         info.tests?.forEach((test) => {
           test.fail = true;
           const receivedValue = getValue(res.data, test.pattern);
+          test.receivedValue = receivedValue;
           if (receivedValue === undefined) {
             throw new Error(`The path ${test.pattern} does not exist in the response`);
           }
