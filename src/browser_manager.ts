@@ -11,6 +11,11 @@ import type { Cookie, LocalStorage } from "./environment.js";
 import fs from "fs";
 import path from "path";
 import { InitScripts } from "./generation_scripts.js";
+import { fileURLToPath } from "url";
+
+// Get __filename and __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 type StorageState = {
   cookies: Cookie[];
@@ -258,7 +263,26 @@ class Browser {
         }
       }
     }
-
+    let axeMinJsPath = path.join(__dirname, "..", "scripts", "axe.mini.js");
+    // Check if the file exists
+    if (!fs.existsSync(axeMinJsPath)) {
+      axeMinJsPath = path.join(__dirname, "scripts", "axe.mini.js");
+    }
+    // Read the content of axe.min.js synchronously
+    const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
+    await this.context?.addInitScript({
+      content: axeMinJsContent,
+    });
+    let findTextPath = path.join(__dirname, "..", "scripts", "find_text.js");
+    // Check if the file exists
+    if (!fs.existsSync(findTextPath)) {
+      findTextPath = path.join(__dirname, "scripts", "find_text.js");
+    }
+    // Read the content of find_text.js synchronously
+    const findTextContent = fs.readFileSync(findTextPath, "utf-8");
+    await this.context?.addInitScript({
+      content: findTextContent,
+    });
     this.page = await this.context!.newPage();
   }
 
