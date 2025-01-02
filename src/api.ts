@@ -207,15 +207,12 @@ class Api {
           test.fail = true;
           const receivedValue = getValue(res.data, test.pattern);
           test.receivedValue = receivedValue;
-          if (receivedValue === undefined) {
-            throw new Error(`The path ${test.pattern} does not exist in the response`);
-          }
           switch (test.operator) {
             case "eq":
-              test.fail = receivedValue != test.value;
+              test.fail = receivedValue !== test.value;
               break;
             case "ne":
-              test.fail = receivedValue == test.value;
+              test.fail = receivedValue === test.value;
               break;
             case "gt":
               test.fail = receivedValue <= test.value;
@@ -388,9 +385,9 @@ const getValue = (data: any, pattern: string): any => {
     return value;
   }
 
-  return null;
+  return undefined;
 };
 const hasValue = (value: any) => {
-  return value !== null && value !== undefined;
+  return value !== undefined;
 };
 export { Api };
