@@ -67,6 +67,13 @@ function findMatchingElements(textToMatch, options = {}, root = document) {
     const endWithI = tokens.some((token) => token.endsWith("/i"));
     return new RegExp(pattern, endWithI || options.ignoreCase === true ? "i" : "");
   }
+  let climb = 0;
+  // check if the text to merge end with ^ follow by a number (climb), e.g. "some text^2" we should set the climb and remove the ^2 from the text
+  if (textToMatch.match(/\^(\d+)$/)) {
+    climb = parseInt(textToMatch.match(/\^(\d+)$/)[1]);
+    textToMatch = textToMatch.replace(/\^(\d+)$/, "");
+  }
+
   let tag = options.tag || "*";
   // Build the pattern
   const regex = buildLooseRegexFromText(textToMatch, options);
@@ -86,17 +93,33 @@ function findMatchingElements(textToMatch, options = {}, root = document) {
 
   // filter out elements that are style or script tags
   elements = elements.filter((el) => !["STYLE", "SCRIPT", "HEAD"].includes(el.tagName));
-  return findLeafElements(
+  elements = findLeafElements(
     elements.filter((el) => {
       // Normalize text content
       let normalized = options.innerText === false || !el.innerText ? el.textContent : el.innerText;
       if (!normalized) {
         normalized = "";
       }
-      normalized = normalized.replace(/\s+/g, " ").trim();
+      let normalizedSpace = normalized.replace(/\s+/g, " ").trim();
+      let normalizedNoSpace = normalized.replace(/\s+/g, "").trim();
       regex.lastIndex = 0; // reset if using 'g'
-      return regex.test(normalized);
+      return regex.test(normalizedSpace) || regex.test(normalizedNoSpace);
     })
   );
+  // if climb is greater than 0, we should climb up the DOM tree for each element
+  if (climb > 0) {
+    let newElements = [];
+    for (let i = 0; i < elements.length; i++) {
+      let el = elements[i];
+      for (let j = 0; j < climb; j++) {
+        if (el.parentElement) {
+          el = el.parentElement;
+        }
+      }
+      newElements.push(el);
+    }
+    elements = newElements;
+  }
+  return elements;
 }
 window.findMatchingElements = findMatchingElements;
