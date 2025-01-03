@@ -15,6 +15,7 @@ describe("Actions Tests", function () {
   beforeEach(async function () {
     context = await initContext("/", true, false);
     await context.stable.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table2.html");
+    await context.stable.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
