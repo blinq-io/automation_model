@@ -16,6 +16,7 @@ describe("shadow dom", function () {
   beforeEach(async function () {
     context = await getContext(null, false, null, null, null, true, null, -1, null);
     await context.stable.goto("https://books-pwakit.appspot.com/explore?q=catch%2022");
+    await context.stable.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
