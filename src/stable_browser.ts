@@ -645,7 +645,7 @@ class StableBrowser {
         }
         if (!scope) {
           if (info && info.locatorLog) {
-            info.locatorLog.setFrameSearchStatus("frame-" + fLocator, "NOT_FOUND");
+            info.locatorLog.setLocatorSearchStatus("frame-" + fLocator, "NOT_FOUND");
           }
 
           //info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
@@ -657,7 +657,7 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } else {
           if (info && info.locatorLog) {
-            info.locatorLog.setFrameSearchStatus("frame-" + fLocator, "FOUND");
+            info.locatorLog.setLocatorSearchStatus("frame-" + fLocator, "FOUND");
           }
           break;
         }
