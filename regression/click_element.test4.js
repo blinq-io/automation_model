@@ -96,7 +96,7 @@ describe("Click Tests", function () {
     for (let key in tagLocElements) {
       console.log(`Click "${key}" element using locator "${tagLocElements[key].locators[0].css}"`);
       info = await context.stable.click(tagLocElements[key]);
-      console.log(info.log);
+      //console.log(info.log);
     }
   }).timeout(180_000);
 });
