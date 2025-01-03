@@ -112,9 +112,10 @@ function findMatchingElements(textToMatch, options = {}, root = document) {
     for (let i = 0; i < elements.length; i++) {
       let el = elements[i];
       for (let j = 0; j < climb; j++) {
-        if (el.parentElement) {
-          el = el.parentElement;
+        if (!el.parentElement) {
+          break;
         }
+        el = el.parentElement;
       }
       newElements.push(el);
     }
