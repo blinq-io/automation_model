@@ -105,7 +105,7 @@ describe("Click Tests", function () {
     for (let key in classLocElements) {
       console.log(`Click "${key}" element using locator "${classLocElements[key].locators[0].css}"`);
       info = await context.stable.click(classLocElements[key]);
-      console.log(info.log);
+      //console.log(info.log);
     }
   });
 });

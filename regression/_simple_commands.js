@@ -35,6 +35,7 @@ describe("Actions Tests", function () {
   beforeEach(async function () {
     context = await getContext(null, false, null);
     await context.stable.goto("https://shop-blinq.io");
+    await context.stable.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();

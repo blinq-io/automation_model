@@ -2,6 +2,7 @@ import fs, { access } from "fs";
 import axios from "axios";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { _getServerUrl } from "./utils.js";
 
 // Get __filename and __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -182,7 +183,7 @@ export async function locate_element(
     }
   }
   traverseDFS(frameDump[0]);
-  let serviceUrl = context.stable._getServerUrl();
+  let serviceUrl = _getServerUrl();
   const config = {
     method: "post",
     url: `${serviceUrl}/api/runs/locate-element/locate`,
