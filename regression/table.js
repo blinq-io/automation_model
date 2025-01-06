@@ -3,15 +3,18 @@ import fs from "fs";
 import path from "path";
 import { expect } from "chai";
 import { Table } from "../build/lib/table.js";
-let context = null;
+import { getContext } from "../build/lib/init_browser.js";
 describe("Actions Tests", function () {
+  let context = null;
   before(async function () {
     // check if temp directory exists
     if (!fs.existsSync("temp")) {
       fs.mkdirSync("temp");
     }
     console.log("Actions Tests: before");
-    context = await initContext("/", true, false);
+    context = await getContext(null, true, this);
+
+    //context = await initContext("/", true, false);
     await context.stable.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table2.html");
     await context.stable.waitForPageLoad();
   });
