@@ -28,7 +28,11 @@ describe("Actions Tests", function () {
     server.listen();
     // check if temp directory exists
     if (!fs.existsSync("temp")) {
-      fs.mkdirSync("temp");
+      try {
+        fs.mkdirSync("temp");
+      } catch (e) {
+        // ignore
+      }
     }
     console.log("Actions Tests: before");
   });
