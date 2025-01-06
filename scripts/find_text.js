@@ -56,7 +56,7 @@ function findMatchingElements(textToMatch, options = {}, root = document) {
    */
   function buildLooseRegexFromText(text, options) {
     if (options.singleRegex === true) {
-      return new RegExp(text, options.ignoreCase === true ? "i" : "");
+      return new RegExp(text, options.ignoreCase === false ? "" : "i");
     }
     const tokens = text.split(/\s+/);
     let pattern = tokens.map((token) => snippetToAlternatives(token)).join("\\s*");
@@ -65,7 +65,7 @@ function findMatchingElements(textToMatch, options = {}, root = document) {
     }
     // check if one of the tokens end with /i
     const endWithI = tokens.some((token) => token.endsWith("/i"));
-    return new RegExp(pattern, endWithI || options.ignoreCase === true ? "i" : "");
+    return new RegExp(pattern, endWithI || options.ignoreCase === false ? "" : "i");
   }
   let climb = 0;
   // check if the text to merge end with ^ follow by a number (climb), e.g. "some text^2" we should set the climb and remove the ^2 from the text
