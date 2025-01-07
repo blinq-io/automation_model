@@ -271,13 +271,35 @@ class StableBrowser {
   // async closeUnexpectedPopups() {
   //   await closeUnexpectedPopups(this.page);
   // }
-  async goto(url: string) {
+  async goto(url: string, world = null) {
     if (!url.startsWith("http")) {
       url = "https://" + url;
     }
-    await this.page.goto(url, {
-      timeout: 60000,
-    });
+    const state = {
+      value: url,
+      world: world,
+      type: Types.NAVIGATE,
+      text: `Navigate Page to: ${url}`,
+      operation: "goto",
+      log: "***** navigate page to " + url + " *****\n",
+      info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+    };
+    try {
+      await _preCommand(state, this);
+      await this.page.goto(url, {
+        timeout: 60000,
+      });
+      await _screenshot(state, this);
+    } catch (error) {
+      console.error("Error on goto", error);
+      _commandError(state, error, this);
+    } finally {
+      _commandFinally(state, this);
+    }
   }
 
   _getLocator(locator, scope, _params) {
