@@ -390,6 +390,11 @@ class StableBrowser {
         if (!(partial === true)) {
           options.exactMatch = true;
         }
+        if(text.startsWith("/" && text.endsWith("/"))){
+          text = text.slice(1, -1);
+          options.singleRegex = true;
+        }
+
         const elements = window.findMatchingElements(text, options);
         let randomToken = null;
         const foundElements = [];
