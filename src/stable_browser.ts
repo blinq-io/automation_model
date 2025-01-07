@@ -1869,6 +1869,10 @@ class StableBrowser {
         case "disabled":
           val = String(await state.element.isDisabled());
           break;
+        case "readonly":
+          const isEditable = await state.element.isEditable();
+          val = String(!isEditable);
+          break;
         default:
           val = String(await state.element.getAttribute(attribute));
           break;
