@@ -390,6 +390,20 @@ class StableBrowser {
         if (!(partial === true)) {
           options.exactMatch = true;
         }
+        if(text.startsWith("/") && text.endsWith("/")) {
+          if(text.length < 3) {
+            throw new Error("Invalid regex pattern: empty pattern");
+          }
+          try {
+            const pattern = text.slice(1, -1);
+            new RegExp(pattern); // Validate pattern
+            text = pattern;
+            options.singleRegex = true;
+          } catch(e) {
+            throw new Error(`Invalid regex pattern: ${e.message}`);
+          }
+        }
+
         const elements = window.findMatchingElements(text, options);
         let randomToken = null;
         const foundElements = [];
