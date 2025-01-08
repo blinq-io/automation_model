@@ -2929,7 +2929,6 @@ class StableBrowser {
       this.logger.info("step: " + this.stepName);
     } else if (step && step.text) {
       this.stepName = step.text;
-      this.logger.info("step: " + this.stepName);
     } else {
       this.stepName = "step " + this.stepIndex;
     }
