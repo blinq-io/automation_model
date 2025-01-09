@@ -28,6 +28,7 @@ interface Config {
         operator: "eq" | "ne" | "gt" | "lt" | "gte" | "lte" | "mat";
         pass: boolean;
         fail?: boolean;
+        receivedValue?: any;
       }[]
     | null
     | undefined;
@@ -205,15 +206,13 @@ class Api {
         info.tests?.forEach((test) => {
           test.fail = true;
           const receivedValue = getValue(res.data, test.pattern);
-          if (!hasValue(receivedValue)) {
-            throw new Error(`The path ${test.pattern} does not exist in the response`);
-          }
+          test.receivedValue = receivedValue;
           switch (test.operator) {
             case "eq":
-              test.fail = receivedValue != test.value;
+              test.fail = receivedValue !== test.value;
               break;
             case "ne":
-              test.fail = receivedValue == test.value;
+              test.fail = receivedValue === test.value;
               break;
             case "gt":
               test.fail = receivedValue <= test.value;
@@ -386,9 +385,9 @@ const getValue = (data: any, pattern: string): any => {
     return value;
   }
 
-  return null;
+  return undefined;
 };
 const hasValue = (value: any) => {
-  return value !== null && value !== undefined;
+  return value !== undefined;
 };
 export { Api };

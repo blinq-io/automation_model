@@ -1,7 +1,8 @@
 import fs, { access } from "fs";
-import { get } from "http";
+import axios from "axios";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { _getServerUrl } from "./utils.js";
 
 // Get __filename and __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -16,15 +17,15 @@ export async function locate_element(
   // load the axe-core library to all of the frames in the page
   // read the axe-core library from the file system placed in the same folder as the script file, name axe.mini.js
   // Construct the path to axe.min.js relative to the current file
-  let axeMinJsPath = path.join(__dirname, "..", "axe", "axe.mini.js");
-  // Check if the file exists
-  if (!fs.existsSync(axeMinJsPath)) {
-    axeMinJsPath = path.join(__dirname, "axe", "axe.mini.js");
-  }
+  // let axeMinJsPath = path.join(__dirname, "..", "scripts", "axe.mini.js");
+  // // Check if the file exists
+  // if (!fs.existsSync(axeMinJsPath)) {
+  //   axeMinJsPath = path.join(__dirname, "scripts", "axe.mini.js");
+  // }
 
-  // Read the content of axe.min.js synchronously
-  const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
-  await Promise.all(context.stable.page.frames().map((frame: any) => frame.evaluate(axeMinJsContent)));
+  // // Read the content of axe.min.js synchronously
+  // const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
+  // await Promise.all(context.stable.page.frames().map((frame: any) => frame.evaluate(axeMinJsContent)));
 
   const frames = await context.stable.page.frames();
   // for each frame create a tree of the accessibility nodes
@@ -182,11 +183,12 @@ export async function locate_element(
     }
   }
   traverseDFS(frameDump[0]);
-  let serviceUrl = context.stable._getServerUrl();
-  const request = {
-    method: "POST",
+  let serviceUrl = _getServerUrl();
+  const config = {
+    method: "post",
     url: `${serviceUrl}/api/runs/locate-element/locate`,
     headers: {
+      "x-source": "true",
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.TOKEN}`,
     },
@@ -197,7 +199,8 @@ export async function locate_element(
       value: value,
     }),
   };
-  let result = await context.api.request(request);
+
+  let result = await axios.request(config);
   //console.log(JSON.stringify(frameDump[0]));
   if (result.status !== 200 || !result.data || result.data.status !== true || !result.data.result) {
     console.error("Failed to locate element");

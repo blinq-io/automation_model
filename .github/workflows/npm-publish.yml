@@ -7,10 +7,8 @@ on:
   push:
     branches: ["main"]
 
-
 permissions:
-    contents: write
-
+  contents: write
 
 jobs:
   build-javascript-client:
@@ -29,7 +27,6 @@ jobs:
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
         working-directory: ${{ github.workspace }}
-
 
       - name: Fetch current version from npm with tag 'latest'
         id: npm_version
@@ -54,8 +51,6 @@ jobs:
       - name: Update package-lock.json
         run: npm install --package-lock-only
         working-directory: ${{ github.workspace }}
-
-
 
       - run: npm run build
         working-directory: ${{ github.workspace }}

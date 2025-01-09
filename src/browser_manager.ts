@@ -10,6 +10,12 @@ import {
 import type { Cookie, LocalStorage } from "./environment.js";
 import fs from "fs";
 import path from "path";
+import { InitScripts } from "./generation_scripts.js";
+import { fileURLToPath } from "url";
+
+// Get __filename and __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 type StorageState = {
   cookies: Cookie[];
@@ -44,10 +50,24 @@ class BrowserManager {
     storageState?: StorageState,
     extensionPath?: string,
     userDataDirPath?: string,
-    reportFolder?: string
+    reportFolder?: string,
+    userAgent?: string,
+    channel?: string,
+    aiConfig?: any,
+    initScripts: InitScripts | null = null
   ) {
     const browser = new Browser();
-    await browser.init(headless, storageState, extensionPath, userDataDirPath, reportFolder);
+    await browser.init(
+      headless,
+      storageState,
+      extensionPath,
+      userDataDirPath,
+      reportFolder,
+      userAgent,
+      channel,
+      aiConfig,
+      initScripts
+    );
     this.browsers.push(browser);
     return browser;
   }
@@ -77,8 +97,15 @@ class Browser {
     storageState?: StorageState,
     extensionPath?: string,
     userDataDirPath?: string,
-    reportFolder?: string
+    reportFolder?: string,
+    userAgent?: string,
+    channel?: string,
+    aiConfig?: any,
+    initScripts: InitScripts | null = null
   ) {
+    if (!aiConfig) {
+      aiConfig = {};
+    }
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
     // }
@@ -155,6 +182,16 @@ class Browser {
           args: ["--ignore-https-errors", "--ignore-certificate-errors"],
           //downloadsPath: downloadsPath,
         });
+      } else if (channel) {
+        {
+          this.browser = await chromium.launch({
+            headless: headless,
+            timeout: 0,
+            args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+            channel: channel,
+            //downloadsPath: downloadsPath,
+          });
+        }
       } else {
         this.browser = await chromium.launch({
           headless: headless,
@@ -164,9 +201,14 @@ class Browser {
         });
       }
       // downloadsPath
-      let contextOptions = {
-        acceptDownloads: true,
-      } as BrowserContextOptions;
+      let contextOptions: any = {};
+      if (aiConfig.contextOptions) {
+        contextOptions = aiConfig.contextOptions;
+        console.log("contextOptions: " + JSON.stringify(contextOptions));
+      }
+      if (!contextOptions["acceptDownloads"]) {
+        contextOptions["acceptDownloads"] = true;
+      }
       if (storageState) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
@@ -174,6 +216,10 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
+      }
+
+      if (userAgent) {
+        contextOptions.userAgent = userAgent;
       }
 
       if (!this.context && this.browser) {
@@ -190,7 +236,53 @@ class Browser {
       this.traceFolder = traceFolder;
       await this.context.tracing.start({ screenshots: true, snapshots: true });
     }
-
+    if (initScripts && this.context) {
+      if (initScripts.recorderCjs) {
+        await this.context.addInitScript({
+          content: `
+            (() => {
+            const module = {};
+            ${initScripts.recorderCjs}
+            const sss = new (module.exports.InjectedScript())(
+              window,
+              true,
+              "javascript",
+              [],
+              ${0},
+              "${this.browser?.browserType().name()}",
+              []
+            );
+          })();`,
+        });
+      }
+      if (initScripts.scripts) {
+        for (let script of initScripts.scripts) {
+          await this.context.addInitScript({
+            content: script,
+          });
+        }
+      }
+    }
+    let axeMinJsPath = path.join(__dirname, "..", "scripts", "axe.mini.js");
+    // Check if the file exists
+    if (!fs.existsSync(axeMinJsPath)) {
+      axeMinJsPath = path.join(__dirname, "scripts", "axe.mini.js");
+    }
+    // Read the content of axe.min.js synchronously
+    const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
+    await this.context?.addInitScript({
+      content: axeMinJsContent,
+    });
+    let findTextPath = path.join(__dirname, "..", "scripts", "find_text.js");
+    // Check if the file exists
+    if (!fs.existsSync(findTextPath)) {
+      findTextPath = path.join(__dirname, "scripts", "find_text.js");
+    }
+    // Read the content of find_text.js synchronously
+    const findTextContent = fs.readFileSync(findTextPath, "utf-8");
+    await this.context?.addInitScript({
+      content: findTextContent,
+    });
     this.page = await this.context!.newPage();
   }
 

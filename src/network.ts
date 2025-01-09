@@ -22,7 +22,11 @@ function registerDownloadEvent(page: any, world: any, context: any) {
       downloadPath = context.downloadsPath;
     }
     if (!fs.existsSync(downloadPath)) {
-      fs.mkdirSync(downloadPath);
+      try {
+        fs.mkdirSync(downloadPath);
+      } catch (e) {
+        // ignore
+      }
     }
     page.on("download", async (download: any) => {
       const suggestedFilename = download.suggestedFilename(); // Get the original file name
@@ -116,26 +120,33 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
             data.size = 0;
           }
           saveNetworkData();
+          if (world && world.attach) {
+            world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          }
         } else {
           console.error("No data found for request ID", requestId);
         }
       });
 
       // Event listener for when a request fails
-      page.on("requestfailed", (request: any) => {
+      page.on("requestfailed", async (request: any) => {
         const requestId = request.requestId;
         const endTime = Date.now();
         const startTime = requestTimes.get(requestId);
-
+        const res = await request.response();
+        const statusCode = res ? res.status() : request.failure().errorText;
         // Find the corresponding data object
         const data = networkData.find((item: any) => item.requestId === requestId);
 
         if (data) {
           data.responseEnd = endTime;
           data.responseTime = endTime - startTime;
-          data.status = "Failed";
+          data.status = statusCode;
           data.size = 0;
           saveNetworkData();
+          if (world && world.attach) {
+            world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          }
         } else {
           console.error("No data found for request ID", requestId);
         }

@@ -12,7 +12,19 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
-import { decrypt, maskValue, replaceWithLocalTestData } from "./utils.js";
+import {
+  _copyContext,
+  _fixLocatorUsingParams,
+  _fixUsingParams,
+  _getServerUrl,
+  decrypt,
+  KEYBOARD_EVENTS,
+  maskValue,
+  Params,
+  replaceWithLocalTestData,
+  scrollPageToLoadLazyElements,
+  unEscapeString,
+} from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
@@ -30,9 +42,9 @@ import {
 } from "./command_common.js";
 import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
-type Params = Record<string, string>;
+import { LocatorLog } from "./locator_log.js";
 
-const Types = {
+export const Types = {
   CLICK: "click_element",
   NAVIGATE: "navigate", ///
   FILL: "fill_element",
@@ -43,6 +55,8 @@ const Types = {
   GET_PAGE_STATUS: "get_page_status", ///
   CLICK_ROW_ACTION: "click_row_action", //
   VERIFY_ELEMENT_CONTAINS_TEXT: "verify_element_contains_text",
+  VERIFY_PAGE_CONTAINS_TEXT: "verify_page_contains_text",
+  VERIFY_PAGE_CONTAINS_NO_TEXT: "verify_page_contains_no_text",
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
@@ -59,6 +73,8 @@ const Types = {
   LOAD_DATA: "load_data",
   SET_INPUT: "set_input",
   WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
+  VERIFY_ATTRIBUTE: "verify_element_attribute",
+  VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
 };
 export const apps = {};
 class StableBrowser {
@@ -108,28 +124,9 @@ class StableBrowser {
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
   }
-  async scrollPageToLoadLazyElements() {
-    let lastHeight = await this.page.evaluate(() => document.body.scrollHeight);
-    let retry = 0;
-    while (true) {
-      await this.page.evaluate(() => window.scrollBy(0, window.innerHeight));
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      let newHeight = await this.page.evaluate(() => document.body.scrollHeight);
-      if (newHeight === lastHeight) {
-        break;
-      }
-      lastHeight = newHeight;
-      retry++;
-      if (retry > 10) {
-        break;
-      }
-    }
-
-    await this.page.evaluate(() => window.scrollTo(0, 0));
-  }
   registerEventListeners(context) {
     this.registerConsoleLogListener(this.page, context);
-    this.registerRequestListener(this.page, context, this.webLogFile);
+    // this.registerRequestListener(this.page, context, this.webLogFile);
     if (!context.pageLoading) {
       context.pageLoading = { status: false };
     }
@@ -197,8 +194,8 @@ class StableBrowser {
       };
     }
     const tempContext = {};
-    this._copyContext(this, tempContext);
-    this._copyContext(apps[appName], this);
+    _copyContext(this, tempContext);
+    _copyContext(apps[appName], this);
     apps[this.appName] = tempContext;
     this.appName = appName;
     if (navigate) {
@@ -206,22 +203,7 @@ class StableBrowser {
       await this.waitForPageLoad();
     }
   }
-  _copyContext(from, to) {
-    to.browser = from.browser;
-    to.page = from.page;
-    to.context = from.context;
-  }
-  getWebLogFile(logFolder: string) {
-    if (!fs.existsSync(logFolder)) {
-      fs.mkdirSync(logFolder, { recursive: true });
-    }
-    let nextIndex = 1;
-    while (fs.existsSync(path.join(logFolder, nextIndex.toString() + ".json"))) {
-      nextIndex++;
-    }
-    const fileName = nextIndex + ".json";
-    return path.join(logFolder, fileName);
-  }
+
   registerConsoleLogListener(page: Page, context: any) {
     if (!this.context.webLogger) {
       this.context.webLogger = [];
@@ -287,55 +269,39 @@ class StableBrowser {
   // async closeUnexpectedPopups() {
   //   await closeUnexpectedPopups(this.page);
   // }
-  async goto(url: string) {
+  async goto(url: string, world = null) {
     if (!url.startsWith("http")) {
       url = "https://" + url;
     }
-    await this.page.goto(url, {
-      timeout: 60000,
-    });
+    const state = {
+      value: url,
+      world: world,
+      type: Types.NAVIGATE,
+      text: `Navigate Page to: ${url}`,
+      operation: "goto",
+      log: "***** navigate page to " + url + " *****\n",
+      info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+    };
+    try {
+      await _preCommand(state, this);
+      await this.page.goto(url, {
+        timeout: 60000,
+      });
+      await _screenshot(state, this);
+    } catch (error) {
+      console.error("Error on goto", error);
+      _commandError(state, error, this);
+    } finally {
+      _commandFinally(state, this);
+    }
   }
 
-  _fixUsingParams(text, _params: Params) {
-    if (!_params || typeof text !== "string") {
-      return text;
-    }
-    for (let key in _params) {
-      let regValue = key;
-      if (key.startsWith("_")) {
-        // remove the _ prefix
-        regValue = key.substring(1);
-      }
-      text = text.replaceAll(new RegExp("{" + regValue + "}", "g"), _params[key]);
-    }
-    return text;
-  }
-  _fixLocatorUsingParams(locator, _params: Params) {
-    // check if not null
-    if (!locator) {
-      return locator;
-    }
-    // clone the locator
-    locator = JSON.parse(JSON.stringify(locator));
-    this.scanAndManipulate(locator, _params);
-    return locator;
-  }
-  _isObject(value) {
-    return value && typeof value === "object" && value.constructor === Object;
-  }
-  scanAndManipulate(currentObj, _params: Params) {
-    for (const key in currentObj) {
-      if (typeof currentObj[key] === "string") {
-        // Perform string manipulation
-        currentObj[key] = this._fixUsingParams(currentObj[key], _params);
-      } else if (this._isObject(currentObj[key])) {
-        // Recursively scan nested objects
-        this.scanAndManipulate(currentObj[key], _params);
-      }
-    }
-  }
   _getLocator(locator, scope, _params) {
-    locator = this._fixLocatorUsingParams(locator, _params);
+    locator = _fixLocatorUsingParams(locator, _params);
     let locatorReturn;
     if (locator.role) {
       if (locator.role[1].nameReg) {
@@ -343,7 +309,7 @@ class StableBrowser {
         delete locator.role[1].nameReg;
       }
       // if (locator.role[1].name) {
-      //   locator.role[1].name = this._fixUsingParams(locator.role[1].name, _params);
+      //   locator.role[1].name = _fixUsingParams(locator.role[1].name, _params);
       // }
 
       locatorReturn = scope.getByRole(locator.role[0], locator.role[1]);
@@ -390,7 +356,7 @@ class StableBrowser {
     }
     let result = await this._locateElementByText(
       scope,
-      this._fixUsingParams(text, _params),
+      _fixUsingParams(text, _params),
       "*:not(script, style, head)",
       false,
       false,
@@ -412,123 +378,42 @@ class StableBrowser {
     //const stringifyText = JSON.stringify(text);
     return await scope.locator(":root").evaluate(
       (_node, [text, tag, regex, partial]) => {
-        function isParent(parent, child) {
-          let currentNode = child.parentNode;
-          while (currentNode !== null) {
-            if (currentNode === parent) {
-              return true;
-            }
-            currentNode = currentNode.parentNode;
-          }
-          return false;
+        const options = {
+          innerText: true,
+        };
+        if (regex) {
+          options.singleRegex = true;
         }
-        document.isParent = isParent;
-        function getRegex(str) {
-          const match = str.match(/^\/(.*?)\/([gimuy]*)$/);
-          if (!match) {
-            return null;
+        if (tag) {
+          options.tag = tag;
+        }
+        if (!(partial === true)) {
+          options.exactMatch = true;
+        }
+        if(text.startsWith("/") && text.endsWith("/")) {
+          if(text.length < 3) {
+            throw new Error("Invalid regex pattern: empty pattern");
           }
+          try {
+            const pattern = text.slice(1, -1);
+            new RegExp(pattern); // Validate pattern
+            text = pattern;
+            options.singleRegex = true;
+          } catch(e) {
+            throw new Error(`Invalid regex pattern: ${e.message}`);
+          }
+        }
 
-          let [_, pattern, flags] = match;
-          return new RegExp(pattern, flags);
-        }
-        document.getRegex = getRegex;
-        function collectAllShadowDomElements(element, result = []) {
-          // Check and add the element if it has a shadow root
-          if (element.shadowRoot) {
-            result.push(element);
-            // Also search within the shadow root
-            document.collectAllShadowDomElements(element.shadowRoot, result);
-          }
-
-          // Iterate over child nodes
-          element.childNodes.forEach((child) => {
-            // Recursively call the function for each child node
-            document.collectAllShadowDomElements(child, result);
-          });
-
-          return result;
-        }
-        document.collectAllShadowDomElements = collectAllShadowDomElements;
-        if (!tag) {
-          tag = "*:not(script, style, head)";
-        }
-        let regexpSearch = document.getRegex(text);
-        if (regexpSearch) {
-          regex = true;
-        }
-        let elements = Array.from(document.querySelectorAll(tag));
-        let shadowHosts = [];
-        document.collectAllShadowDomElements(document, shadowHosts);
-        for (let i = 0; i < shadowHosts.length; i++) {
-          let shadowElement = shadowHosts[i].shadowRoot;
-          if (!shadowElement) {
-            console.log("shadowElement is null, for host " + shadowHosts[i]);
-            continue;
-          }
-          let shadowElements = Array.from(shadowElement.querySelectorAll(tag));
-          elements = elements.concat(shadowElements);
-        }
+        const elements = window.findMatchingElements(text, options);
         let randomToken = null;
         const foundElements = [];
-        if (regex) {
-          if (!regexpSearch) {
-            regexpSearch = new RegExp(text, "im");
-          }
-          for (let i = 0; i < elements.length; i++) {
-            const element = elements[i];
-            if (
-              (element.innerText && regexpSearch.test(element.innerText)) ||
-              (element.value && regexpSearch.test(element.value))
-            ) {
-              foundElements.push(element);
-            }
-          }
-        } else {
-          text = text.trim();
-          for (let i = 0; i < elements.length; i++) {
-            const element = elements[i];
-            if (partial) {
-              if (
-                (element.innerText && element.innerText.toLowerCase().trim().includes(text.toLowerCase())) ||
-                (element.value && element.value.toLowerCase().includes(text.toLowerCase()))
-              ) {
-                foundElements.push(element);
-              }
-            } else {
-              if (
-                (element.innerText && element.innerText.trim() === text) ||
-                (element.value && element.value === text)
-              ) {
-                foundElements.push(element);
-              }
-            }
-          }
-        }
-        let noChildElements = [];
-        for (let i = 0; i < foundElements.length; i++) {
-          let element = foundElements[i];
-          let hasChild = false;
-          for (let j = 0; j < foundElements.length; j++) {
-            if (i === j) {
-              continue;
-            }
-            if (isParent(element, foundElements[j])) {
-              hasChild = true;
-              break;
-            }
-          }
-          if (!hasChild) {
-            noChildElements.push(element);
-          }
-        }
         let elementCount = 0;
-        if (noChildElements.length > 0) {
-          for (let i = 0; i < noChildElements.length; i++) {
+        if (elements.length > 0) {
+          for (let i = 0; i < elements.length; i++) {
             if (randomToken === null) {
               randomToken = Math.random().toString(36).substring(7);
             }
-            let element = noChildElements[i];
+            let element = elements[i];
             element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
             elementCount++;
           }
@@ -556,10 +441,13 @@ class StableBrowser {
     }
     if (!info.log) {
       info.log = "";
+      info.locatorLog = new LocatorLog(selectorHierarchy);
     }
     let locatorSearch = selectorHierarchy[index];
+    let originalLocatorSearch = "";
     try {
-      locatorSearch = JSON.parse(this._fixUsingParams(JSON.stringify(locatorSearch), _params));
+      originalLocatorSearch = _fixUsingParams(JSON.stringify(locatorSearch), _params);
+      locatorSearch = JSON.parse(originalLocatorSearch);
     } catch (e) {
       console.error(e);
     }
@@ -580,7 +468,7 @@ class StableBrowser {
       }
       locator = this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
-      let text = this._fixUsingParams(locatorSearch.text, _params);
+      let text = _fixUsingParams(locatorSearch.text, _params);
       let result = await this._locateElementByText(
         scope,
         text,
@@ -616,7 +504,13 @@ class StableBrowser {
     let visibleLocator = null;
     if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
       foundLocators.push(locator.nth(locatorSearch.index));
+      if (info.locatorLog) {
+        info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+      }
       return;
+    }
+    if (info.locatorLog && count === 0) {
+      info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
     }
 
     for (let j = 0; j < count; j++) {
@@ -627,14 +521,25 @@ class StableBrowser {
       }
       if (visible && enabled) {
         foundLocators.push(locator.nth(j));
+        if (info.locatorLog) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+        }
       } else {
         info.failCause.visible = visible;
         info.failCause.enabled = enabled;
         if (!info.printMessages) {
           info.printMessages = {};
         }
+        if (info.locatorLog && !visible) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
+        }
+        if (info.locatorLog && !enabled) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
+        }
+
         if (!info.printMessages[j.toString()]) {
-          info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+          //info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+
           info.printMessages[j.toString()] = true;
         }
       }
@@ -650,7 +555,7 @@ class StableBrowser {
       if (!info) {
         info = {};
       }
-      info.log += "scan for popup handlers" + "\n";
+      //info.log += "scan for popup handlers" + "\n";
       const handlerGroup = [];
       for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
         handlerGroup.push(this.configuration.popupHandlers[i].locator);
@@ -720,6 +625,7 @@ class StableBrowser {
       info.failCause = {};
       info.log = "";
     }
+    let startTime = Date.now();
     let scope = this.page;
     if (selectors.frame) {
       return selectors.frame;
@@ -749,9 +655,11 @@ class StableBrowser {
         }
         return framescope;
       };
+      let fLocator = null;
       while (true) {
         let frameFound = false;
         if (selectors.nestFrmLoc) {
+          fLocator = selectors.nestFrmLoc;
           scope = await findFrame(selectors.nestFrmLoc, scope);
           frameFound = true;
           break;
@@ -760,6 +668,7 @@ class StableBrowser {
           for (let i = 0; i < selectors.frameLocators.length; i++) {
             let frameLocator = selectors.frameLocators[i];
             if (frameLocator.css) {
+              fLocator = frameLocator.css;
               scope = scope.frameLocator(frameLocator.css);
               frameFound = true;
               break;
@@ -767,17 +676,25 @@ class StableBrowser {
           }
         }
         if (!frameFound && selectors.iframe_src) {
+          fLocator = selectors.iframe_src;
           scope = this.page.frame({ url: selectors.iframe_src });
         }
         if (!scope) {
-          info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
-          if (performance.now() - startTime > timeout) {
+          if (info && info.locatorLog) {
+            info.locatorLog.setLocatorSearchStatus("frame-" + fLocator, "NOT_FOUND");
+          }
+
+          //info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
+          if (Date.now() - startTime > timeout) {
             info.failCause.iframeNotFound = true;
             info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } else {
+          if (info && info.locatorLog) {
+            info.locatorLog.setLocatorSearchStatus("frame-" + fLocator, "FOUND");
+          }
           break;
         }
       }
@@ -800,10 +717,11 @@ class StableBrowser {
       info = {};
       info.failCause = {};
       info.log = "";
+      info.locatorLog = new LocatorLog(selectors);
     }
     let highPriorityTimeout = 5000;
     let visibleOnlyTimeout = 6000;
-    let startTime = performance.now();
+    let startTime = Date.now();
     let locatorsCount = 0;
     let lazy_scroll = false;
     //let arrayMode = Array.isArray(selectors);
@@ -891,25 +809,31 @@ class StableBrowser {
           return maxCountElement.locator;
         }
       }
-      if (performance.now() - startTime > timeout) {
+      if (Date.now() - startTime > timeout) {
         break;
       }
-      if (performance.now() - startTime > highPriorityTimeout) {
+      if (Date.now() - startTime > highPriorityTimeout) {
         info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
         if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
           lazy_scroll = true;
-          await this.scrollPageToLoadLazyElements();
+          await scrollPageToLoadLazyElements(this.page);
         }
       }
-      if (performance.now() - startTime > visibleOnlyTimeout) {
+      if (Date.now() - startTime > visibleOnlyTimeout) {
         info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
-    info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
+    // if (info.locatorLog) {
+    //   const lines = info.locatorLog.toString().split("\n");
+    //   for (let line of lines) {
+    //     this.logger.debug(line);
+    //   }
+    // }
+    //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
     info.failCause.lastError = "failed to locate unique element";
     throw new Error("failed to locate first element no elements found, " + info.log);
@@ -924,8 +848,9 @@ class StableBrowser {
       try {
         await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly);
       } catch (e) {
-        this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
-        this.logger.debug(e);
+        // this call can fail it the browser is navigating
+        // this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
+        // this.logger.debug(e);
         foundLocators = [];
         try {
           await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly);
@@ -943,11 +868,27 @@ class StableBrowser {
       }
       if (foundLocators.length > 1) {
         info.failCause.foundMultiple = true;
+        if (info.locatorLog) {
+          info.locatorLog.setLocatorSearchStatus(locatorsGroup[i], "FOUND_NOT_UNIQUE");
+        }
       }
     }
     return result;
   }
   async simpleClick(elementDescription, _params?: Params, options = {}, world = null) {
+    const state = {
+      locate: false,
+      scroll: false,
+      highlight: false,
+      _params,
+      options,
+      world,
+      type: Types.CLICK,
+      text: "Click element",
+      operation: "simpleClick",
+      log: "***** click on " + elementDescription + " *****\n",
+    };
+    _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -972,13 +913,31 @@ class StableBrowser {
       } catch (e) {
         if (performance.now() - startTime > timeout) {
           // throw e;
-          await _commandError({ text: "simpleClick", operation: "simpleClick", elementDescription, info: {} }, e, this);
+          try {
+            await _commandError(state, "timeout looking for " + elementDescription, this);
+          } finally {
+            _commandFinally(state, this);
+          }
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
+
   async simpleClickType(elementDescription, value, _params?: Params, options = {}, world = null) {
+    const state = {
+      locate: false,
+      scroll: false,
+      highlight: false,
+      _params,
+      options,
+      world,
+      type: Types.FILL,
+      text: "Fill element",
+      operation: "simpleClickType",
+      log: "***** click type on " + elementDescription + " *****\n",
+    };
+    _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1003,11 +962,11 @@ class StableBrowser {
       } catch (e) {
         if (performance.now() - startTime > timeout) {
           // throw e;
-          await _commandError(
-            { text: "simpleClickType", operation: "simpleClickType", value, elementDescription, info: {} },
-            e,
-            this
-          );
+          try {
+            await _commandError(state, "timeout looking for " + elementDescription, this);
+          } finally {
+            _commandFinally(state, this);
+          }
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -1419,6 +1378,7 @@ class StableBrowser {
     let screenshotPath = null;
     if (!info.log) {
       info.log = "";
+      info.locatorLog = new LocatorLog(selectors);
     }
     info.operation = "getText";
     info.selectors = selectors;
@@ -1911,6 +1871,64 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      attribute,
+      value,
+      options,
+      world,
+      type: Types.VERIFY_ATTRIBUTE,
+      text: `Verify element attribute`,
+      operation: "verifyAttribute",
+      log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    let val;
+    try {
+      await _preCommand(state, this);
+      switch (attribute) {
+        case "innerText":
+          val = String(await state.element.innerText());
+          break;
+        case "value":
+          val = String(await state.element.inputValue());
+          break;
+        case "checked":
+          val = String(await state.element.isChecked());
+          break;
+        case "disabled":
+          val = String(await state.element.isDisabled());
+          break;
+        case "readOnly":
+          const isEditable = await state.element.isEditable();
+          val = String(!isEditable);
+          break;
+        default:
+          val = String(await state.element.getAttribute(attribute));
+          break;
+      }
+
+      state.info.expectedValue = val;
+      let regex;
+      if (value.startsWith("/") && value.endsWith("/")) {
+        const patternBody = value.slice(1, -1);
+        regex = new RegExp(patternBody, "g");
+      } else {
+        const escapedPattern = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        regex = new RegExp(escapedPattern, "g");
+      }
+      if (!val.match(regex)) {
+        throw new Error(`The ${attribute} attribute has a value of "${val}", but the expected value is "${value}"`);
+      }
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+  }
   async extractEmailData(emailAddress, options, world) {
     if (!emailAddress) {
       throw new Error("email address is null");
@@ -1928,7 +1946,7 @@ class StableBrowser {
     if (options && options.timeout) {
       timeout = options.timeout;
     }
-    const serviceUrl = this._getServerUrl() + "/api/mail/createLinkOrCodeFromEmail";
+    const serviceUrl = _getServerUrl() + "/api/mail/createLinkOrCodeFromEmail";
 
     const request = {
       method: "POST",
@@ -2129,6 +2147,46 @@ class StableBrowser {
       });
     }
   }
+  async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
+    const frames = this.page.frames();
+    let results = [];
+    for (let i = 0; i < frames.length; i++) {
+      if (dateAlternatives.date) {
+        for (let j = 0; j < dateAlternatives.dates.length; j++) {
+          const result = await this._locateElementByText(
+            frames[i],
+            dateAlternatives.dates[j],
+            "*:not(script, style, head)",
+            false,
+            true,
+            {}
+          );
+          result.frame = frames[i];
+          results.push(result);
+        }
+      } else if (numberAlternatives.number) {
+        for (let j = 0; j < numberAlternatives.numbers.length; j++) {
+          const result = await this._locateElementByText(
+            frames[i],
+            numberAlternatives.numbers[j],
+            "*:not(script, style, head)",
+            false,
+            true,
+            {}
+          );
+          result.frame = frames[i];
+          results.push(result);
+        }
+      } else {
+        const result = await this._locateElementByText(frames[i], text, "*:not(script, style, head)", false, true, {});
+        result.frame = frames[i];
+        results.push(result);
+      }
+    }
+    state.info.results = results;
+    const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
+    return resultWithElementsFound;
+  }
   async verifyTextExistInPage(text, options = {}, world = null) {
     text = unEscapeString(text);
     const state = {
@@ -2138,7 +2196,7 @@ class StableBrowser {
       locate: false,
       scroll: false,
       highlight: false,
-      type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
+      type: Types.VERIFY_PAGE_CONTAINS_TEXT,
       text: `Verify text exists in page`,
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
@@ -2159,51 +2217,12 @@ class StableBrowser {
       await _preCommand(state, this);
       state.info.text = text;
       while (true) {
-        const frames = this.page.frames();
-        let results = [];
-        for (let i = 0; i < frames.length; i++) {
-          if (dateAlternatives.date) {
-            for (let j = 0; j < dateAlternatives.dates.length; j++) {
-              const result = await this._locateElementByText(
-                frames[i],
-                dateAlternatives.dates[j],
-                "*:not(script, style, head)",
-                true,
-                true,
-                {}
-              );
-              result.frame = frames[i];
-              results.push(result);
-            }
-          } else if (numberAlternatives.number) {
-            for (let j = 0; j < numberAlternatives.numbers.length; j++) {
-              const result = await this._locateElementByText(
-                frames[i],
-                numberAlternatives.numbers[j],
-                "*:not(script, style, head)",
-                true,
-                true,
-                {}
-              );
-              result.frame = frames[i];
-              results.push(result);
-            }
-          } else {
-            const result = await this._locateElementByText(
-              frames[i],
-              text,
-              "*:not(script, style, head)",
-              true,
-              true,
-              {}
-            );
-            result.frame = frames[i];
-            results.push(result);
-          }
-        }
-        state.info.results = results;
-        const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
-
+        const resultWithElementsFound = await this.findTextInAllFrames(
+          dateAlternatives,
+          numberAlternatives,
+          text,
+          state
+        );
         if (resultWithElementsFound.length === 0) {
           if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${text} not found in page`);
@@ -2263,51 +2282,12 @@ class StableBrowser {
       await _preCommand(state, this);
       state.info.text = text;
       while (true) {
-        const frames = this.page.frames();
-        let results = [];
-        for (let i = 0; i < frames.length; i++) {
-          if (dateAlternatives.date) {
-            for (let j = 0; j < dateAlternatives.dates.length; j++) {
-              const result = await this._locateElementByText(
-                frames[i],
-                dateAlternatives.dates[j],
-                "*:not(script, style, head)",
-                true,
-                true,
-                {}
-              );
-              result.frame = frames[i];
-              results.push(result);
-            }
-          } else if (numberAlternatives.number) {
-            for (let j = 0; j < numberAlternatives.numbers.length; j++) {
-              const result = await this._locateElementByText(
-                frames[i],
-                numberAlternatives.numbers[j],
-                "*:not(script, style, head)",
-                true,
-                true,
-                {}
-              );
-              result.frame = frames[i];
-              results.push(result);
-            }
-          } else {
-            const result = await this._locateElementByText(
-              frames[i],
-              text,
-              "*:not(script, style, head)",
-              true,
-              true,
-              {}
-            );
-            result.frame = frames[i];
-            results.push(result);
-          }
-        }
-        state.info.results = results;
-        const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
-
+        const resultWithElementsFound = await this.findTextInAllFrames(
+          dateAlternatives,
+          numberAlternatives,
+          text,
+          state
+        );
         if (resultWithElementsFound.length === 0) {
           await _screenshot(state, this);
           return state.info;
@@ -2323,16 +2303,119 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  async verifyTextRelatedToText(
+    textAnchor: string,
+    climb: number,
+    textToVerify: string,
+    options = {},
+    world: any = null
+  ) {
+    textAnchor = unEscapeString(textAnchor);
+    textToVerify = unEscapeString(textToVerify);
+    const state = {
+      text_search: textToVerify,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.VERIFY_TEXT_WITH_RELATION,
+      text: `Verify text with relation to another text`,
+      operation: "verify_text_with_relation",
+      log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
+    };
 
-  _getServerUrl() {
-    let serviceUrl = "https://api.blinq.io";
-    if (process.env.NODE_ENV_BLINQ === "dev") {
-      serviceUrl = "https://dev.api.blinq.io";
-    } else if (process.env.NODE_ENV_BLINQ === "stage") {
-      serviceUrl = "https://stage.api.blinq.io";
+    const timeout = this._getLoadTimeout(options);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    let newValue = await this._replaceWithLocalData(textAnchor, world);
+    if (newValue !== textAnchor) {
+      this.logger.info(textAnchor + "=" + newValue);
+      textAnchor = newValue;
     }
-    return serviceUrl;
+    newValue = await this._replaceWithLocalData(textToVerify, world);
+    if (newValue !== textToVerify) {
+      this.logger.info(textToVerify + "=" + newValue);
+      textToVerify = newValue;
+    }
+    let dateAlternatives = findDateAlternatives(textToVerify);
+    let numberAlternatives = findNumberAlternatives(textToVerify);
+    let foundAncore = false;
+    try {
+      await _preCommand(state, this);
+      state.info.text = textToVerify;
+      while (true) {
+        const resultWithElementsFound = await this.findTextInAllFrames(
+          dateAlternatives,
+          numberAlternatives,
+          textAnchor,
+          state
+        );
+        if (resultWithElementsFound.length === 0) {
+          if (Date.now() - state.startTime > timeout) {
+            throw new Error(`Text ${foundAncore ? textToVerify : textAnchor} not found in page`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        for (let i = 0; i < resultWithElementsFound.length; i++) {
+          foundAncore = true;
+          const result = resultWithElementsFound[i];
+          const token = result.randomToken;
+          const frame = result.frame;
+          const css = `[data-blinq-id="blinq-id-${token}"]`;
+          const findResult = await frame.evaluate(
+            ([css, climb, textToVerify, token]) => {
+              const elements = Array.from(document.querySelectorAll(css));
+              for (let i = 0; i < elements.length; i++) {
+                const element = elements[i];
+                let climbParent = element;
+                for (let j = 0; j < climb; j++) {
+                  climbParent = climbParent.parentElement;
+                  if (!climbParent) {
+                    break;
+                  }
+                }
+                if (!climbParent) {
+                  continue;
+                }
+                const foundElements = window.findMatchingElements(textToVerify, {}, climbParent);
+                if (foundElements.length > 0) {
+                  // set the container element attribute
+                  element.setAttribute("data-blinq-id", `blinq-id-${token}-anchor`);
+                  climbParent.setAttribute("data-blinq-id", `blinq-id-${token}-container`);
+                  foundElements[0].setAttribute("data-blinq-id", `blinq-id-${token}-verify`);
+                  return { found: true };
+                }
+              }
+              return { found: false };
+            },
+            [css, climb, textToVerify, result.randomToken]
+          );
+          if (findResult.found === true) {
+            const dataAttribute = `[data-blinq-id="blinq-id-${token}-verify"]`;
+            const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
+            await this._highlightElements(frame, dataAttribute);
+            await this._highlightElements(frame, cssAnchor);
+            const element = await frame.$(dataAttribute);
+            if (element) {
+              await this.scrollIfNeeded(element, state.info);
+              await element.dispatchEvent("bvt_verify_page_contains_text");
+            }
+            await _screenshot(state, this);
+            return state.info;
+          }
+        }
+      }
+
+      // await expect(element).toHaveCount(1, { timeout: 10000 });
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
   }
+
   async visualVerification(text, options = {}, world = null) {
     const startTime = Date.now();
     let error = null;
@@ -2347,7 +2430,7 @@ class StableBrowser {
       throw new Error("TOKEN is not set");
     }
     try {
-      let serviceUrl = this._getServerUrl();
+      let serviceUrl = _getServerUrl();
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
@@ -2434,6 +2517,8 @@ class StableBrowser {
     let screenshotPath = null;
     const info = {};
     info.log = "";
+    info.locatorLog = new LocatorLog(selectors);
+
     info.operation = "getTableData";
     info.selectors = selectors;
     try {
@@ -2508,7 +2593,7 @@ class StableBrowser {
     info.operation = "analyzeTable";
     info.selectors = selectors;
     info.query = query;
-    query = this._fixUsingParams(query, _params);
+    query = _fixUsingParams(query, _params);
     info.query_fixed = query;
     info.operator = operator;
     info.value = value;
@@ -2891,156 +2976,5 @@ function createTimedPromise(promise, label) {
   return promise
     .then((result) => ({ status: "fulfilled", label, result }))
     .catch((error) => Promise.reject({ status: "rejected", label, error }));
-}
-const KEYBOARD_EVENTS = [
-  "ALT",
-  "AltGraph",
-  "CapsLock",
-  "Control",
-  "Fn",
-  "FnLock",
-  "Hyper",
-  "Meta",
-  "NumLock",
-  "ScrollLock",
-  "Shift",
-  "Super",
-  "Symbol",
-  "SymbolLock",
-  "Enter",
-  "Tab",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "ArrowUp",
-  "End",
-  "Home",
-  "PageDown",
-  "PageUp",
-  "Backspace",
-  "Clear",
-  "Copy",
-  "CrSel",
-  "Cut",
-  "Delete",
-  "EraseEof",
-  "ExSel",
-  "Insert",
-  "Paste",
-  "Redo",
-  "Undo",
-  "Accept",
-  "Again",
-  "Attn",
-  "Cancel",
-  "ContextMenu",
-  "Escape",
-  "Execute",
-  "Find",
-  "Finish",
-  "Help",
-  "Pause",
-  "Play",
-  "Props",
-  "Select",
-  "ZoomIn",
-  "ZoomOut",
-  "BrightnessDown",
-  "BrightnessUp",
-  "Eject",
-  "LogOff",
-  "Power",
-  "PowerOff",
-  "PrintScreen",
-  "Hibernate",
-  "Standby",
-  "WakeUp",
-  "AllCandidates",
-  "Alphanumeric",
-  "CodeInput",
-  "Compose",
-  "Convert",
-  "Dead",
-  "FinalMode",
-  "GroupFirst",
-  "GroupLast",
-  "GroupNext",
-  "GroupPrevious",
-  "ModeChange",
-  "NextCandidate",
-  "NonConvert",
-  "PreviousCandidate",
-  "Process",
-  "SingleCandidate",
-  "HangulMode",
-  "HanjaMode",
-  "JunjaMode",
-  "Eisu",
-  "Hankaku",
-  "Hiragana",
-  "HiraganaKatakana",
-  "KanaMode",
-  "KanjiMode",
-  "Katakana",
-  "Romaji",
-  "Zenkaku",
-  "ZenkakuHanaku",
-  "F1",
-  "F2",
-  "F3",
-  "F4",
-  "F5",
-  "F6",
-  "F7",
-  "F8",
-  "F9",
-  "F10",
-  "F11",
-  "F12",
-  "Soft1",
-  "Soft2",
-  "Soft3",
-  "Soft4",
-  "ChannelDown",
-  "ChannelUp",
-  "Close",
-  "MailForward",
-  "MailReply",
-  "MailSend",
-  "MediaFastForward",
-  "MediaPause",
-  "MediaPlay",
-  "MediaPlayPause",
-  "MediaRecord",
-  "MediaRewind",
-  "MediaStop",
-  "MediaTrackNext",
-  "MediaTrackPrevious",
-  "AudioBalanceLeft",
-  "AudioBalanceRight",
-  "AudioBassBoostDown",
-  "AudioBassBoostToggle",
-  "AudioBassBoostUp",
-  "AudioFaderFront",
-  "AudioFaderRear",
-  "AudioSurroundModeNext",
-  "AudioTrebleDown",
-  "AudioTrebleUp",
-  "AudioVolumeDown",
-  "AudioVolumeMute",
-  "AudioVolumeUp",
-  "MicrophoneToggle",
-  "MicrophoneVolumeDown",
-  "MicrophoneVolumeMute",
-  "MicrophoneVolumeUp",
-  "TV",
-  "TV3DMode",
-  "TVAntennaCable",
-  "TVAudioDescription",
-];
-function unEscapeString(str: string) {
-  const placeholder = "__NEWLINE__";
-  str = str.replace(new RegExp(placeholder, "g"), "\n");
-  return str;
 }
 export { StableBrowser };
