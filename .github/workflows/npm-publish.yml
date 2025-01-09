@@ -25,7 +25,7 @@ jobs:
       - run: npm install
         working-directory: ${{ github.workspace }}
       - name: Install Playwright dependencies
-        run: npx playwright install
+        run: npx playwright install --with-deps
         working-directory: ${{ github.workspace }}
 
       - name: Fetch current version from npm with tag 'latest'
@@ -39,7 +39,6 @@ jobs:
         run: |
           current_version=${{ env.version }}
           IFS='.' read -r -a version_parts <<< "$current_version"
-          preid="main"
           patch_version=$((version_parts[2]+1))
           NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}"
 
@@ -76,4 +75,5 @@ jobs:
           repository: blinq-io/ai-qa
           event-type: trigger-cucumber-main
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+
 
