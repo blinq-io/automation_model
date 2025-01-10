@@ -302,8 +302,15 @@ class StableBrowser {
     }
   }
 
-  _getLocator(locator, scope, _params) {
+  async _getLocator(locator, scope, _params) {
     locator = _fixLocatorUsingParams(locator, _params);
+    // locator = await this._replaceWithLocalData(locator);
+    for (let key in locator) {
+      if (typeof locator[key] !== "string") continue;
+      if (locator[key].includes("{{") && locator[key].includes("}}")) {
+        locator[key] = await this._replaceWithLocalData(locator[key], this.world);
+      }
+    }
     let locatorReturn;
     if (locator.role) {
       if (locator.role[1].nameReg) {
@@ -468,7 +475,7 @@ class StableBrowser {
         info.failCause.lastError = "failed to locate element by text: " + locatorSearch.text;
         return;
       }
-      locator = this._getLocator({ css: locatorString }, scope, _params);
+      locator = await this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
       let text = _fixUsingParams(locatorSearch.text, _params);
       let result = await this._locateElementByText(
@@ -488,9 +495,9 @@ class StableBrowser {
       if (locatorSearch.childCss) {
         locatorSearch.css = locatorSearch.css + " " + locatorSearch.childCss;
       }
-      locator = this._getLocator(locatorSearch, scope, _params);
+      locator = await this._getLocator(locatorSearch, scope, _params);
     } else {
-      locator = this._getLocator(locatorSearch, scope, _params);
+      locator = await this._getLocator(locatorSearch, scope, _params);
     }
     // let cssHref = false;
     // if (locatorSearch.css && locatorSearch.css.includes("href=")) {
@@ -987,9 +994,9 @@ class StableBrowser {
     };
     try {
       await _preCommand(state, this);
-      if (state.options && state.options.context) {
-        state.selectors.locators[0].text = state.options.context;
-      }
+      // if (state.options && state.options.context) {
+      //   state.selectors.locators[0].text = state.options.context;
+      // }
       try {
         await state.element.click();
         // await new Promise((resolve) => setTimeout(resolve, 1000));
