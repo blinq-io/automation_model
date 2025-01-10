@@ -878,7 +878,7 @@ class StableBrowser {
       if (foundLocators.length > 1) {
         info.failCause.foundMultiple = true;
         if (info.locatorLog) {
-          info.locatorLog.setLocatorSearchStatus(locatorsGroup[i], "FOUND_NOT_UNIQUE");
+          info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
         }
       }
     }
