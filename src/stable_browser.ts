@@ -2241,7 +2241,7 @@ class StableBrowser {
           const frame = resultWithElementsFound[0].frame;
           const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
           await this._highlightElements(frame, dataAttribute);
-          const element = await frame.locator(dataAttribute);
+          const element = await frame.locator(dataAttribute).first();
           if (element) {
             await this.scrollIfNeeded(element, state.info);
             await element.dispatchEvent("bvt_verify_page_contains_text");
@@ -2404,7 +2404,7 @@ class StableBrowser {
             const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
             await this._highlightElements(frame, dataAttribute);
             await this._highlightElements(frame, cssAnchor);
-            const element = await frame.locator(dataAttribute);
+            const element = await frame.locator(dataAttribute).first();
             if (element) {
               await this.scrollIfNeeded(element, state.info);
               await element.dispatchEvent("bvt_verify_page_contains_text");
