@@ -397,8 +397,8 @@ class StableBrowser {
         if (!(partial === true)) {
           options.exactMatch = true;
         }
-        if(text.startsWith("/") && text.endsWith("/")) {
-          if(text.length < 3) {
+        if (text.startsWith("/") && text.endsWith("/")) {
+          if (text.length < 3) {
             throw new Error("Invalid regex pattern: empty pattern");
           }
           try {
@@ -406,7 +406,7 @@ class StableBrowser {
             new RegExp(pattern); // Validate pattern
             text = pattern;
             options.singleRegex = true;
-          } catch(e) {
+          } catch (e) {
             throw new Error(`Invalid regex pattern: ${e.message}`);
           }
         }
@@ -2926,12 +2926,18 @@ class StableBrowser {
   }
 
   async beforeStep(world, step) {
-    this.stepName = step.pickleStep.text;
-    this.logger.info("step: " + this.stepName);
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
     } else {
       this.stepIndex++;
+    }
+    if (step && step.pickleStep && step.pickleStep.text) {
+      this.stepName = step.pickleStep.text;
+      this.logger.info("step: " + this.stepName);
+    } else if (step && step.text) {
+      this.stepName = step.text;
+    } else {
+      this.stepName = "step " + this.stepIndex;
     }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
