@@ -144,6 +144,9 @@ class Api {
       testsPassed: 0,
       failCause: {},
     };
+    info.tests?.forEach((test) => {
+      test.fail = true;
+    });
     state.info = info;
 
     let error: any = null;
