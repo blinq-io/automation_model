@@ -379,7 +379,11 @@ class StableBrowser {
       climbArray.push("..");
     }
     let climbXpath = "xpath=" + climbArray.join("/");
-    return textElementCss + " >> " + climbXpath + " >> " + css;
+    let resultCss = textElementCss + " >> " + climbXpath;
+    if (css) {
+      resultCss = resultCss + " >> " + css;
+    }
+    return resultCss;
   }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, _params: Params) {
     //const stringifyText = JSON.stringify(text);
