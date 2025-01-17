@@ -367,6 +367,7 @@ class StableBrowser {
       "*:not(script, style, head)",
       false,
       false,
+      true,
       _params
     );
     if (result.elementCount === 0) {
@@ -385,12 +386,13 @@ class StableBrowser {
     }
     return resultCss;
   }
-  async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, _params: Params) {
+  async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.locator(":root").evaluate(
-      (_node, [text, tag, regex, partial]) => {
+      (_node, [text, tag, regex, partial, ignoreCase]) => {
         const options = {
           innerText: true,
+          ignoreCase: ignoreCase,
         };
         if (regex) {
           options.singleRegex = true;
@@ -431,7 +433,7 @@ class StableBrowser {
         }
         return { elementCount: elementCount, randomToken: randomToken };
       },
-      [text1, tag1, regex1, partial1]
+      [text1, tag1, regex1, partial1, ignoreCase]
     );
   }
 
@@ -486,6 +488,7 @@ class StableBrowser {
         locatorSearch.tag,
         false,
         locatorSearch.partial === true,
+        true,
         _params
       );
       if (result.elementCount === 0) {
@@ -2161,6 +2164,7 @@ class StableBrowser {
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
     const frames = this.page.frames();
     let results = [];
+    let ignoreCase = !(text.startsWith("/") && text.endsWith("/"));
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
@@ -2170,6 +2174,7 @@ class StableBrowser {
             "*:not(script, style, head)",
             false,
             true,
+            ignoreCase,
             {}
           );
           result.frame = frames[i];
@@ -2183,13 +2188,22 @@ class StableBrowser {
             "*:not(script, style, head)",
             false,
             true,
+            ignoreCase,
             {}
           );
           result.frame = frames[i];
           results.push(result);
         }
       } else {
-        const result = await this._locateElementByText(frames[i], text, "*:not(script, style, head)", false, true, {});
+        const result = await this._locateElementByText(
+          frames[i],
+          text,
+          "*:not(script, style, head)",
+          false,
+          true,
+          ignoreCase,
+          {}
+        );
         result.frame = frames[i];
         results.push(result);
       }
