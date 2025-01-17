@@ -253,16 +253,6 @@ class Browser {
     await this.context?.addInitScript({
       content: axeMinJsContent,
     });
-    let findTextPath = path.join(__dirname, "..", "scripts", "find_text.js");
-    // Check if the file exists
-    if (!fs.existsSync(findTextPath)) {
-      findTextPath = path.join(__dirname, "scripts", "find_text.js");
-    }
-    // Read the content of find_text.js synchronously
-    const findTextContent = fs.readFileSync(findTextPath, "utf-8");
-    await this.context?.addInitScript({
-      content: findTextContent,
-    });
     this.page = await this.context!.newPage();
   }
 

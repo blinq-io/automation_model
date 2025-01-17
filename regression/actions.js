@@ -38,11 +38,7 @@ describe("Actions Tests", function () {
       ],
     },
     button_login: {
-      locators: [
-        { text: "LOGIN", tag: "button" },
-        { role: ["button", { name: "LOGIN" }], parameterDependent: false },
-        { tagOnly: true, priority: 3, css: "button" },
-      ],
+      locators: [{ text: "LOGIN", tag: "button" }],
       element_name: "login button",
     },
     button_: {
@@ -149,6 +145,18 @@ describe("Actions Tests", function () {
     );
     console.log("info object: " + JSON.stringify(info, null, 2));
   });
+  it("verifyTextRelatedToText", async function () {
+    let info = null;
+    console.log(`verifyTextRelatedToText"`);
+    info = await context.stable.verifyTextRelatedToText(
+      "blinq_user",
+      2,
+      "blinq_admin",
+      { screenshotPath: "./temp/6.png", screenshot: true },
+      null
+    );
+    console.log("info object: " + JSON.stringify(info, null, 2));
+  });
   it("extract", async function () {
     let info = null;
     let key = "button_login";
@@ -236,7 +244,7 @@ describe("Actions Tests", function () {
     //let key = "section2";
     console.log(`verifyTextExistInPage let_me_in"`);
     info = await context.stable.verifyTextExistInPage(
-      "blinq_user blinq_ /.*/",
+      "/blinq_user\\s*blinq_.*/",
       { screenshotPath: "./temp/14.png", screenshot: true },
       null
     );
