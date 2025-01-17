@@ -41,6 +41,42 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
   const bytes = CryptoJS.AES.decrypt(encryptedText, key);
   return bytes.toString(CryptoJS.enc.Utf8);
 }
+function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean, ignoreCase: boolean) {
+  let query = "internal:text=/";
+  let queryEnd = "/";
+  let pattern = "";
+  const regexEndPattern = /\/([gimuy]*)$/;
+  if (text.startsWith("/")) {
+    const match = regexEndPattern.test(text);
+    if (match) {
+      try {
+        const regex = new RegExp(text.substring(1, text.lastIndexOf("/")), text.match(regexEndPattern)![1]);
+        return "internal:text=" + text;
+      } catch {
+        // not regex
+      }
+    }
+  }
+  if (isRegex) {
+    pattern = text;
+  } else {
+    // first remove \n then split the text by any white space,
+    let parts = text.replace(/\\n/g, "").split(/\s+/);
+    //  escape regex split part
+    parts = parts.map((part) => escapeRegex(part));
+    pattern = parts.join("\\s*");
+  }
+  if (fullMatch) {
+    pattern = "^" + pattern + "$";
+  }
+  if (ignoreCase) {
+    queryEnd += "i";
+  }
+  return query + pattern + queryEnd;
+}
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function _findKey() {
   if (process.env.PROJECT_ID) {
     return process.env.PROJECT_ID;
@@ -376,4 +412,5 @@ export {
   unEscapeString,
   Params,
   _getServerUrl,
+  _convertToRegexQuery,
 };
