@@ -2153,7 +2153,7 @@ class StableBrowser {
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
     const frames = this.page.frames();
     let results = [];
-    let ignoreCase = !(text.startsWith("/") && text.endsWith("/"));
+    let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
