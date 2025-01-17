@@ -13,6 +13,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import {
+  _convertToRegexQuery,
   _copyContext,
   _fixLocatorUsingParams,
   _fixUsingParams,
@@ -387,54 +388,36 @@ class StableBrowser {
     return resultCss;
   }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
-    //const stringifyText = JSON.stringify(text);
-    return await scope.locator(":root").evaluate(
-      (_node, [text, tag, regex, partial, ignoreCase]) => {
-        const options = {
-          innerText: true,
-          ignoreCase: ignoreCase,
-        };
-        if (regex) {
-          options.singleRegex = true;
-        }
-        if (tag) {
-          options.tag = tag;
-        }
-        if (!(partial === true)) {
-          options.exactMatch = true;
-        }
-        if (text.startsWith("/") && text.endsWith("/")) {
-          if (text.length < 3) {
-            throw new Error("Invalid regex pattern: empty pattern");
-          }
-          try {
-            const pattern = text.slice(1, -1);
-            new RegExp(pattern); // Validate pattern
-            text = pattern;
-            options.singleRegex = true;
-          } catch (e) {
-            throw new Error(`Invalid regex pattern: ${e.message}`);
-          }
-        }
-
-        const elements = window.findMatchingElements(text, options);
-        let randomToken = null;
-        const foundElements = [];
-        let elementCount = 0;
-        if (elements.length > 0) {
-          for (let i = 0; i < elements.length; i++) {
-            if (randomToken === null) {
-              randomToken = Math.random().toString(36).substring(7);
+    const query = _convertToRegexQuery(text1, regex1, !partial1, ignoreCase);
+    const locator = scope.locator(query);
+    const count = await locator.count();
+    const randomToken = Math.random().toString(36).substring(7);
+    let tagCount = 0;
+    for (let i = 0; i < count; i++) {
+      const element = locator.nth(i);
+      // check if the tag matches
+      if (
+        !(await element.evaluate(
+          (el, [tag, randomToken]) => {
+            if (!tag.startsWith("*")) {
+              if (el.tagName.toLowerCase() !== tag) {
+                return false;
+              }
             }
-            let element = elements[i];
-            element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
-            elementCount++;
-          }
-        }
-        return { elementCount: elementCount, randomToken: randomToken };
-      },
-      [text1, tag1, regex1, partial1, ignoreCase]
-    );
+            if (!el.setAttribute) {
+              el = el.parentElement;
+            }
+            el.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
+            return true;
+          },
+          [tag1, randomToken]
+        ))
+      ) {
+        continue;
+      }
+      tagCount++;
+    }
+    return { elementCount: tagCount, randomToken };
   }
 
   async _collectLocatorInformation(
@@ -827,7 +810,7 @@ class StableBrowser {
         break;
       }
       if (Date.now() - startTime > highPriorityTimeout) {
-        info.log += "high priority timeout, will try all elements" + "\n";
+        //info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
         if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
           lazy_scroll = true;
@@ -835,7 +818,7 @@ class StableBrowser {
         }
       }
       if (Date.now() - startTime > visibleOnlyTimeout) {
-        info.log += "visible only timeout, will try all elements" + "\n";
+        //info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -2388,51 +2371,33 @@ class StableBrowser {
           const result = resultWithElementsFound[i];
           const token = result.randomToken;
           const frame = result.frame;
-          const css = `[data-blinq-id="blinq-id-${token}"]`;
-          const findResult = await frame.evaluate(
-            ([css, climb, textToVerify, token]) => {
-              const elements = Array.from(document.querySelectorAll(css));
-              for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                let climbParent = element;
-                for (let j = 0; j < climb; j++) {
-                  climbParent = climbParent.parentElement;
-                  if (!climbParent) {
-                    break;
-                  }
-                }
-                if (!climbParent) {
-                  continue;
-                }
-                const foundElements = window.findMatchingElements(textToVerify, {}, climbParent);
-                if (foundElements.length > 0) {
-                  // set the container element attribute
-                  element.setAttribute("data-blinq-id", `blinq-id-${token}-anchor`);
-                  climbParent.setAttribute("data-blinq-id", `blinq-id-${token}-container`);
-                  foundElements[0].setAttribute("data-blinq-id", `blinq-id-${token}-verify`);
-                  return { found: true };
-                }
+          let css = `[data-blinq-id="blinq-id-${token}"]`;
+          const climbArray1 = [];
+          for (let i = 0; i < climb; i++) {
+            climbArray1.push("..");
+          }
+          let climbXpath = "xpath=" + climbArray1.join("/");
+          css = css + " >> " + climbXpath;
+          const count = await frame.locator(css).count();
+          for (let j = 0; j < count; j++) {
+            const continer = await frame.locator(css).nth(j);
+            const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
+            if (result.elementCount > 0) {
+              const dataAttribute = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+              //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
+              await this._highlightElements(frame, dataAttribute);
+              //await this._highlightElements(frame, cssAnchor);
+              const element = await frame.locator(dataAttribute).first();
+              if (element) {
+                await this.scrollIfNeeded(element, state.info);
+                await element.dispatchEvent("bvt_verify_page_contains_text");
               }
-              return { found: false };
-            },
-            [css, climb, textToVerify, result.randomToken]
-          );
-          if (findResult.found === true) {
-            const dataAttribute = `[data-blinq-id="blinq-id-${token}-verify"]`;
-            const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
-            await this._highlightElements(frame, dataAttribute);
-            await this._highlightElements(frame, cssAnchor);
-            const element = await frame.locator(dataAttribute).first();
-            if (element) {
-              await this.scrollIfNeeded(element, state.info);
-              await element.dispatchEvent("bvt_verify_page_contains_text");
+              await _screenshot(state, this);
+              return state.info;
             }
-            await _screenshot(state, this);
-            return state.info;
           }
         }
       }
-
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       await _commandError(state, e, this);
