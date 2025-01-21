@@ -376,7 +376,7 @@ class StableBrowser {
     if (result.elementCount === 0) {
       return;
     }
-    let textElementCss = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+    let textElementCss = "[data-blinq-id-" + result.randomToken + "]";
     // css climb to parent element
     const climbArray = [];
     for (let i = 0; i < climb; i++) {
@@ -412,7 +412,7 @@ class StableBrowser {
             if (!el.setAttribute) {
               el = el.parentElement;
             }
-            el.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
+            el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
           [tag1, randomToken]
@@ -484,7 +484,7 @@ class StableBrowser {
         info.failCause.lastError = "failed to locate element by text: " + text;
         return;
       }
-      locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+      locatorSearch.css = "[data-blinq-id-" + result.randomToken + "]";
       if (locatorSearch.childCss) {
         locatorSearch.css = locatorSearch.css + " " + locatorSearch.childCss;
       }
@@ -2246,7 +2246,7 @@ class StableBrowser {
         }
         if (resultWithElementsFound[0].randomToken) {
           const frame = resultWithElementsFound[0].frame;
-          const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
+          const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
           await this._highlightElements(frame, dataAttribute);
           const element = await frame.locator(dataAttribute).first();
           if (element) {
@@ -2377,7 +2377,7 @@ class StableBrowser {
           const result = resultWithElementsFound[i];
           const token = result.randomToken;
           const frame = result.frame;
-          let css = `[data-blinq-id="blinq-id-${token}"]`;
+          let css = `[data-blinq-id-${token}]`;
           const climbArray1 = [];
           for (let i = 0; i < climb; i++) {
             climbArray1.push("..");
@@ -2389,7 +2389,7 @@ class StableBrowser {
             const continer = await frame.locator(css).nth(j);
             const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
             if (result.elementCount > 0) {
-              const dataAttribute = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+              const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
               //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
               await this._highlightElements(frame, dataAttribute);
               //await this._highlightElements(frame, cssAnchor);
