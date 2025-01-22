@@ -360,6 +360,7 @@ class StableBrowser {
       "*:not(script, style, head)",
       false,
       false,
+      true,
       _params
     );
     if (result.elementCount === 0) {
@@ -374,12 +375,13 @@ class StableBrowser {
     let climbXpath = "xpath=" + climbArray.join("/");
     return textElementCss + " >> " + climbXpath + " >> " + css;
   }
-  async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, _params: Params) {
+  async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
     //const stringifyText = JSON.stringify(text);
     return await scope.locator(":root").evaluate(
-      (_node, [text, tag, regex, partial]) => {
+      (_node, [text, tag, regex, partial, ignoreCase]) => {
         const options = {
           innerText: true,
+          ignoreCase: ignoreCase,
         };
         if (regex) {
           options.singleRegex = true;
@@ -390,8 +392,8 @@ class StableBrowser {
         if (!(partial === true)) {
           options.exactMatch = true;
         }
-        if(text.startsWith("/") && text.endsWith("/")) {
-          if(text.length < 3) {
+        if (text.startsWith("/") && text.endsWith("/")) {
+          if (text.length < 3) {
             throw new Error("Invalid regex pattern: empty pattern");
           }
           try {
@@ -399,7 +401,7 @@ class StableBrowser {
             new RegExp(pattern); // Validate pattern
             text = pattern;
             options.singleRegex = true;
-          } catch(e) {
+          } catch (e) {
             throw new Error(`Invalid regex pattern: ${e.message}`);
           }
         }
@@ -420,7 +422,7 @@ class StableBrowser {
         }
         return { elementCount: elementCount, randomToken: randomToken };
       },
-      [text1, tag1, regex1, partial1]
+      [text1, tag1, regex1, partial1, ignoreCase]
     );
   }
 
@@ -475,6 +477,7 @@ class StableBrowser {
         locatorSearch.tag,
         false,
         locatorSearch.partial === true,
+        true,
         _params
       );
       if (result.elementCount === 0) {
@@ -2150,6 +2153,7 @@ class StableBrowser {
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
     const frames = this.page.frames();
     let results = [];
+    let ignoreCase = !(text.startsWith("/") && text.endsWith("/"));
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
@@ -2159,6 +2163,7 @@ class StableBrowser {
             "*:not(script, style, head)",
             false,
             true,
+            ignoreCase,
             {}
           );
           result.frame = frames[i];
@@ -2172,13 +2177,22 @@ class StableBrowser {
             "*:not(script, style, head)",
             false,
             true,
+            ignoreCase,
             {}
           );
           result.frame = frames[i];
           results.push(result);
         }
       } else {
-        const result = await this._locateElementByText(frames[i], text, "*:not(script, style, head)", false, true, {});
+        const result = await this._locateElementByText(
+          frames[i],
+          text,
+          "*:not(script, style, head)",
+          false,
+          true,
+          ignoreCase,
+          {}
+        );
         result.frame = frames[i];
         results.push(result);
       }
@@ -2919,12 +2933,18 @@ class StableBrowser {
   }
 
   async beforeStep(world, step) {
-    this.stepName = step.pickleStep.text;
-    this.logger.info("step: " + this.stepName);
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
     } else {
       this.stepIndex++;
+    }
+    if (step && step.pickleStep && step.pickleStep.text) {
+      this.stepName = step.pickleStep.text;
+      this.logger.info("step: " + this.stepName);
+    } else if (step && step.text) {
+      this.stepName = step.text;
+    } else {
+      this.stepName = "step " + this.stepIndex;
     }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
