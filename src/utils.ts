@@ -74,8 +74,35 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
   }
   return query + pattern + queryEnd;
 }
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str: string) {
+  // Special regex characters that need to be escaped
+  const specialChars = [
+    "/",
+    ".",
+    "*",
+    "+",
+    "?",
+    "^",
+    "$",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+    "|",
+    "\\",
+    "-",
+    "'",
+    '"',
+    ">", // added to avoid confusion with pw selectorsxw
+  ];
+
+  // Create a regex that will match all special characters
+  const escapeRegex = new RegExp(specialChars.map((char) => `\\${char}`).join("|"), "g");
+
+  // Escape special characters by prefixing them with a backslash
+  return str.replace(escapeRegex, "\\$&");
 }
 function _findKey() {
   if (process.env.PROJECT_ID) {
