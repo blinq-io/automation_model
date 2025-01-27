@@ -67,7 +67,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
     pattern = parts.join("\\s*");
   }
   if (fullMatch) {
-    pattern = "^" + pattern + "$";
+    pattern = "^\\s*" + pattern + "\\s*$";
   }
   if (ignoreCase) {
     queryEnd += "i";
