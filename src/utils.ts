@@ -99,10 +99,10 @@ function escapeRegex(str: string) {
   ];
 
   // Create a regex that will match all special characters
-  const escapeRegex = new RegExp(specialChars.map((char) => `\\${char}`).join("|"), "g");
+  const escapedRegex = new RegExp(specialChars.map((char) => `\\${char}`).join("|"), "g");
 
   // Escape special characters by prefixing them with a backslash
-  return str.replace(escapeRegex, "\\$&");
+  return str.replace(escapedRegex, "\\$&");
 }
 function _findKey() {
   if (process.env.PROJECT_ID) {
