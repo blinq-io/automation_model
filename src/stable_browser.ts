@@ -432,7 +432,8 @@ class StableBrowser {
     foundLocators,
     _params: Params,
     info,
-    visibleOnly = true
+    visibleOnly = true,
+    allowDisabled? = false
   ) {
     if (!info) {
       info = {};
@@ -521,7 +522,7 @@ class StableBrowser {
       if (!visibleOnly) {
         visible = true;
       }
-      if (visible) {
+      if (visible && (allowDisabled || enabled)) {
         foundLocators.push(locator.nth(j));
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
@@ -604,7 +605,7 @@ class StableBrowser {
     }
     return { rerun: false };
   }
-  async _locate(selectors, info, _params?: Params, timeout) {
+  async _locate(selectors, info, _params?: Params, timeout, allowDisabled? = false) {
     if (!timeout) {
       timeout = 30000;
     }
@@ -614,7 +615,7 @@ class StableBrowser {
         let selector = selectors.locators[j];
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
-      let element = await this._locate_internal(selectors, info, _params, timeout);
+      let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
       if (!element.rerun) {
         return element;
       }
@@ -714,7 +715,7 @@ class StableBrowser {
       return bodyContent;
     });
   }
-  async _locate_internal(selectors, info, _params?: Params, timeout = 30000) {
+  async _locate_internal(selectors, info, _params?: Params, timeout = 30000, allowDisabled? = false) {
     if (!info) {
       info = {};
       info.failCause = {};
@@ -762,16 +763,16 @@ class StableBrowser {
       }
       // info.log += "scanning locators in priority 1" + "\n";
       let onlyPriority3 = selectorsLocators[0].priority === 3;
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly, allowDisabled);
       if (result.foundElements.length === 0) {
         // info.log += "scanning locators in priority 2" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
+        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly, allowDisabled);
       }
       if (result.foundElements.length === 0 && onlyPriority3) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly, allowDisabled);
       } else {
         if (result.foundElements.length === 0 && !highPriorityOnly) {
-          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly, allowDisabled);
         }
       }
       let foundElements = result.foundElements;
@@ -840,7 +841,7 @@ class StableBrowser {
     info.failCause.lastError = "failed to locate unique element";
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -848,14 +849,14 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly);
+        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly, allowDisabled);
       } catch (e) {
         // this call can fail it the browser is navigating
         // this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         // this.logger.debug(e);
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly);
+          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly, allowDisabled);
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
@@ -1884,9 +1885,12 @@ class StableBrowser {
       options,
       world,
       type: Types.VERIFY_ATTRIBUTE,
+      highlight: true,
+      screenshot:true,
       text: `Verify element attribute`,
       operation: "verifyAttribute",
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     let val;
