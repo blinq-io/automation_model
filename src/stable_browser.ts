@@ -521,7 +521,7 @@ class StableBrowser {
       if (!visibleOnly) {
         visible = true;
       }
-      if (visible && enabled) {
+      if (visible) {
         foundLocators.push(locator.nth(j));
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
@@ -2033,15 +2033,15 @@ class StableBrowser {
         scope
           .evaluate((node) => {
             if (node && node.style) {
-              let originalBorder = node.style.border;
-              node.style.border = "2px solid red";
+              let originalBorder = node.style.outline;
+              node.style.outline = "2px solid red";
               if (window) {
                 window.addEventListener("beforeunload", function (e) {
-                  node.style.border = originalBorder;
+                  node.style.outline = originalBorder;
                 });
               }
               setTimeout(function () {
-                node.style.border = originalBorder;
+                node.style.outline = originalBorder;
               }, 2000);
             }
           })
@@ -2063,18 +2063,18 @@ class StableBrowser {
                 if (!element.style) {
                   return;
                 }
-                var originalBorder = element.style.border;
+                var originalBorder = element.style.outline;
 
                 // Set the new border to be red and 2px solid
-                element.style.border = "2px solid red";
+                element.style.outline = "2px solid red";
                 if (window) {
                   window.addEventListener("beforeunload", function (e) {
-                    element.style.border = originalBorder;
+                    element.style.outline = originalBorder;
                   });
                 }
                 // Set a timeout to revert to the original border after 2 seconds
                 setTimeout(function () {
-                  element.style.border = originalBorder;
+                  element.style.outline = originalBorder;
                 }, 2000);
               }
               return;
