@@ -764,13 +764,34 @@ class StableBrowser {
       result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly, allowDisabled);
       if (result.foundElements.length === 0) {
         // info.log += "scanning locators in priority 2" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly, allowDisabled);
+        result = await this._scanLocatorsGroup(
+          locatorsByPriority["2"],
+          scope,
+          _params,
+          info,
+          visibleOnly,
+          allowDisabled
+        );
       }
       if (result.foundElements.length === 0 && onlyPriority3) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly, allowDisabled);
+        result = await this._scanLocatorsGroup(
+          locatorsByPriority["3"],
+          scope,
+          _params,
+          info,
+          visibleOnly,
+          allowDisabled
+        );
       } else {
         if (result.foundElements.length === 0 && !highPriorityOnly) {
-          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly, allowDisabled);
+          result = await this._scanLocatorsGroup(
+            locatorsByPriority["3"],
+            scope,
+            _params,
+            info,
+            visibleOnly,
+            allowDisabled
+          );
         }
       }
       let foundElements = result.foundElements;
@@ -847,14 +868,32 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly, allowDisabled);
+        await this._collectLocatorInformation(
+          locatorsGroup,
+          i,
+          scope,
+          foundLocators,
+          _params,
+          info,
+          visibleOnly,
+          allowDisabled
+        );
       } catch (e) {
         // this call can fail it the browser is navigating
         // this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         // this.logger.debug(e);
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly, allowDisabled);
+          await this._collectLocatorInformation(
+            locatorsGroup,
+            i,
+            this.page,
+            foundLocators,
+            _params,
+            info,
+            visibleOnly,
+            allowDisabled
+          );
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
@@ -1327,7 +1366,11 @@ class StableBrowser {
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
       } else if (enter === false) {
-        await state.element.dispatchEvent("change");
+        try {
+          await state.element.dispatchEvent("change", null, { timeout: 5000 });
+        } catch (e) {
+          // ignore
+        }
         //await this.page.keyboard.press("Tab");
       } else {
         if (enter !== "" && enter !== null && enter !== undefined) {
@@ -1882,11 +1925,11 @@ class StableBrowser {
       world,
       type: Types.VERIFY_ATTRIBUTE,
       highlight: true,
-      screenshot:true,
+      screenshot: true,
       text: `Verify element attribute`,
       operation: "verifyAttribute",
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
-      allowDisabled: true
+      allowDisabled: true,
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     let val;
