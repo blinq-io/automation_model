@@ -381,6 +381,7 @@ class StableBrowser {
       climbArray.push("..");
     }
     let climbXpath = "xpath=" + climbArray.join("/");
+
     let resultCss = textElementCss + " >> " + climbXpath;
     if (css) {
       resultCss = resultCss + " >> " + css;
@@ -2197,6 +2198,7 @@ class StableBrowser {
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
     const frames = this.page.frames();
     let results = [];
+
     let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
