@@ -13,6 +13,7 @@ import drawRectangle from "./drawRect.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
 import {
+  _convertToRegexQuery,
   _copyContext,
   _fixLocatorUsingParams,
   _fixUsingParams,
@@ -300,8 +301,15 @@ class StableBrowser {
     }
   }
 
-  _getLocator(locator, scope, _params) {
+  async _getLocator(locator, scope, _params) {
     locator = _fixLocatorUsingParams(locator, _params);
+    // locator = await this._replaceWithLocalData(locator);
+    for (let key in locator) {
+      if (typeof locator[key] !== "string") continue;
+      if (locator[key].includes("{{") && locator[key].includes("}}")) {
+        locator[key] = await this._replaceWithLocalData(locator[key], this.world);
+      }
+    }
     let locatorReturn;
     if (locator.role) {
       if (locator.role[1].nameReg) {
@@ -366,64 +374,54 @@ class StableBrowser {
     if (result.elementCount === 0) {
       return;
     }
-    let textElementCss = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+    let textElementCss = "[data-blinq-id-" + result.randomToken + "]";
     // css climb to parent element
     const climbArray = [];
     for (let i = 0; i < climb; i++) {
       climbArray.push("..");
     }
     let climbXpath = "xpath=" + climbArray.join("/");
-    return textElementCss + " >> " + climbXpath + " >> " + css;
+
+    let resultCss = textElementCss + " >> " + climbXpath;
+    if (css) {
+      resultCss = resultCss + " >> " + css;
+    }
+    return resultCss;
   }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
-    //const stringifyText = JSON.stringify(text);
-    return await scope.locator(":root").evaluate(
-      (_node, [text, tag, regex, partial, ignoreCase]) => {
-        const options = {
-          innerText: true,
-          ignoreCase: ignoreCase,
-        };
-        if (regex) {
-          options.singleRegex = true;
-        }
-        if (tag) {
-          options.tag = tag;
-        }
-        if (!(partial === true)) {
-          options.exactMatch = true;
-        }
-        if (text.startsWith("/") && text.endsWith("/")) {
-          if (text.length < 3) {
-            throw new Error("Invalid regex pattern: empty pattern");
-          }
-          try {
-            const pattern = text.slice(1, -1);
-            new RegExp(pattern); // Validate pattern
-            text = pattern;
-            options.singleRegex = true;
-          } catch (e) {
-            throw new Error(`Invalid regex pattern: ${e.message}`);
-          }
-        }
-
-        const elements = window.findMatchingElements(text, options);
-        let randomToken = null;
-        const foundElements = [];
-        let elementCount = 0;
-        if (elements.length > 0) {
-          for (let i = 0; i < elements.length; i++) {
-            if (randomToken === null) {
-              randomToken = Math.random().toString(36).substring(7);
+    const query = _convertToRegexQuery(text1, regex1, !partial1, ignoreCase);
+    const locator = scope.locator(query);
+    const count = await locator.count();
+    if (!tag1) {
+      tag1 = "*";
+    }
+    const randomToken = Math.random().toString(36).substring(7);
+    let tagCount = 0;
+    for (let i = 0; i < count; i++) {
+      const element = locator.nth(i);
+      // check if the tag matches
+      if (
+        !(await element.evaluate(
+          (el, [tag, randomToken]) => {
+            if (!tag.startsWith("*")) {
+              if (el.tagName.toLowerCase() !== tag) {
+                return false;
+              }
             }
-            let element = elements[i];
-            element.setAttribute("data-blinq-id", "blinq-id-" + randomToken);
-            elementCount++;
-          }
-        }
-        return { elementCount: elementCount, randomToken: randomToken };
-      },
-      [text1, tag1, regex1, partial1, ignoreCase]
-    );
+            if (!el.setAttribute) {
+              el = el.parentElement;
+            }
+            el.setAttribute("data-blinq-id-" + randomToken, "");
+            return true;
+          },
+          [tag1, randomToken]
+        ))
+      ) {
+        continue;
+      }
+      tagCount++;
+    }
+    return { elementCount: tagCount, randomToken };
   }
 
   async _collectLocatorInformation(
@@ -433,7 +431,8 @@ class StableBrowser {
     foundLocators,
     _params: Params,
     info,
-    visibleOnly = true
+    visibleOnly = true,
+    allowDisabled? = false
   ) {
     if (!info) {
       info = {};
@@ -468,7 +467,7 @@ class StableBrowser {
         info.failCause.lastError = "failed to locate element by text: " + locatorSearch.text;
         return;
       }
-      locator = this._getLocator({ css: locatorString }, scope, _params);
+      locator = await this._getLocator({ css: locatorString }, scope, _params);
     } else if (locatorSearch.text) {
       let text = _fixUsingParams(locatorSearch.text, _params);
       let result = await this._locateElementByText(
@@ -485,13 +484,13 @@ class StableBrowser {
         info.failCause.lastError = "failed to locate element by text: " + text;
         return;
       }
-      locatorSearch.css = "[data-blinq-id='blinq-id-" + result.randomToken + "']";
+      locatorSearch.css = "[data-blinq-id-" + result.randomToken + "]";
       if (locatorSearch.childCss) {
         locatorSearch.css = locatorSearch.css + " " + locatorSearch.childCss;
       }
-      locator = this._getLocator(locatorSearch, scope, _params);
+      locator = await this._getLocator(locatorSearch, scope, _params);
     } else {
-      locator = this._getLocator(locatorSearch, scope, _params);
+      locator = await this._getLocator(locatorSearch, scope, _params);
     }
     // let cssHref = false;
     // if (locatorSearch.css && locatorSearch.css.includes("href=")) {
@@ -522,7 +521,7 @@ class StableBrowser {
       if (!visibleOnly) {
         visible = true;
       }
-      if (visible && enabled) {
+      if (visible && (allowDisabled || enabled)) {
         foundLocators.push(locator.nth(j));
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
@@ -605,7 +604,7 @@ class StableBrowser {
     }
     return { rerun: false };
   }
-  async _locate(selectors, info, _params?: Params, timeout) {
+  async _locate(selectors, info, _params?: Params, timeout, allowDisabled? = false) {
     if (!timeout) {
       timeout = 30000;
     }
@@ -615,7 +614,7 @@ class StableBrowser {
         let selector = selectors.locators[j];
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
-      let element = await this._locate_internal(selectors, info, _params, timeout);
+      let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
       if (!element.rerun) {
         return element;
       }
@@ -715,7 +714,7 @@ class StableBrowser {
       return bodyContent;
     });
   }
-  async _locate_internal(selectors, info, _params?: Params, timeout = 30000) {
+  async _locate_internal(selectors, info, _params?: Params, timeout = 30000, allowDisabled? = false) {
     if (!info) {
       info = {};
       info.failCause = {};
@@ -763,16 +762,37 @@ class StableBrowser {
       }
       // info.log += "scanning locators in priority 1" + "\n";
       let onlyPriority3 = selectorsLocators[0].priority === 3;
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly);
+      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly, allowDisabled);
       if (result.foundElements.length === 0) {
         // info.log += "scanning locators in priority 2" + "\n";
-        result = await this._scanLocatorsGroup(locatorsByPriority["2"], scope, _params, info, visibleOnly);
+        result = await this._scanLocatorsGroup(
+          locatorsByPriority["2"],
+          scope,
+          _params,
+          info,
+          visibleOnly,
+          allowDisabled
+        );
       }
       if (result.foundElements.length === 0 && onlyPriority3) {
-        result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+        result = await this._scanLocatorsGroup(
+          locatorsByPriority["3"],
+          scope,
+          _params,
+          info,
+          visibleOnly,
+          allowDisabled
+        );
       } else {
         if (result.foundElements.length === 0 && !highPriorityOnly) {
-          result = await this._scanLocatorsGroup(locatorsByPriority["3"], scope, _params, info, visibleOnly);
+          result = await this._scanLocatorsGroup(
+            locatorsByPriority["3"],
+            scope,
+            _params,
+            info,
+            visibleOnly,
+            allowDisabled
+          );
         }
       }
       let foundElements = result.foundElements;
@@ -816,7 +836,7 @@ class StableBrowser {
         break;
       }
       if (Date.now() - startTime > highPriorityTimeout) {
-        info.log += "high priority timeout, will try all elements" + "\n";
+        //info.log += "high priority timeout, will try all elements" + "\n";
         highPriorityOnly = false;
         if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
           lazy_scroll = true;
@@ -824,7 +844,7 @@ class StableBrowser {
         }
       }
       if (Date.now() - startTime > visibleOnlyTimeout) {
-        info.log += "visible only timeout, will try all elements" + "\n";
+        //info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -841,7 +861,7 @@ class StableBrowser {
     info.failCause.lastError = "failed to locate unique element";
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -849,14 +869,32 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
-        await this._collectLocatorInformation(locatorsGroup, i, scope, foundLocators, _params, info, visibleOnly);
+        await this._collectLocatorInformation(
+          locatorsGroup,
+          i,
+          scope,
+          foundLocators,
+          _params,
+          info,
+          visibleOnly,
+          allowDisabled
+        );
       } catch (e) {
         // this call can fail it the browser is navigating
         // this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         // this.logger.debug(e);
         foundLocators = [];
         try {
-          await this._collectLocatorInformation(locatorsGroup, i, this.page, foundLocators, _params, info, visibleOnly);
+          await this._collectLocatorInformation(
+            locatorsGroup,
+            i,
+            this.page,
+            foundLocators,
+            _params,
+            info,
+            visibleOnly,
+            allowDisabled
+          );
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
         }
@@ -872,7 +910,7 @@ class StableBrowser {
       if (foundLocators.length > 1) {
         info.failCause.foundMultiple = true;
         if (info.locatorLog) {
-          info.locatorLog.setLocatorSearchStatus(locatorsGroup[i], "FOUND_NOT_UNIQUE");
+          info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
         }
       }
     }
@@ -988,9 +1026,9 @@ class StableBrowser {
     };
     try {
       await _preCommand(state, this);
-      if (state.options && state.options.context) {
-        state.selectors.locators[0].text = state.options.context;
-      }
+      // if (state.options && state.options.context) {
+      //   state.selectors.locators[0].text = state.options.context;
+      // }
       try {
         await state.element.click();
         // await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1329,7 +1367,11 @@ class StableBrowser {
         await this.page.keyboard.press("Enter");
         await this.waitForPageLoad();
       } else if (enter === false) {
-        await state.element.dispatchEvent("change");
+        try {
+          await state.element.dispatchEvent("change", null, { timeout: 5000 });
+        } catch (e) {
+          // ignore
+        }
         //await this.page.keyboard.press("Tab");
       } else {
         if (enter !== "" && enter !== null && enter !== undefined) {
@@ -1883,9 +1925,12 @@ class StableBrowser {
       options,
       world,
       type: Types.VERIFY_ATTRIBUTE,
+      highlight: true,
+      screenshot: true,
       text: `Verify element attribute`,
       operation: "verifyAttribute",
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     let val;
@@ -2033,15 +2078,15 @@ class StableBrowser {
         scope
           .evaluate((node) => {
             if (node && node.style) {
-              let originalBorder = node.style.border;
-              node.style.border = "2px solid red";
+              let originalBorder = node.style.outline;
+              node.style.outline = "2px solid red";
               if (window) {
                 window.addEventListener("beforeunload", function (e) {
-                  node.style.border = originalBorder;
+                  node.style.outline = originalBorder;
                 });
               }
               setTimeout(function () {
-                node.style.border = originalBorder;
+                node.style.outline = originalBorder;
               }, 2000);
             }
           })
@@ -2063,18 +2108,18 @@ class StableBrowser {
                 if (!element.style) {
                   return;
                 }
-                var originalBorder = element.style.border;
+                var originalBorder = element.style.outline;
 
                 // Set the new border to be red and 2px solid
-                element.style.border = "2px solid red";
+                element.style.outline = "2px solid red";
                 if (window) {
                   window.addEventListener("beforeunload", function (e) {
-                    element.style.border = originalBorder;
+                    element.style.outline = originalBorder;
                   });
                 }
                 // Set a timeout to revert to the original border after 2 seconds
                 setTimeout(function () {
-                  element.style.border = originalBorder;
+                  element.style.outline = originalBorder;
                 }, 2000);
               }
               return;
@@ -2153,7 +2198,8 @@ class StableBrowser {
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
     const frames = this.page.frames();
     let results = [];
-    let ignoreCase = !(text.startsWith("/") && text.endsWith("/"));
+
+    let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
@@ -2246,9 +2292,9 @@ class StableBrowser {
         }
         if (resultWithElementsFound[0].randomToken) {
           const frame = resultWithElementsFound[0].frame;
-          const dataAttribute = `[data-blinq-id="blinq-id-${resultWithElementsFound[0].randomToken}"]`;
+          const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
           await this._highlightElements(frame, dataAttribute);
-          const element = await frame.$(dataAttribute);
+          const element = await frame.locator(dataAttribute).first();
           if (element) {
             await this.scrollIfNeeded(element, state.info);
             await element.dispatchEvent("bvt_verify_page_contains_text");
@@ -2377,51 +2423,33 @@ class StableBrowser {
           const result = resultWithElementsFound[i];
           const token = result.randomToken;
           const frame = result.frame;
-          const css = `[data-blinq-id="blinq-id-${token}"]`;
-          const findResult = await frame.evaluate(
-            ([css, climb, textToVerify, token]) => {
-              const elements = Array.from(document.querySelectorAll(css));
-              for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                let climbParent = element;
-                for (let j = 0; j < climb; j++) {
-                  climbParent = climbParent.parentElement;
-                  if (!climbParent) {
-                    break;
-                  }
-                }
-                if (!climbParent) {
-                  continue;
-                }
-                const foundElements = window.findMatchingElements(textToVerify, {}, climbParent);
-                if (foundElements.length > 0) {
-                  // set the container element attribute
-                  element.setAttribute("data-blinq-id", `blinq-id-${token}-anchor`);
-                  climbParent.setAttribute("data-blinq-id", `blinq-id-${token}-container`);
-                  foundElements[0].setAttribute("data-blinq-id", `blinq-id-${token}-verify`);
-                  return { found: true };
-                }
+          let css = `[data-blinq-id-${token}]`;
+          const climbArray1 = [];
+          for (let i = 0; i < climb; i++) {
+            climbArray1.push("..");
+          }
+          let climbXpath = "xpath=" + climbArray1.join("/");
+          css = css + " >> " + climbXpath;
+          const count = await frame.locator(css).count();
+          for (let j = 0; j < count; j++) {
+            const continer = await frame.locator(css).nth(j);
+            const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
+            if (result.elementCount > 0) {
+              const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
+              //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
+              await this._highlightElements(frame, dataAttribute);
+              //await this._highlightElements(frame, cssAnchor);
+              const element = await frame.locator(dataAttribute).first();
+              if (element) {
+                await this.scrollIfNeeded(element, state.info);
+                await element.dispatchEvent("bvt_verify_page_contains_text");
               }
-              return { found: false };
-            },
-            [css, climb, textToVerify, result.randomToken]
-          );
-          if (findResult.found === true) {
-            const dataAttribute = `[data-blinq-id="blinq-id-${token}-verify"]`;
-            const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
-            await this._highlightElements(frame, dataAttribute);
-            await this._highlightElements(frame, cssAnchor);
-            const element = await frame.$(dataAttribute);
-            if (element) {
-              await this.scrollIfNeeded(element, state.info);
-              await element.dispatchEvent("bvt_verify_page_contains_text");
+              await _screenshot(state, this);
+              return state.info;
             }
-            await _screenshot(state, this);
-            return state.info;
           }
         }
       }
-
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       await _commandError(state, e, this);

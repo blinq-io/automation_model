@@ -8,6 +8,11 @@ export async function _preCommand(state: any, stable: any) {
   if (!state) {
     return;
   }
+
+  let allowDisabled = false;
+  if(state.allowDisabled){
+    allowDisabled = true;
+  }
   if (state.selectors) {
     _validateSelectors(state.selectors);
     const originalSelectors = state.selectors;
@@ -58,7 +63,7 @@ export async function _preCommand(state: any, stable: any) {
     if (state.options && state.options.timeout) {
       timeout = state.options.timeout;
     }
-    state.element = await stable._locate(state.selectors, state.info, state._params, timeout);
+    state.element = await stable._locate(state.selectors, state.info, state._params, timeout, allowDisabled);
   }
   if (state.scroll === true) {
     await stable.scrollIfNeeded(state.element, state.info);
