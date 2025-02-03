@@ -8,7 +8,11 @@ describe("Actions Tests", function () {
   before(async function () {
     // check if temp directory exists
     if (!fs.existsSync("temp")) {
-      fs.mkdirSync("temp");
+      try {
+        fs.mkdirSync("temp");
+      } catch (e) {
+        // ignore
+      }
     }
     console.log("Actions Tests: before");
   });
