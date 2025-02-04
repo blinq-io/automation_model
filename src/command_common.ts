@@ -10,16 +10,8 @@ export async function _preCommand(state: any, stable: any) {
   }
 
   let allowDisabled = false;
-  if(state.allowDisabled){
+  if (state.allowDisabled) {
     allowDisabled = true;
-  }
-  if (state.selectors) {
-    _validateSelectors(state.selectors);
-    const originalSelectors = state.selectors;
-    state.selectors = JSON.parse(JSON.stringify(state.selectors));
-    if (originalSelectors.frame) {
-      state.selectors.frame = originalSelectors.frame;
-    }
   }
   if (state.locate !== false) {
     state.locate = true;
@@ -44,7 +36,14 @@ export async function _preCommand(state: any, stable: any) {
   if (state.attribute) {
     state.info.attribute = state.attribute;
   }
-
+  if (state.selectors) {
+    _validateSelectors(state.selectors);
+    const originalSelectors = state.selectors;
+    state.selectors = JSON.parse(JSON.stringify(state.selectors));
+    if (originalSelectors.frame) {
+      state.selectors.frame = originalSelectors.frame;
+    }
+  }
   state.startTime = Date.now();
   state.info.selectors = state.selectors;
   state.info.log = state.log ? state.log : "";
@@ -54,6 +53,7 @@ export async function _preCommand(state: any, stable: any) {
   }
 
   state.info.operation = state.operation;
+
   state.info.failCause = {};
   state.error = null;
   state.screenshotId = null;
@@ -88,6 +88,9 @@ export async function _commandError(state: any, error: any, stable: any) {
     state.info.failCause = {};
   }
   stable.logger.error(state.text + " failed");
+  if (error && error.message) {
+    stable.logger.error(error.message);
+  }
   if (state.info.locatorLog) {
     const lines = state.info.locatorLog.toString().split("\n");
     for (let line of lines) {
