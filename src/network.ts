@@ -104,6 +104,7 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
         const endTime = Date.now();
         const startTime = requestTimes.get(requestId);
         const response = await request.response();
+        const timing = request.timing();
 
         // Find the corresponding data object
         const data = networkData.find((item: any) => item.requestId === requestId);
@@ -111,7 +112,6 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
         if (data) {
           data.responseEnd = endTime;
           data.responseTime = endTime - startTime;
-
           // Get response size
           try {
             const body = await response.body();
@@ -119,6 +119,24 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
           } catch (e) {
             data.size = 0;
           }
+          /*
+          domainLookupStart: 80.655,
+          domainLookupEnd: 80.668,
+          connectStart: 80.668,
+          secureConnectionStart: 106.688,
+          connectEnd: 129.69,
+          requestStart: 129.81,
+          responseStart: 187.006,
+          responseEnd: 188.209
+          */
+          data.domainLookupStart = timing.domainLookupStart;
+          data.domainLookupEnd = timing.domainLookupEnd;
+          data.connectStart = timing.connectStart;
+          data.secureConnectionStart = timing.secureConnectionStart;
+          data.connectEnd = timing.connectEnd;
+          data.requestStart = timing.requestStart;
+          data.responseStart = timing.responseStart;
+          data.responseEnd = timing.responseEnd;
           saveNetworkData();
           if (world && world.attach) {
             world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
