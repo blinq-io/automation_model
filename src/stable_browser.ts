@@ -534,9 +534,11 @@ class StableBrowser {
           info.printMessages = {};
         }
         if (info.locatorLog && !visible) {
+          info.failCause.lastError = "element " + originalLocatorSearch + " is not visible";
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
         }
         if (info.locatorLog && !enabled) {
+          info.failCause.lastError = "element " + originalLocatorSearch + " is disabled, ";
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
         }
 
@@ -859,7 +861,9 @@ class StableBrowser {
     // }
     //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
-    info.failCause.lastError = "failed to locate unique element";
+    if (!info?.failCause?.lastError) {
+      info.failCause.lastError = "failed to locate unique element";
+    }
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
   async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false) {
