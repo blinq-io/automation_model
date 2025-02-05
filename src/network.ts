@@ -158,18 +158,20 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
 
         // Find the corresponding data object
         const data = networkData.find((item: any) => item.requestId === requestId);
-
-        if (data) {
-          data.responseEnd = endTime;
-          data.responseTime = endTime - startTime;
-          data.status = statusCode;
-          data.size = 0;
-          saveNetworkData();
-          if (world && world.attach) {
-            world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+          if (data) {
+            data.responseEnd = endTime;
+            data.responseTime = endTime - startTime;
+            data.status = statusCode;
+            data.size = 0;
+            saveNetworkData();
+            if (world && world.attach) {
+              world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+            }
+          } else {
+            console.error("No data found for request ID", requestId);
           }
-        } else {
-          console.error("No data found for request ID", requestId);
+        } catch (error) {
+          // ignore
         }
       });
     }
