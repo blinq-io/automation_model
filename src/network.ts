@@ -119,6 +119,7 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
           } catch (e) {
             data.size = 0;
           }
+          const type = request.resourceType();
           /*
           domainLookupStart: 80.655,
           domainLookupEnd: 80.668,
@@ -129,6 +130,7 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
           responseStart: 187.006,
           responseEnd: 188.209
           */
+          data.type = type;
           data.domainLookupStart = timing.domainLookupStart;
           data.domainLookupEnd = timing.domainLookupEnd;
           data.connectStart = timing.connectStart;
@@ -151,12 +153,11 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
         const requestId = request.requestId;
         const endTime = Date.now();
         const startTime = requestTimes.get(requestId);
-        try {
-          const res = await request.response();
-          const statusCode = res ? res.status() : request.failure().errorText;
-          // Find the corresponding data object
-          const data = networkData.find((item: any) => item.requestId === requestId);
+        const res = await request.response();
+        const statusCode = res ? res.status() : request.failure().errorText;
 
+        // Find the corresponding data object
+        const data = networkData.find((item: any) => item.requestId === requestId);
           if (data) {
             data.responseEnd = endTime;
             data.responseTime = endTime - startTime;
