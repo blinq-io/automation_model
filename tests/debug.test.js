@@ -2,7 +2,6 @@ import { get } from "http";
 import { initContext } from "../build/lib/auto_page.js";
 import { closeBrowser } from "../build/lib/init_browser.js";
 import { existsSync, mkdirSync, rmdirSync } from "fs";
-import { getTableData2 } from "../build/lib/table_analyze.js";
 
 const name = "login";
 const path = "/";
@@ -128,7 +127,7 @@ const login = async function (username, password) {
   // await context.stable.simpleClick("Login button", _params, options, null);
   // await context.stable.verifyTextExistInPage("/Log\\s+In/mg", {}, null);
   // Fill username field with "username"
-  await context.stable.clickType(elements["textbox_username"], username, false, _params, options, null);
+  await context.stable.clickType(elements["textbox_username"], "{{date:tomorrow>>dd}}", false, _params, options, null);
   // Fill password field with "password"
   options.screenshotPath = getScreenShotPath();
   await context.stable.clickType(elements["textbox_password"], password, false, _params, options, null);
