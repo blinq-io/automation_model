@@ -149,7 +149,6 @@ async function replaceWithLocalTestData(
   if (!value) {
     return value;
   }
-
   // find all the accurance of {{(.*?)}} and replace with the value
   let regex = /{{(.*?)}}/g;
   let matches = value.match(regex);
@@ -197,7 +196,23 @@ async function replaceWithLocalTestData(
   if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
     return await decrypt(value, null, totpWait);
   }
+  // check if the value is ${}
+  if (value.startsWith("${") && value.endsWith("}")) {
+    value = evaluateString(value, context.examplesRow);
+  }
+
   return value;
+}
+function evaluateString(template: string, parameters: any) {
+  if (!parameters) {
+    parameters = {};
+  }
+  try {
+    return new Function(...Object.keys(parameters), `return \`${template}\`;`)(...Object.values(parameters));
+  } catch (e) {
+    console.error(e);
+    return template;
+  }
 }
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
@@ -307,6 +322,50 @@ function scanAndManipulate(currentObj: any, _params: Params) {
     }
   }
 }
+
+function extractStepExampleParameters(step: any) {
+  if (
+    !step ||
+    !step.gherkinDocument ||
+    !step.pickle ||
+    !step.pickle.astNodeIds ||
+    !(step.pickle.astNodeIds.length > 1) ||
+    !step.gherkinDocument.feature ||
+    !step.gherkinDocument.feature.children
+  ) {
+    return {};
+  }
+  try {
+    const scenarioId = step.pickle.astNodeIds[0];
+    const exampleId = step.pickle.astNodeIds[1];
+    // find the scenario in the gherkin document
+    const scenario = step.gherkinDocument.feature.children.find(
+      (child: any) => child.scenario.id === scenarioId
+    ).scenario;
+    if (!scenario || !scenario.examples || !scenario.examples[0].tableBody) {
+      return {};
+    }
+    // find the table body in the examples
+    const row = scenario.examples[0].tableBody.find((r: any) => r.id === exampleId);
+    if (!row) {
+      return {};
+    }
+    // extract the cells values (row.cells.value) into an array
+    const values = row.cells.map((cell: any) => cell.value);
+    // extract the table headers keys (scenario.examples.tableHeader.cells.value) into an array
+    const keys = scenario.examples[0].tableHeader.cells.map((cell: any) => cell.value);
+    // create a dictionary of the keys and values
+    const params: any = {};
+    for (let i = 0; i < keys.length; i++) {
+      params[keys[i]] = values[i];
+    }
+    return params;
+  } catch (e) {
+    console.error(e);
+    return {};
+  }
+}
+
 const KEYBOARD_EVENTS = [
   "ALT",
   "AltGraph",
@@ -485,4 +544,5 @@ export {
   Params,
   _getServerUrl,
   _convertToRegexQuery,
+  extractStepExampleParameters,
 };
