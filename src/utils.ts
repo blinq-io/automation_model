@@ -4,6 +4,7 @@ import objectPath from "object-path";
 import path from "path";
 import { TOTP } from "totp-generator";
 import fs from "fs";
+import axios from "axios";
 // Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
@@ -157,11 +158,38 @@ async function replaceWithLocalTestData(
     for (let i = 0; i < matches.length; i++) {
       let match = matches[i];
       let key = match.substring(2, match.length - 2);
+      if (key && key.trim().startsWith("date:")) {
+        const dateQuery = key.substring(5);
+        const parts = dateQuery.split(">>");
+        const returnTemplate = parts[1] || null;
 
-      let newValue = objectPath.get(testData, key, null);
+        let serviceUrl = _getServerUrl();
+        const config = {
+          method: "post",
+          url: `${serviceUrl}/api/runs/find-date/find`,
+          headers: {
+            "x-source": "true",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.TOKEN}`,
+          },
+          data: JSON.stringify({
+            value: parts[0],
+          }),
+        };
 
-      if (newValue !== null) {
-        value = value.replace(match, newValue);
+        let result = await axios.request(config);
+        //console.log(JSON.stringify(frameDump[0]));
+        if (result.status !== 200 || !result.data || result.data.status !== true || !result.data.result) {
+          console.error("Failed to find date");
+          throw new Error("Failed to find date");
+        }
+        value = formatDate(result.data.result, returnTemplate);
+      } else {
+        let newValue = objectPath.get(testData, key, null);
+
+        if (newValue !== null) {
+          value = value.replace(match, newValue);
+        }
       }
     }
   }
@@ -175,6 +203,7 @@ async function replaceWithLocalTestData(
 
   return value;
 }
+
 function evaluateString(template: string, parameters: any) {
   if (!parameters) {
     parameters = {};
@@ -186,6 +215,7 @@ function evaluateString(template: string, parameters: any) {
     return template;
   }
 }
+
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
     return dateStr;
