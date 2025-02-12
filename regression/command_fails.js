@@ -42,6 +42,9 @@ describe("Actions Tests", function () {
         { role: ["button", { name: "LOGIN1" }], parameterDependent: false },
       ],
     },
+    button_login_no_locators: {
+      locators: [],
+    },
     button_: {
       locators: [
         {
@@ -78,6 +81,30 @@ describe("Actions Tests", function () {
     expect(ex.info.failCause.fail).to.be.true;
     expect(ex.info.failCause.textNotFound).to.be.true;
     expect(ex.info.failCause.locatorNotFound).to.be.true;
+    console.log("info object: " + JSON.stringify(info, null, 2));
+  });
+  it("click no selectors", async function () {
+    let info = null;
+    let key = "button_login_no_locators";
+    let ex = null;
+    try {
+      info = await context.stable.click(
+        locElements[key],
+        null,
+        { screenshotPath: "./temp/1.png", screenshot: true, timeout: 1000 },
+        null
+      );
+    } catch (error) {
+      ex = error;
+      //{textNotFound: true, lastError: 'failed to locate unique element', locatorNotFound: true, error: Error: failed to locate first element no eleme…d, ***** click on undefined *****attempt 0: …, fail: true}
+
+      console.log("error: " + error);
+    }
+    expect(ex).to.not.be.null;
+    expect(ex.info).to.not.be.null;
+    expect(ex.info.failCause).to.not.be.null;
+    expect(ex.info.failCause.fail).to.be.true;
+    expect(ex.message).to.be.equal("selectors.locators expected to be non empty array");
     console.log("info object: " + JSON.stringify(info, null, 2));
   });
   // it("hover", async function () {
