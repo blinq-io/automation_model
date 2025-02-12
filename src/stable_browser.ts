@@ -19,7 +19,6 @@ import {
   _fixUsingParams,
   _getServerUrl,
   decrypt,
-  extractStepExampleParameters,
   KEYBOARD_EVENTS,
   maskValue,
   Params,
@@ -2979,9 +2978,6 @@ class StableBrowser {
     } else {
       this.stepName = "step " + this.stepIndex;
     }
-    if (this.context) {
-      this.context.examplesRow = extractStepExampleParameters(step);
-    }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
@@ -3003,9 +2999,6 @@ class StableBrowser {
           path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
         });
       }
-    }
-    if (this.context) {
-      this.context.examplesRow = null;
     }
   }
 }
