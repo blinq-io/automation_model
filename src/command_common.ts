@@ -75,21 +75,21 @@ export async function _preCommand(state: any, stable: any, world?: any) {
       if(world && world.screenshot && !world.screenshotPath) {
          stable._highlightElements(state.element).then(
         async ()=> {
-          console.log(`Highlighted in _preCommand`);
+          // console.log(`Highlighted in _preCommand`);
           new Promise((r) => setTimeout(r, 1000)).then(async () => {
           stable._unhighlightElements(state.element).then(
            ()=>{
-                console.log(`Unhighlighted in _preCommand`); 
+                // console.log(`Unhighlighted in _preCommand`); 
                }).catch(
                 (e: any)=> {
-                  console.log(`Unhighlighting failed in _preCommand: ${e}`);
+                  // console.log(`Unhighlighting failed in _preCommand: ${e}`);
                 });
          }).catch(
           (e: any)=> {
-              console.log(`Error inbetween highlighting and unhighlighting: ${e}`);
+              // console.log(`Error inbetween highlighting and unhighlighting: ${e}`);
             })
           }).catch((e:any) =>{
-              console.log(`Error in highlighting: ${e}`);
+              // console.log(`Error in highlighting: ${e}`);
             })
       }
   }
