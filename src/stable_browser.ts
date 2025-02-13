@@ -1072,7 +1072,7 @@ class StableBrowser {
       // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         if (world && world.screenshot && !world.screenshotPath) {
-          console.log(`Highlighting while running from recorder`);
+          // console.log(`Highlighting while running from recorder`);
           await this._highlightElements(element);
           await new Promise((resolve) => setTimeout(resolve, 100));
           await this._unHighlightElements(element);
@@ -1461,12 +1461,12 @@ class StableBrowser {
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info, element));
     try {
       if (world && world.screenshot && !world.screenshotPath) {
-        console.log(`Highlighting for get text while running from recorder`);
+        // console.log(`Highlighting for get text while running from recorder`);
         this._highlightElements(element)
           .then(async () => {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             this._unhighlightElements(element).then(() =>
-              console.log(`Unhighlighting vrtr in recorder is successful`)
+              // console.log(`Unhighlighting vrtr in recorder is successful`)
             );
           })
           .catch(e);
@@ -2115,7 +2115,7 @@ class StableBrowser {
   async _highlightElements(scope, css) {
     try {
       if (!scope) {
-        console.log(`Scope is not defined`);
+        // console.log(`Scope is not defined`);
         return;
       }
       if (!css) {
@@ -2123,10 +2123,10 @@ class StableBrowser {
           .evaluate((node) => {
             if (node && node.style) {
               let originalOutline = node.style.outline;
-              console.log(`Original outline was: ${originalOutline}`);
+              // console.log(`Original outline was: ${originalOutline}`);
               node.__previousOutline = originalOutline;
               node.style.outline = "2px solid red";
-              console.log(`New outline is: ${node.style.outline}`);
+              // console.log(`New outline is: ${node.style.outline}`);
 
               // if (window) {
               //   window.addEventListener("beforeunload", function (e) {
@@ -2207,7 +2207,7 @@ class StableBrowser {
           .then(() => {
           })
           .catch((e) => {
-            console.log(`Error while unhighlighting node ${JSON.stringify(scope)}: ${e}`);
+            // console.log(`Error while unhighlighting node ${JSON.stringify(scope)}: ${e}`);
           });
       } else {
         scope
@@ -2397,12 +2397,12 @@ class StableBrowser {
           const frame = resultWithElementsFound[0].frame;
           const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
           if (world && world.screenshot && !world.screenshotPath) {
-            console.log(`Highlighting for verify text is found while running from recorder`);
+            // console.log(`Highlighting for verify text is found while running from recorder`);
             this._highlightElements(frame, dataAttribute).then(async () => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
               this._unhighlightElements(frame, dataAttribute)
                 .then(async () => {
-                  console.log(`Unhighlighted frame dataAttribute successfully`);
+                  // console.log(`Unhighlighted frame dataAttribute successfully`);
                 })
                 .catch((e) => console.error(e));
             });
@@ -2555,12 +2555,12 @@ class StableBrowser {
               const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
               //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
               if (world && world.screenshot && !world.screenshotPath) {
-                console.log(`Highlighting for vtrt while running from recorder`);
+                // console.log(`Highlighting for vtrt while running from recorder`);
                 this._highlightElements(frame, dataAttribute)
                   .then(async () => {
                     await new Promise((resolve) => setTimeout(resolve, 1000));
                     this._unhighlightElements(frame, dataAttribute).then(() =>
-                      console.log(`Unhighlighting vrtr in recorder is successful`)
+                      // console.log(`Unhighlighting vrtr in recorder is successful`)
                     );
                   })
                   .catch(e);
