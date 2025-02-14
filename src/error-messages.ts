@@ -177,6 +177,18 @@ const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => 
       errorMessage: error.message,
     };
   }
+  if (failCause.enabled === false) {
+    return {
+      errorType: "ElementDisabled",
+      errorMessage: failCause.lastError,
+    };
+  }
+  if (failCause.visible === false) {
+    return {
+      errorType: "ElementNotVisible",
+      errorMessage: failCause.lastError,
+    };
+  }
   if (failCause.textNotFound) {
     return {
       errorType: "TextNotFoundError",
