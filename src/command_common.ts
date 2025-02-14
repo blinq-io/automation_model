@@ -4,7 +4,7 @@ import { LocatorLog } from "./locator_log.js";
 import { JsonCommandReport } from "./stable_browser.js";
 import { _fixUsingParams, maskValue } from "./utils.js";
 
-export async function _preCommand(state: any, stable: any) {
+export async function _preCommand(state: any, stable: any, world?: any) {
   if (!state) {
     return;
   }
@@ -72,11 +72,26 @@ export async function _preCommand(state: any, stable: any) {
     await _screenshot(state, stable);
   }
   if (state.highlight === true) {
-    try {
-      await stable._highlightElements(state.element);
-    } catch (e) {
-      // ignore
-    }
+      if(world && world.screenshot && !world.screenshotPath) {
+         stable._highlightElements(state.element).then(
+        async ()=> {
+          // console.log(`Highlighted in _preCommand`);
+          new Promise((r) => setTimeout(r, 1000)).then(async () => {
+          stable._unhighlightElements(state.element).then(
+           ()=>{
+                // console.log(`Unhighlighted in _preCommand`); 
+               }).catch(
+                (e: any)=> {
+                  // console.log(`Unhighlighting failed in _preCommand: ${e}`);
+                });
+         }).catch(
+          (e: any)=> {
+              // console.log(`Error inbetween highlighting and unhighlighting: ${e}`);
+            })
+          }).catch((e:any) =>{
+              // console.log(`Error in highlighting: ${e}`);
+            })
+      }
   }
   state.info.failCause.operationFailed = true;
 }
@@ -115,12 +130,20 @@ export async function _commandError(state: any, error: any, stable: any) {
   }
 }
 
-export async function _screenshot(state: any, stable: any) {
-  const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
+export async function _screenshot(state: any, stable: any , specificElement?: any) {   
+  let focusedElement = null;
+  if(specificElement!==undefined) {
+    focusedElement = specificElement;
+  }
+  else {
+    focusedElement = state.element;
+  }
+  const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info, focusedElement);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
 }
-export function _commandFinally(state: any, stable: any) {
+
+ export function _commandFinally(state: any, stable: any) {
   if (state && !state.commandError === true) {
     state.info.failCause = {};
   }
