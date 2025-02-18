@@ -78,6 +78,10 @@ export const Types = {
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
 };
 export const apps = {};
+
+const formatElementName = (elementName) => {
+  return elementName ? JSON.stringify(elementName) : "element";
+};
 class StableBrowser {
   project_path = null;
   webLogFile = null;
@@ -432,7 +436,8 @@ class StableBrowser {
     _params: Params,
     info,
     visibleOnly = true,
-    allowDisabled? = false
+    allowDisabled? = false,
+    element_name = null
   ) {
     if (!info) {
       info = {};
@@ -464,7 +469,7 @@ class StableBrowser {
       );
       if (!locatorString) {
         info.failCause.textNotFound = true;
-        info.failCause.lastError = "failed to locate element by text: " + locatorSearch.text;
+        info.failCause.lastError = `failed to locate ${formatElementName(element_name)} by text: ${locatorSearch.text}`;
         return;
       }
       locator = await this._getLocator({ css: locatorString }, scope, _params);
@@ -481,7 +486,7 @@ class StableBrowser {
       );
       if (result.elementCount === 0) {
         info.failCause.textNotFound = true;
-        info.failCause.lastError = "failed to locate element by text: " + text;
+        info.failCause.lastError = `failed to locate ${formatElementName(element_name)} by text: ${text}`;
         return;
       }
       locatorSearch.css = "[data-blinq-id-" + result.randomToken + "]";
@@ -533,11 +538,11 @@ class StableBrowser {
           info.printMessages = {};
         }
         if (info.locatorLog && !visible) {
-          info.failCause.lastError = "element " + originalLocatorSearch + " is not visible";
+          info.failCause.lastError = `${formatElementName(element_name)} is not visible, searching for ${originalLocatorSearch}`;
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
         }
         if (info.locatorLog && !enabled) {
-          info.failCause.lastError = "element " + originalLocatorSearch + " is disabled, ";
+          info.failCause.lastError = `${formatElementName(element_name)} is disabled, searching for ${originalLocatorSearch}`;
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
         }
 
@@ -691,7 +696,7 @@ class StableBrowser {
           //info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (Date.now() - startTime > timeout) {
             info.failCause.iframeNotFound = true;
-            info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
+            info.failCause.lastError = `unable to locate iframe "${selectors.iframe_src}"`;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -764,7 +769,15 @@ class StableBrowser {
       }
       // info.log += "scanning locators in priority 1" + "\n";
       let onlyPriority3 = selectorsLocators[0].priority === 3;
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly, allowDisabled);
+      result = await this._scanLocatorsGroup(
+        locatorsByPriority["1"],
+        scope,
+        _params,
+        info,
+        visibleOnly,
+        allowDisabled,
+        selectors?.element_name
+      );
       if (result.foundElements.length === 0) {
         // info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(
@@ -773,7 +786,8 @@ class StableBrowser {
           _params,
           info,
           visibleOnly,
-          allowDisabled
+          allowDisabled,
+          selectors?.element_name
         );
       }
       if (result.foundElements.length === 0 && onlyPriority3) {
@@ -783,7 +797,8 @@ class StableBrowser {
           _params,
           info,
           visibleOnly,
-          allowDisabled
+          allowDisabled,
+          selectors?.element_name
         );
       } else {
         if (result.foundElements.length === 0 && !highPriorityOnly) {
@@ -793,7 +808,8 @@ class StableBrowser {
             _params,
             info,
             visibleOnly,
-            allowDisabled
+            allowDisabled,
+            selectors?.element_name
           );
         }
       }
@@ -861,11 +877,11 @@ class StableBrowser {
     //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
     if (!info?.failCause?.lastError) {
-      info.failCause.lastError = "failed to locate unique element";
+      info.failCause.lastError = `failed to locate ${formatElementName(selectors.element_name)}, ${locatorsCount > 0 ? `${locatorsCount} matching elements found` : "no matching elements found"}`;
     }
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -881,7 +897,8 @@ class StableBrowser {
           _params,
           info,
           visibleOnly,
-          allowDisabled
+          allowDisabled,
+          selectors?.element_name
         );
       } catch (e) {
         // this call can fail it the browser is navigating
@@ -897,7 +914,8 @@ class StableBrowser {
             _params,
             info,
             visibleOnly,
-            allowDisabled
+            allowDisabled,
+            selectors?.element_name
           );
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
