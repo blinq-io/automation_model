@@ -455,9 +455,10 @@ class StableBrowser {
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
+      const replacedText = await this._replaceWithLocalData(locatorSearch.text, this.world);
       let locatorString = await this._locateElmentByTextClimbCss(
         scope,
-        locatorSearch.text,
+        replacedText,
         locatorSearch.climb,
         locatorSearch.css,
         _params
@@ -1462,7 +1463,8 @@ class StableBrowser {
         this._highlightElements(element)
           .then(async () => {
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            this._unhighlightElements(element).then(() => {}
+            this._unhighlightElements(element).then(
+              () => {}
               // console.log(`Unhighlighting vrtr in recorder is successful`)
             );
           })
@@ -2136,8 +2138,7 @@ class StableBrowser {
               //}, 2000);
             }
           })
-          .then(() => {
-          })
+          .then(() => {})
           .catch((e) => {
             // ignore
             // console.error(`Could not highlight node : ${e}`);
@@ -2174,8 +2175,7 @@ class StableBrowser {
             },
             [css]
           )
-          .then(() => {
-          })
+          .then(() => {})
           .catch((e) => {
             // ignore
             // console.error(`Could not highlight css: ${e}`);
@@ -2199,11 +2199,10 @@ class StableBrowser {
                 node.style.outline = "";
               } else {
                 node.style.outline = node.__previousOutline;
-              } 
+              }
             }
           })
-          .then(() => {
-          })
+          .then(() => {})
           .catch((e) => {
             // console.log(`Error while unhighlighting node ${JSON.stringify(scope)}: ${e}`);
           });
@@ -2226,8 +2225,7 @@ class StableBrowser {
               }
             }
           })
-          .then(() => {
-          })
+          .then(() => {})
           .catch((e) => {
             // console.error(`Error while unhighlighting element in css: ${e}`);
           });
@@ -2403,9 +2401,10 @@ class StableBrowser {
                 .then(async () => {
                   // console.log(`Unhighlighted frame dataAttribute successfully`);
                 })
-                .catch((e) => {}
+                .catch(
+                  (e) => {}
                   //  console.error(e)
-              );
+                );
             });
           }
           const element = await frame.locator(dataAttribute).first();
@@ -2560,7 +2559,8 @@ class StableBrowser {
                 this._highlightElements(frame, dataAttribute)
                   .then(async () => {
                     await new Promise((resolve) => setTimeout(resolve, 1000));
-                    this._unhighlightElements(frame, dataAttribute).then(() => {}
+                    this._unhighlightElements(frame, dataAttribute).then(
+                      () => {}
                       // console.log(`Unhighlighting vrtr in recorder is successful`)
                     );
                   })
