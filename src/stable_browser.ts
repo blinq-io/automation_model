@@ -901,7 +901,7 @@ class StableBrowser {
           info,
           visibleOnly,
           allowDisabled,
-          selectors?.element_name
+          element_name
         );
       } catch (e) {
         // this call can fail it the browser is navigating
@@ -918,7 +918,7 @@ class StableBrowser {
             info,
             visibleOnly,
             allowDisabled,
-            selectors?.element_name
+            element_name
           );
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
