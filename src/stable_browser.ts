@@ -1088,13 +1088,13 @@ class StableBrowser {
 
       // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
-        if (world && world.screenshot && !world.screenshotPath) {
-          // console.log(`Highlighting while running from recorder`);
-          await this._highlightElements(element);
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          await this._unHighlightElements(element);
-        }
+        // if (world && world.screenshot && !world.screenshotPath) {
+        // console.log(`Highlighting while running from recorder`);
+        await this._highlightElements(element);
         await state.element.setChecked(checked);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // await this._unHighlightElements(element);
+        // }
         // await new Promise((resolve) => setTimeout(resolve, 1000));
         //  await this._unHighlightElements(element);
       } catch (e) {
@@ -1947,6 +1947,7 @@ class StableBrowser {
       text: `Extract attribute from element`,
       operation: "extractAttribute",
       log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     try {
@@ -2411,20 +2412,21 @@ class StableBrowser {
         if (resultWithElementsFound[0].randomToken) {
           const frame = resultWithElementsFound[0].frame;
           const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
-          if (world && world.screenshot && !world.screenshotPath) {
-            // console.log(`Highlighting for verify text is found while running from recorder`);
-            this._highlightElements(frame, dataAttribute).then(async () => {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              this._unhighlightElements(frame, dataAttribute)
-                .then(async () => {
-                  // console.log(`Unhighlighted frame dataAttribute successfully`);
-                })
-                .catch(
-                  (e) => {}
-                  //  console.error(e)
-                );
-            });
-          }
+          await this._highlightElements(frame, dataAttribute);
+          // if (world && world.screenshot && !world.screenshotPath) {
+          // console.log(`Highlighting for verify text is found while running from recorder`);
+          // this._highlightElements(frame, dataAttribute).then(async () => {
+          // await new Promise((resolve) => setTimeout(resolve, 1000));
+          // this._unhighlightElements(frame, dataAttribute)
+          // .then(async () => {
+          // console.log(`Unhighlighted frame dataAttribute successfully`);
+          // })
+          // .catch(
+          // (e) => {}
+          //  console.error(e)
+          // );
+          // });
+          // }
           const element = await frame.locator(dataAttribute).first();
           // await new Promise((resolve) => setTimeout(resolve, 100));
           // await this._unhighlightElements(frame, dataAttribute);
@@ -2433,9 +2435,8 @@ class StableBrowser {
             await element.dispatchEvent("bvt_verify_page_contains_text");
             await _screenshot(state, this, element);
           }
-        } else {
-          await _screenshot(state, this);
         }
+        await _screenshot(state, this);
         return state.info;
       }
 
@@ -2572,18 +2573,18 @@ class StableBrowser {
             if (result.elementCount > 0) {
               const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
               //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
-              if (world && world.screenshot && !world.screenshotPath) {
-                // console.log(`Highlighting for vtrt while running from recorder`);
-                this._highlightElements(frame, dataAttribute)
-                  .then(async () => {
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                    this._unhighlightElements(frame, dataAttribute).then(
-                      () => {}
-                      // console.log(`Unhighlighting vrtr in recorder is successful`)
-                    );
-                  })
-                  .catch(e);
-              }
+              // if (world && world.screenshot && !world.screenshotPath) {
+              // console.log(`Highlighting for vtrt while running from recorder`);
+              // this._highlightElements(frame, dataAttribute)
+              // .then(async () => {
+              // await new Promise((resolve) => setTimeout(resolve, 1000));
+              // this._unhighlightElements(frame, dataAttribute).then(
+              // () => {}
+              // console.log(`Unhighlighting vrtr in recorder is successful`)
+              // );
+              // })
+              // .catch(e);
+              // }
               //await this._highlightElements(frame, cssAnchor);
               const element = await frame.locator(dataAttribute).first();
               // await new Promise((resolve) => setTimeout(resolve, 100));
