@@ -2152,7 +2152,7 @@ class StableBrowser {
 
               if (window) {
                 window.addEventListener("beforeunload", function (e) {
-                  node.style.outline = originalBorder;
+                  node.style.outline = originalOutline;
                 });
               }
               setTimeout(function () {
@@ -2185,12 +2185,12 @@ class StableBrowser {
                 element.style.outline = "2px solid red";
                 if (window) {
                   window.addEventListener("beforeunload", function (e) {
-                    element.style.outline = originalBorder;
+                    element.style.outline = originalOutline;
                   });
                 }
                 // Set a timeout to revert to the original border after 2 seconds
                 setTimeout(function () {
-                  element.style.outline = originalBorder;
+                  element.style.outline = originalOutline;
                 }, 2000);
               }
               return;
