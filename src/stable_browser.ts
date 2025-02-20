@@ -1948,6 +1948,7 @@ class StableBrowser {
       text: `Extract attribute from element`,
       operation: "extractAttribute",
       log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     try {
