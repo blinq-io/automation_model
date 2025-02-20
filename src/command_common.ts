@@ -130,8 +130,12 @@ export async function _commandError(state: any, error: any, stable: any) {
   state.error = error;
   state.commandError = true;
   if (state.throwError) {
-    console.error(error);
-    throw state?.info?.errorMessage ?? error?.message ?? `${error}`;
+    if (stable.world) {
+      console.error(error);
+      throw state?.info?.errorMessage ?? error?.message ?? error;
+    } else {
+      throw error;
+    }
   }
 }
 
