@@ -79,6 +79,10 @@ export const Types = {
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
 };
 export const apps = {};
+
+const formatElementName = (elementName) => {
+  return elementName ? JSON.stringify(elementName) : "element";
+};
 class StableBrowser {
   project_path = null;
   webLogFile = null;
@@ -291,7 +295,7 @@ class StableBrowser {
       highlight: false,
     };
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       await this.page.goto(url, {
         timeout: 60000,
       });
@@ -434,7 +438,8 @@ class StableBrowser {
     _params: Params,
     info,
     visibleOnly = true,
-    allowDisabled? = false
+    allowDisabled? = false,
+    element_name = null
   ) {
     if (!info) {
       info = {};
@@ -457,16 +462,17 @@ class StableBrowser {
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
+      const replacedText = await this._replaceWithLocalData(locatorSearch.text, this.world);
       let locatorString = await this._locateElmentByTextClimbCss(
         scope,
-        locatorSearch.text,
+        replacedText,
         locatorSearch.climb,
         locatorSearch.css,
         _params
       );
       if (!locatorString) {
         info.failCause.textNotFound = true;
-        info.failCause.lastError = "failed to locate element by text: " + locatorSearch.text;
+        info.failCause.lastError = `failed to locate ${formatElementName(element_name)} by text: ${locatorSearch.text}`;
         return;
       }
       locator = await this._getLocator({ css: locatorString }, scope, _params);
@@ -483,7 +489,7 @@ class StableBrowser {
       );
       if (result.elementCount === 0) {
         info.failCause.textNotFound = true;
-        info.failCause.lastError = "failed to locate element by text: " + text;
+        info.failCause.lastError = `failed to locate ${formatElementName(element_name)} by text: ${text}`;
         return;
       }
       locatorSearch.css = "[data-blinq-id-" + result.randomToken + "]";
@@ -535,11 +541,11 @@ class StableBrowser {
           info.printMessages = {};
         }
         if (info.locatorLog && !visible) {
-          info.failCause.lastError = "element " + originalLocatorSearch + " is not visible";
+          info.failCause.lastError = `${formatElementName(element_name)} is not visible, searching for ${originalLocatorSearch}`;
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
         }
         if (info.locatorLog && !enabled) {
-          info.failCause.lastError = "element " + originalLocatorSearch + " is disabled, ";
+          info.failCause.lastError = `${formatElementName(element_name)} is disabled, searching for ${originalLocatorSearch}`;
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
         }
 
@@ -700,7 +706,7 @@ class StableBrowser {
           //info.log += "unable to locate iframe " + selectors.iframe_src + "\n";
           if (Date.now() - startTime > timeout) {
             info.failCause.iframeNotFound = true;
-            info.failCause.lastError = "unable to locate iframe " + selectors.iframe_src;
+            info.failCause.lastError = `unable to locate iframe "${selectors.iframe_src}"`;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -773,7 +779,15 @@ class StableBrowser {
       }
       // info.log += "scanning locators in priority 1" + "\n";
       let onlyPriority3 = selectorsLocators[0].priority === 3;
-      result = await this._scanLocatorsGroup(locatorsByPriority["1"], scope, _params, info, visibleOnly, allowDisabled);
+      result = await this._scanLocatorsGroup(
+        locatorsByPriority["1"],
+        scope,
+        _params,
+        info,
+        visibleOnly,
+        allowDisabled,
+        selectors?.element_name
+      );
       if (result.foundElements.length === 0) {
         // info.log += "scanning locators in priority 2" + "\n";
         result = await this._scanLocatorsGroup(
@@ -782,7 +796,8 @@ class StableBrowser {
           _params,
           info,
           visibleOnly,
-          allowDisabled
+          allowDisabled,
+          selectors?.element_name
         );
       }
       if (result.foundElements.length === 0 && onlyPriority3) {
@@ -792,7 +807,8 @@ class StableBrowser {
           _params,
           info,
           visibleOnly,
-          allowDisabled
+          allowDisabled,
+          selectors?.element_name
         );
       } else {
         if (result.foundElements.length === 0 && !highPriorityOnly) {
@@ -802,7 +818,8 @@ class StableBrowser {
             _params,
             info,
             visibleOnly,
-            allowDisabled
+            allowDisabled,
+            selectors?.element_name
           );
         }
       }
@@ -870,11 +887,11 @@ class StableBrowser {
     //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
     info.failCause.locatorNotFound = true;
     if (!info?.failCause?.lastError) {
-      info.failCause.lastError = "failed to locate unique element";
+      info.failCause.lastError = `failed to locate ${formatElementName(selectors.element_name)}, ${locatorsCount > 0 ? `${locatorsCount} matching elements found` : "no matching elements found"}`;
     }
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -890,7 +907,8 @@ class StableBrowser {
           _params,
           info,
           visibleOnly,
-          allowDisabled
+          allowDisabled,
+          element_name
         );
       } catch (e) {
         // this call can fail it the browser is navigating
@@ -906,7 +924,8 @@ class StableBrowser {
             _params,
             info,
             visibleOnly,
-            allowDisabled
+            allowDisabled,
+            element_name
           );
         } catch (e) {
           this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
@@ -942,7 +961,7 @@ class StableBrowser {
       operation: "simpleClick",
       log: "***** click on " + elementDescription + " *****\n",
     };
-    _preCommand(state, this, world);
+    _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -991,7 +1010,7 @@ class StableBrowser {
       operation: "simpleClickType",
       log: "***** click type on " + elementDescription + " *****\n",
     };
-    _preCommand(state, this, world);
+    _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1038,7 +1057,7 @@ class StableBrowser {
       log: "***** click on " + selectors.element_name + " *****\n",
     };
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       // if (state.options && state.options.context) {
       //   state.selectors.locators[0].text = state.options.context;
       // }
@@ -1072,19 +1091,19 @@ class StableBrowser {
     };
 
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       state.info.checked = checked;
       // let element = await this._locate(selectors, info, _params);
 
       // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
-        if (world && world.screenshot && !world.screenshotPath) {
-          // console.log(`Highlighting while running from recorder`);
-          await this._highlightElements(element);
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          await this._unHighlightElements(element);
-        }
+        // if (world && world.screenshot && !world.screenshotPath) {
+        // console.log(`Highlighting while running from recorder`);
+        await this._highlightElements(element);
         await state.element.setChecked(checked);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // await this._unHighlightElements(element);
+        // }
         // await new Promise((resolve) => setTimeout(resolve, 1000));
         //  await this._unHighlightElements(element);
       } catch (e) {
@@ -1120,20 +1139,20 @@ class StableBrowser {
     };
 
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       try {
         await state.element.hover();
-        await _screenshot(state, this);
+        // await _screenshot(state, this);
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (e) {
         //await this.closeUnexpectedPopups();
         state.info.log += "hover failed, will try again" + "\n";
         state.element = await this._locate(selectors, state.info, _params);
         await state.element.hover({ timeout: 10000 });
-        await _screenshot(state, this);
+        // await _screenshot(state, this);
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-      // await _screenshot(state, this);
+      await _screenshot(state, this);
       await this.waitForPageLoad();
       return state.info;
     } catch (e) {
@@ -1160,7 +1179,7 @@ class StableBrowser {
     };
 
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       try {
         await state.element.selectOption(values);
       } catch (e) {
@@ -1192,7 +1211,7 @@ class StableBrowser {
       log: "",
     };
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       const valueSegment = state.value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
         if (i > 0) {
@@ -1233,7 +1252,7 @@ class StableBrowser {
     };
 
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
 
       let value = await this._replaceWithLocalData(state.value, this);
       try {
@@ -1268,7 +1287,7 @@ class StableBrowser {
       throwError: false,
     };
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       try {
         await state.element.click();
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -1339,7 +1358,7 @@ class StableBrowser {
       _value = newValue;
     }
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       state.info.value = _value;
       if (options === null || options === undefined || !options.press) {
         try {
@@ -1422,7 +1441,7 @@ class StableBrowser {
       log: "***** fill on " + selectors.element_name + " with value " + value + "*****\n",
     };
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       await state.element.fill(value);
       await state.element.dispatchEvent("change");
       if (enter) {
@@ -1465,20 +1484,22 @@ class StableBrowser {
     } catch (e) {
       //ignore
     }
-    ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info, element));
+    ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
-      if (world && world.screenshot && !world.screenshotPath) {
-        // console.log(`Highlighting for get text while running from recorder`);
-        this._highlightElements(element)
-          .then(async () => {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            this._unhighlightElements(element).then(
-              () => {}
-              // console.log(`Unhighlighting vrtr in recorder is successful`)
-            );
-          })
-          .catch(e);
-      }
+
+      await this._highlightElements(element);
+      // if (world && world.screenshot && !world.screenshotPath) {
+      //   // console.log(`Highlighting for get text while running from recorder`);
+      //   this._highlightElements(element)
+      //     .then(async () => {
+      //       await new Promise((resolve) => setTimeout(resolve, 1000));
+      //       this._unhighlightElements(element).then(
+      //         () => {}
+      //         // console.log(`Unhighlighting vrtr in recorder is successful`)
+      //       );
+      //     })
+      //     .catch(e);
+      // }
       const elementText = await element.innerText();
       return {
         text: elementText,
@@ -1527,13 +1548,13 @@ class StableBrowser {
 
     let foundObj = null;
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       state.info.pattern = pattern;
       foundObj = await this._getText(selectors, 0, _params, options, state.info, world);
       if (foundObj && foundObj.element) {
         await this.scrollIfNeeded(foundObj.element, state.info);
       }
-      await _screenshot(state, this, foundObj.element);
+      await _screenshot(state, this);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -1578,12 +1599,12 @@ class StableBrowser {
     }
     let foundObj = null;
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       foundObj = await this._getText(selectors, climb, _params, options, state.info, world);
       if (foundObj && foundObj.element) {
         await this.scrollIfNeeded(foundObj.element, state.info);
       }
-      await _screenshot(state, this, foundObj.element);
+      await _screenshot(state, this);
       const dateAlternatives = findDateAlternatives(text);
       const numberAlternatives = findNumberAlternatives(text);
       if (dateAlternatives.date) {
@@ -1772,7 +1793,7 @@ class StableBrowser {
     return data;
   }
 
-  async _screenShot(options = {}, world = null, info = null, focusedElement = null) {
+  async _screenShot(options = {}, world = null, info = null) {
     // collect url/path/title
     if (info) {
       if (!info.title) {
@@ -1799,7 +1820,7 @@ class StableBrowser {
       const uuidStr = "id_" + randomUUID();
       const screenshotPath = path.join(world.screenshotPath, uuidStr + ".png");
       try {
-        await this.takeScreenshot(screenshotPath, focusedElement);
+        await this.takeScreenshot(screenshotPath);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(screenshotPath, buffer, (err) => {
@@ -1810,7 +1831,7 @@ class StableBrowser {
         result.screenshotId = uuidStr;
         result.screenshotPath = screenshotPath;
         if (info && info.box) {
-          // await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
+          await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
         }
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
@@ -1818,7 +1839,7 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        await this.takeScreenshot(options.screenshotPath, focusedElement);
+        await this.takeScreenshot(options.screenshotPath);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(options.screenshotPath, buffer, (err) => {
@@ -1830,13 +1851,13 @@ class StableBrowser {
         this.logger.info("unable to take screenshot, ignored");
       }
       if (info && info.box) {
-        // await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
+        await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
       }
     }
 
     return result;
   }
-  async takeScreenshot(screenshotPath, focusedElement = null) {
+  async takeScreenshot(screenshotPath) {
     const playContext = this.context.playContext;
 
     // Using CDP to capture the screenshot
@@ -1859,9 +1880,9 @@ class StableBrowser {
     //   console.log(`Unhighlighted previous element`);
     // }
 
-    if (focusedElement) {
-      await this._highlightElements(focusedElement);
-    }
+    // if (focusedElement) {
+    //   await this._highlightElements(focusedElement);
+    // }
 
     if (this.context.browserName === "chromium") {
       const client = await playContext.newCDPSession(this.page);
@@ -1884,10 +1905,10 @@ class StableBrowser {
       screenshotBuffer = await this.page.screenshot();
     }
 
-    if (focusedElement) {
-      // console.log(`Focused element ${JSON.stringify(focusedElement._selector)}`)
-      await this._unhighlightElements(focusedElement);
-    }
+    // if (focusedElement) {
+    //   // console.log(`Focused element ${JSON.stringify(focusedElement._selector)}`)
+    //   await this._unhighlightElements(focusedElement);
+    // }
 
     let image = await Jimp.read(screenshotBuffer);
 
@@ -1917,7 +1938,7 @@ class StableBrowser {
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       await expect(state.element).toHaveCount(1, { timeout: 10000 });
       return state.info;
     } catch (e) {
@@ -1938,10 +1959,11 @@ class StableBrowser {
       text: `Extract attribute from element`,
       operation: "extractAttribute",
       log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       switch (attribute) {
         case "inner_text":
           state.value = await state.element.innerText();
@@ -1960,7 +1982,7 @@ class StableBrowser {
 
       this.setTestData({ [variable]: state.value }, world);
       this.logger.info("set test data: " + variable + "=" + state.value);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // await new Promise((resolve) => setTimeout(resolve, 500));
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1987,7 +2009,7 @@ class StableBrowser {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     let val;
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       switch (attribute) {
         case "innerText":
           val = String(await state.element.innerText());
@@ -2132,18 +2154,18 @@ class StableBrowser {
             if (node && node.style) {
               let originalOutline = node.style.outline;
               // console.log(`Original outline was: ${originalOutline}`);
-              node.__previousOutline = originalOutline;
+              // node.__previousOutline = originalOutline;
               node.style.outline = "2px solid red";
               // console.log(`New outline is: ${node.style.outline}`);
 
-              // if (window) {
-              //   window.addEventListener("beforeunload", function (e) {
-              //     node.style.outline = originalBorder;
-              //   });
-              // }
-              // setTimeout(function () {
-              //   node.style.outline = originalBorder;
-              //}, 2000);
+              if (window) {
+                window.addEventListener("beforeunload", function (e) {
+                  node.style.outline = originalBorder;
+                });
+              }
+              setTimeout(function () {
+                node.style.outline = originalOutline;
+              }, 2000);
             }
           })
           .then(() => {})
@@ -2169,15 +2191,15 @@ class StableBrowser {
                 element.__previousOutline = originalOutline;
                 // Set the new border to be red and 2px solid
                 element.style.outline = "2px solid red";
-                // if (window) {
-                //   window.addEventListener("beforeunload", function (e) {
-                //     element.style.outline = originalBorder;
-                //   });
-                // }
+                if (window) {
+                  window.addEventListener("beforeunload", function (e) {
+                    element.style.outline = originalBorder;
+                  });
+                }
                 // Set a timeout to revert to the original border after 2 seconds
-                // setTimeout(function () {
-                //   element.style.outline = originalBorder;
-                // }, 2000);
+                setTimeout(function () {
+                  element.style.outline = originalBorder;
+                }, 2000);
               }
               return;
             },
@@ -2194,54 +2216,54 @@ class StableBrowser {
     }
   }
 
-  async _unhighlightElements(scope, css) {
-    try {
-      if (!scope) {
-        return;
-      }
-      if (!css) {
-        scope
-          .evaluate((node) => {
-            if (node && node.style) {
-              if (!node.__previousOutline) {
-                node.style.outline = "";
-              } else {
-                node.style.outline = node.__previousOutline;
-              }
-            }
-          })
-          .then(() => {})
-          .catch((e) => {
-            // console.log(`Error while unhighlighting node ${JSON.stringify(scope)}: ${e}`);
-          });
-      } else {
-        scope
-          .evaluate(([css]) => {
-            if (!css) {
-              return;
-            }
-            let elements = Array.from(document.querySelectorAll(css));
-            for (i = 0; i < elements.length; i++) {
-              let element = elements[i];
-              if (!element.style) {
-                return;
-              }
-              if (!element.__previousOutline) {
-                element.style.outline = "";
-              } else {
-                element.style.outline = element.__previousOutline;
-              }
-            }
-          })
-          .then(() => {})
-          .catch((e) => {
-            // console.error(`Error while unhighlighting element in css: ${e}`);
-          });
-      }
-    } catch (error) {
-      // console.debug(error);
-    }
-  }
+  // async _unhighlightElements(scope, css) {
+  //   try {
+  //     if (!scope) {
+  //       return;
+  //     }
+  //     if (!css) {
+  //       scope
+  //         .evaluate((node) => {
+  //           if (node && node.style) {
+  //             if (!node.__previousOutline) {
+  //               node.style.outline = "";
+  //             } else {
+  //               node.style.outline = node.__previousOutline;
+  //             }
+  //           }
+  //         })
+  //         .then(() => {})
+  //         .catch((e) => {
+  //           // console.log(`Error while unhighlighting node ${JSON.stringify(scope)}: ${e}`);
+  //         });
+  //     } else {
+  //       scope
+  //         .evaluate(([css]) => {
+  //           if (!css) {
+  //             return;
+  //           }
+  //           let elements = Array.from(document.querySelectorAll(css));
+  //           for (i = 0; i < elements.length; i++) {
+  //             let element = elements[i];
+  //             if (!element.style) {
+  //               return;
+  //             }
+  //             if (!element.__previousOutline) {
+  //               element.style.outline = "";
+  //             } else {
+  //               element.style.outline = element.__previousOutline;
+  //             }
+  //           }
+  //         })
+  //         .then(() => {})
+  //         .catch((e) => {
+  //           // console.error(`Error while unhighlighting element in css: ${e}`);
+  //         });
+  //     }
+  //   } catch (error) {
+  //     // console.debug(error);
+  //   }
+  // }
 
   async verifyPagePath(pathPart, options = {}, world = null) {
     const startTime = Date.now();
@@ -2381,7 +2403,7 @@ class StableBrowser {
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       state.info.text = text;
       while (true) {
         const resultWithElementsFound = await this.findTextInAllFrames(
@@ -2400,31 +2422,32 @@ class StableBrowser {
         if (resultWithElementsFound[0].randomToken) {
           const frame = resultWithElementsFound[0].frame;
           const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
-          if (world && world.screenshot && !world.screenshotPath) {
-            // console.log(`Highlighting for verify text is found while running from recorder`);
-            this._highlightElements(frame, dataAttribute).then(async () => {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              this._unhighlightElements(frame, dataAttribute)
-                .then(async () => {
-                  // console.log(`Unhighlighted frame dataAttribute successfully`);
-                })
-                .catch(
-                  (e) => {}
-                  //  console.error(e)
-                );
-            });
-          }
+
+          await this._highlightElements(frame, dataAttribute);
+          // if (world && world.screenshot && !world.screenshotPath) {
+          // console.log(`Highlighting for verify text is found while running from recorder`);
+          // this._highlightElements(frame, dataAttribute).then(async () => {
+          // await new Promise((resolve) => setTimeout(resolve, 1000));
+          // this._unhighlightElements(frame, dataAttribute)
+          // .then(async () => {
+          // console.log(`Unhighlighted frame dataAttribute successfully`);
+          // })
+          // .catch(
+          // (e) => {}
+          //  console.error(e)
+          // );
+          // });
+          // }
           const element = await frame.locator(dataAttribute).first();
           // await new Promise((resolve) => setTimeout(resolve, 100));
           // await this._unhighlightElements(frame, dataAttribute);
           if (element) {
             await this.scrollIfNeeded(element, state.info);
             await element.dispatchEvent("bvt_verify_page_contains_text");
-            await _screenshot(state, this, element);
+            // await _screenshot(state, this, element);
           }
-        } else {
-          await _screenshot(state, this);
         }
+        await _screenshot(state, this);
         return state.info;
       }
 
@@ -2463,7 +2486,7 @@ class StableBrowser {
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       state.info.text = text;
       while (true) {
         const resultWithElementsFound = await this.findTextInAllFrames(
@@ -2526,7 +2549,7 @@ class StableBrowser {
     let numberAlternatives = findNumberAlternatives(textToVerify);
     let foundAncore = false;
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       state.info.text = textToVerify;
       while (true) {
         const resultWithElementsFound = await this.findTextInAllFrames(
@@ -2560,19 +2583,20 @@ class StableBrowser {
             const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
             if (result.elementCount > 0) {
               const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
+              await this._highlightElements(frame, dataAttribute);
               //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
-              if (world && world.screenshot && !world.screenshotPath) {
-                // console.log(`Highlighting for vtrt while running from recorder`);
-                this._highlightElements(frame, dataAttribute)
-                  .then(async () => {
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                    this._unhighlightElements(frame, dataAttribute).then(
-                      () => {}
-                      // console.log(`Unhighlighting vrtr in recorder is successful`)
-                    );
-                  })
-                  .catch(e);
-              }
+              // if (world && world.screenshot && !world.screenshotPath) {
+              // console.log(`Highlighting for vtrt while running from recorder`);
+              // this._highlightElements(frame, dataAttribute)
+              // .then(async () => {
+              // await new Promise((resolve) => setTimeout(resolve, 1000));
+              // this._unhighlightElements(frame, dataAttribute).then(
+              // () => {}
+              // console.log(`Unhighlighting vrtr in recorder is successful`)
+              // );
+              // })
+              // .catch(e);
+              // }
               //await this._highlightElements(frame, cssAnchor);
               const element = await frame.locator(dataAttribute).first();
               // await new Promise((resolve) => setTimeout(resolve, 100));
@@ -2580,10 +2604,8 @@ class StableBrowser {
               if (element) {
                 await this.scrollIfNeeded(element, state.info);
                 await element.dispatchEvent("bvt_verify_page_contains_text");
-                await _screenshot(state, this, element);
-              } else {
-                await _screenshot(state, this);
               }
+              await _screenshot(state, this);
               return state.info;
             }
           }
@@ -2704,13 +2726,13 @@ class StableBrowser {
     info.selectors = selectors;
     try {
       let table = await this._locate(selectors, info, _params);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info, table));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const tableData = await getTableData(this.page, table);
       return tableData;
     } catch (e) {
       this.logger.error("getTableData failed " + info.log);
       this.logger.error(e);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info, table));
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       Object.assign(e, { info: info });
       error = e;
@@ -2992,7 +3014,7 @@ class StableBrowser {
     };
 
     try {
-      await _preCommand(state, this, world);
+      await _preCommand(state, this);
       await this.page.close();
     } catch (e) {
       console.log(".");
