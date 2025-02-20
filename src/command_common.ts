@@ -72,26 +72,30 @@ export async function _preCommand(state: any, stable: any, world?: any) {
     await _screenshot(state, stable);
   }
   if (state.highlight === true) {
-      if(world && world.screenshot && !world.screenshotPath) {
-         stable._highlightElements(state.element).then(
-        async ()=> {
+    if (world && world.screenshot && !world.screenshotPath) {
+      stable
+        ._highlightElements(state.element)
+        .then(async () => {
           // console.log(`Highlighted in _preCommand`);
-          new Promise((r) => setTimeout(r, 1000)).then(async () => {
-          stable._unhighlightElements(state.element).then(
-           ()=>{
-                // console.log(`Unhighlighted in _preCommand`); 
-               }).catch(
-                (e: any)=> {
+          new Promise((r) => setTimeout(r, 1000))
+            .then(async () => {
+              stable
+                ._unhighlightElements(state.element)
+                .then(() => {
+                  // console.log(`Unhighlighted in _preCommand`);
+                })
+                .catch((e: any) => {
                   // console.log(`Unhighlighting failed in _preCommand: ${e}`);
                 });
-         }).catch(
-          (e: any)=> {
+            })
+            .catch((e: any) => {
               // console.log(`Error inbetween highlighting and unhighlighting: ${e}`);
-            })
-          }).catch((e:any) =>{
-              // console.log(`Error in highlighting: ${e}`);
-            })
-      }
+            });
+        })
+        .catch((e: any) => {
+          // console.log(`Error in highlighting: ${e}`);
+        });
+    }
   }
   state.info.failCause.operationFailed = true;
 }
@@ -126,24 +130,29 @@ export async function _commandError(state: any, error: any, stable: any) {
   state.error = error;
   state.commandError = true;
   if (state.throwError) {
-    throw error;
+    console.error(error);
+    throw state?.info?.errorMessage ?? error?.message ?? `${error}`;
   }
 }
 
-export async function _screenshot(state: any, stable: any , specificElement?: any) {   
+export async function _screenshot(state: any, stable: any, specificElement?: any) {
   let focusedElement = null;
-  if(specificElement!==undefined) {
+  if (specificElement !== undefined) {
     focusedElement = specificElement;
-  }
-  else {
+  } else {
     focusedElement = state.element;
   }
-  const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info, focusedElement);
+  const { screenshotId, screenshotPath } = await stable._screenShot(
+    state.options,
+    state.world,
+    state.info,
+    focusedElement
+  );
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
 }
 
- export function _commandFinally(state: any, stable: any) {
+export function _commandFinally(state: any, stable: any) {
   if (state && !state.commandError === true) {
     state.info.failCause = {};
   }
@@ -159,7 +168,7 @@ export async function _screenshot(state: any, stable: any , specificElement?: an
           status: "FAILED",
           startTime: state.startTime,
           endTime: state.endTime,
-          message: state.error?.message,
+          message: state?.info?.errorMessage ?? state.error?.message,
         }
       : {
           status: "PASSED",
