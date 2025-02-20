@@ -30,6 +30,7 @@ describe("Actions Tests", function () {
   it("validate row", async function () {
     let info = {};
     info.log = "";
+    info.failCause = {};
     const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
     await table.initFromElement(context.stable.page, element);
@@ -45,6 +46,7 @@ describe("Actions Tests", function () {
   it("validate row 2", async function () {
     let info = {};
     info.log = "";
+    info.failCause = {};
     const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
     await table.initFromElement(context.stable.page, element);
@@ -60,6 +62,7 @@ describe("Actions Tests", function () {
   it("validate header", async function () {
     let info = {};
     info.log = "";
+    info.failCause = {};
     const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
     await table.initFromElement(context.stable.page, element);
@@ -73,6 +76,7 @@ describe("Actions Tests", function () {
   it("validate grid", async function () {
     let info = {};
     info.log = "";
+    info.failCause = {};
     const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
     await table.initFromElement(context.stable.page, element);
@@ -86,6 +90,7 @@ describe("Actions Tests", function () {
   it("validate cell", async function () {
     let info = {};
     info.log = "";
+    info.failCause = {};
     const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
     await table.initFromElement(context.stable.page, element);
