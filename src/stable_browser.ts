@@ -629,8 +629,9 @@ class StableBrowser {
         element.evaluate((el, randomToken) => {
           el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
-        const page = element.page();
-        const newSelector = page.locator("[data-blinq-id-" + randomToken + "]");
+        const scope = element._frame ?? element.page();
+
+        const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
         return newSelector;
       }
     }
