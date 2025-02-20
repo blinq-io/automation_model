@@ -1089,11 +1089,11 @@ class StableBrowser {
       // ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       try {
         // if (world && world.screenshot && !world.screenshotPath) {
-          // console.log(`Highlighting while running from recorder`);
-          await this._highlightElements(element);
-          await state.element.setChecked(checked);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          // await this._unHighlightElements(element);
+        // console.log(`Highlighting while running from recorder`);
+        await this._highlightElements(element);
+        await state.element.setChecked(checked);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // await this._unHighlightElements(element);
         // }
         // await new Promise((resolve) => setTimeout(resolve, 1000));
         //  await this._unHighlightElements(element);
@@ -2149,7 +2149,7 @@ class StableBrowser {
 
               if (window) {
                 window.addEventListener("beforeunload", function (e) {
-                  node.style.outline = originalBorder;
+                  node.style.outline = originalOutline;
                 });
               }
               setTimeout(function () {
@@ -2182,12 +2182,12 @@ class StableBrowser {
                 element.style.outline = "2px solid red";
                 if (window) {
                   window.addEventListener("beforeunload", function (e) {
-                    element.style.outline = originalBorder;
+                    element.style.outline = originalOutline;
                   });
                 }
                 // Set a timeout to revert to the original border after 2 seconds
                 setTimeout(function () {
-                  element.style.outline = originalBorder;
+                  element.style.outline = originalOutline;
                 }, 2000);
               }
               return;
@@ -2414,18 +2414,18 @@ class StableBrowser {
           const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
           await this._highlightElements(frame, dataAttribute);
           // if (world && world.screenshot && !world.screenshotPath) {
-            // console.log(`Highlighting for verify text is found while running from recorder`);
-            // this._highlightElements(frame, dataAttribute).then(async () => {
-              // await new Promise((resolve) => setTimeout(resolve, 1000));
-              // this._unhighlightElements(frame, dataAttribute)
-                // .then(async () => {
-                  // console.log(`Unhighlighted frame dataAttribute successfully`);
-                // })
-                // .catch(
-                  // (e) => {}
-                  //  console.error(e)
-                // );
-            // });
+          // console.log(`Highlighting for verify text is found while running from recorder`);
+          // this._highlightElements(frame, dataAttribute).then(async () => {
+          // await new Promise((resolve) => setTimeout(resolve, 1000));
+          // this._unhighlightElements(frame, dataAttribute)
+          // .then(async () => {
+          // console.log(`Unhighlighted frame dataAttribute successfully`);
+          // })
+          // .catch(
+          // (e) => {}
+          //  console.error(e)
+          // );
+          // });
           // }
           const element = await frame.locator(dataAttribute).first();
           // await new Promise((resolve) => setTimeout(resolve, 100));
@@ -2435,7 +2435,7 @@ class StableBrowser {
             await element.dispatchEvent("bvt_verify_page_contains_text");
             // await _screenshot(state, this, element);
           }
-        } 
+        }
         await _screenshot(state, this);
         return state.info;
       }
@@ -2575,16 +2575,16 @@ class StableBrowser {
               await this._highlightElements(frame, dataAttribute);
               //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
               // if (world && world.screenshot && !world.screenshotPath) {
-                // console.log(`Highlighting for vtrt while running from recorder`);
-                // this._highlightElements(frame, dataAttribute)
-                  // .then(async () => {
-                    // await new Promise((resolve) => setTimeout(resolve, 1000));
-                    // this._unhighlightElements(frame, dataAttribute).then(
-                      // () => {}
-                      // console.log(`Unhighlighting vrtr in recorder is successful`)
-                    // );
-                  // })
-                  // .catch(e);
+              // console.log(`Highlighting for vtrt while running from recorder`);
+              // this._highlightElements(frame, dataAttribute)
+              // .then(async () => {
+              // await new Promise((resolve) => setTimeout(resolve, 1000));
+              // this._unhighlightElements(frame, dataAttribute).then(
+              // () => {}
+              // console.log(`Unhighlighting vrtr in recorder is successful`)
+              // );
+              // })
+              // .catch(e);
               // }
               //await this._highlightElements(frame, cssAnchor);
               const element = await frame.locator(dataAttribute).first();
