@@ -485,4 +485,5 @@ export {
   Params,
   _getServerUrl,
   _convertToRegexQuery,
+  _getDataFile,
 };
