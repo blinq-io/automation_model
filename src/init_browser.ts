@@ -70,7 +70,7 @@ const getContext = async function (
       userAgent = configuration.overrideUserAgent;
     }
   }
-  const storageState = { cookies, origins };
+  let storageState = { cookies, origins };
   let downloadsPath = "downloads";
   if (reportFolder) {
     downloadsPath = path.join(reportFolder, "downloads");
@@ -84,6 +84,20 @@ const getContext = async function (
   if (stable && stable.context) {
     stable.context.downloadsPath = downloadsPath;
   }
+  // check if data.json exists in the report folder
+  // and if it contain storageState field, if so, use it
+  if (reportFolder) {
+    const dataFile = path.join(reportFolder, "data.json");
+    if (fs.existsSync(dataFile)) {
+      const data = fs.readFileSync(dataFile, "utf8");
+      const dataObject = JSON.parse(data);
+      if (dataObject.storageState) {
+        console.log("Init browser with storage state");
+        storageState = dataObject.storageState;
+      }
+    }
+  }
+
   let browser = await browserManager.createBrowser(
     headless,
     storageState,
