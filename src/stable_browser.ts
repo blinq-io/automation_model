@@ -623,8 +623,16 @@ class StableBrowser {
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
       let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
+
       if (!element.rerun) {
-        return element;
+        const randomToken = Math.random().toString(36).substring(7);
+        element.evaluate((el, randomToken) => {
+          el.setAttribute("data-blinq-id-" + randomToken, "");
+        }, randomToken);
+        const scope = element._frame ?? element.page();
+
+        const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
+        return newSelector;
       }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
