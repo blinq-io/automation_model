@@ -46,7 +46,8 @@ const initContext = async (
   headless = false,
   world: any = null,
   moveToRight = -1,
-  initScript: InitScripts | null = null
+  initScript: InitScripts | null = null,
+  envName: string | null = null
 ) => {
   if (context) {
     return context;
@@ -97,10 +98,29 @@ const initContext = async (
   if (doNavigate) {
     await navigate(path);
   }
+  if (context) {
+    const env = envName || getEnv();
+    if (env) {
+      await getTestData(reportFolder, env);
+    }
+  }
 
   return context;
 };
 
+const getEnv = () => {
+  const env = process.env.BLINQ_ENV;
+  if (env) {
+    try {
+      const content = JSON.parse(fs.readFileSync(env, "utf8"));
+      return content.name;
+    } catch (e) {
+      console.log("Error reading env file: " + e);
+      return null;
+    }
+  }
+  return null;
+};
 const closeContext = async () => {
   try {
     if (context && context.browser) {
@@ -112,4 +132,47 @@ const closeContext = async () => {
   }
   context = null;
 };
+const getTestData = async (rFolder: string, currentEnv: string) => {
+  try {
+    const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
+    const jsonData = JSON.parse(data);
+    const testData: Record<string, string>[] = [];
+    const allEnvData = jsonData["*"];
+    const currentEnvData = jsonData[currentEnv];
+    if (allEnvData) {
+      for (const key in allEnvData) {
+        testData.push({ [key]: allEnvData[key] });
+      }
+    }
+    if (currentEnvData) {
+      for (const key in currentEnvData) {
+        testData.push({ [key]: currentEnvData[key] });
+      }
+    }
+    if (process.env.GLOBAL_TEST_DATA_FILE && fs.existsSync(path.join(rFolder, "data.json"))) {
+      const content = fs.readFileSync(path.join(rFolder, "data.json"), "utf8");
+      try {
+        const data = JSON.parse(content);
+        for (const key in data) {
+          // if key exists in testData, update it
+          let found = false;
+          for (let i = 0; i < testData.length; i++) {
+            if (testData[i][key]) {
+              found = true;
+              testData[i][key] = data[key];
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to merge data.json file: " + e);
+      }
+    }
+
+    fs.writeFileSync(path.join(rFolder, "data.json"), JSON.stringify(testData, null, 2));
+  } catch (e) {
+    console.log("Error reading data.json file: " + e);
+  }
+};
+
 export { initContext, navigate, closeContext };
