@@ -5,6 +5,7 @@ import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
 import { InitScripts } from "./generation_scripts.js";
+import { _getDataFile } from "./utils.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
@@ -101,7 +102,7 @@ const initContext = async (
   if (context) {
     const env = envName || getEnv();
     if (env) {
-      await getTestData(reportFolder, env);
+      await getTestData(reportFolder, env, world);
     }
   }
 
@@ -132,7 +133,7 @@ const closeContext = async () => {
   }
   context = null;
 };
-const getTestData = async (rFolder: string, currentEnv: string) => {
+const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
   try {
     const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
     const jsonData = JSON.parse(data);
@@ -169,7 +170,8 @@ const getTestData = async (rFolder: string, currentEnv: string) => {
       }
     }
 
-    fs.writeFileSync(path.join(rFolder, "data.json"), JSON.stringify(testData, null, 2));
+    const dataFile = _getDataFile(world, context, context?.stable);
+    fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
   } catch (e) {
     console.log("Error reading data.json file: " + e);
   }
