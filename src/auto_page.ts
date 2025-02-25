@@ -149,7 +149,7 @@ const getTestData = async (rFolder: string, currentEnv: string) => {
         testData.push({ [key]: currentEnvData[key] });
       }
     }
-    if (fs.existsSync(path.join(rFolder, "data.json"))) {
+    if (process.env.GLOBAL_TEST_DATA_FILE && fs.existsSync(path.join(rFolder, "data.json"))) {
       const content = fs.readFileSync(path.join(rFolder, "data.json"), "utf8");
       try {
         const data = JSON.parse(content);
