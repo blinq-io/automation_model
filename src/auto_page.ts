@@ -64,8 +64,12 @@ const initContext = async (
   if (globalTestDataFile) {
     // check if file exists
     if (!fs.existsSync(globalTestDataFile)) {
-      console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.TEST_DATA_FILE);
+      console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.GLOBAL_TEST_DATA_FILE);
     } else {
+      // if report folder does not exist, create it
+      if (!fs.existsSync(reportFolder)) {
+        fs.mkdirSync(reportFolder, { recursive: true });
+      }
       // copy the test data file to the report folder as data.json
       fs.copyFileSync(globalTestDataFile, reportFolder + "/data.json");
     }

@@ -25,6 +25,7 @@ import {
   replaceWithLocalTestData,
   scrollPageToLoadLazyElements,
   unEscapeString,
+  _getDataFile,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -1636,19 +1637,6 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
-  _getDataFile(world = null) {
-    let dataFile = null;
-    if (world && world.reportFolder) {
-      dataFile = path.join(world.reportFolder, "data.json");
-    } else if (this.reportFolder) {
-      dataFile = path.join(this.reportFolder, "data.json");
-    } else if (this.context && this.context.reportFolder) {
-      dataFile = path.join(this.context.reportFolder, "data.json");
-    } else {
-      dataFile = "data.json";
-    }
-    return dataFile;
-  }
   async waitForUserInput(message, world = null) {
     if (!message) {
       message = "# Wait for user input. Press any key to continue";
@@ -1676,7 +1664,7 @@ class StableBrowser {
       return;
     }
     // if data file exists, load it
-    const dataFile = this._getDataFile(world);
+    const dataFile = _getDataFile(world, this.context, this);
     let data = this.getTestData(world);
     // merge the testData with the existing data
     Object.assign(data, testData);
@@ -1782,7 +1770,7 @@ class StableBrowser {
   }
 
   getTestData(world = null) {
-    const dataFile = this._getDataFile(world);
+    const dataFile = _getDataFile(world, this.context, this);
     let data = {};
     if (fs.existsSync(dataFile)) {
       data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -2936,6 +2924,17 @@ class StableBrowser {
     }
     return timeout;
   }
+  async saveStoreState(path: string | null = null, world: any = null) {
+    const storageState = await this.page.context().storageState();
+    //const testDataFile = _getDataFile(world, this.context, this);
+    if (path) {
+      // save { storageState: storageState } into the path
+      fs.writeFileSync(path, JSON.stringify({ storageState: storageState }, null, 2));
+    } else {
+      await this.setTestData({ storageState: storageState }, world);
+    }
+  }
+
   async waitForPageLoad(options = {}, world = null) {
     let timeout = this._getLoadTimeout(options);
     const promiseArray = [];
