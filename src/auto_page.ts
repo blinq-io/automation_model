@@ -100,7 +100,7 @@ const initContext = async (
     await navigate(path);
   }
   if (context) {
-    const env = envName || getEnv();
+    const env = getEnv(envName);
     if (env) {
       await getTestData(reportFolder, env, world);
     }
@@ -109,8 +109,11 @@ const initContext = async (
   return context;
 };
 
-const getEnv = () => {
-  const env = process.env.BLINQ_ENV;
+const getEnv = (envName: string | null) => {
+  let env = process.env.BLINQ_ENV;
+  if (envName) {
+    env = envName;
+  }
   if (env) {
     try {
       const content = JSON.parse(fs.readFileSync(env, "utf8"));
