@@ -133,45 +133,46 @@ const closeContext = async () => {
   }
   context = null;
 };
+type testData = {
+  key: string;
+  value: string;
+  DataType: "string" | "secret" | "totp";
+  environment: string;
+};
 const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
   try {
     const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
-    const jsonData = JSON.parse(data);
+    const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
     const testData: Record<string, string>[] = [];
     const allEnvData = jsonData["*"];
     const currentEnvData = jsonData[currentEnv];
     if (allEnvData) {
-      for (const key in allEnvData) {
-        testData.push({ [key]: allEnvData[key] });
+      // for (const key in allEnvData) {
+      //   testData.push({ [key]: allEnvData[key] });
+      // }
+      for (let i = 0; i < allEnvData.length; i++) {
+        const item = allEnvData[i];
+        if (item.DataType === "secret") {
+          testData.push({ [item.key]: "secret:" + item.value });
+        } else if (item.DataType === "totp") {
+          testData.push({ [item.key]: "totp:" + item.value });
+        } else {
+          testData.push({ [item.key]: item.value });
+        }
       }
     }
     if (currentEnvData) {
-      for (const key in currentEnvData) {
-        testData.push({ [key]: currentEnvData[key] });
-      }
-    }
-    if (process.env.GLOBAL_TEST_DATA_FILE && fs.existsSync(path.join(rFolder, "data.json"))) {
-      const content = fs.readFileSync(path.join(rFolder, "data.json"), "utf8");
-      try {
-        const data = JSON.parse(content);
-        for (const key in data) {
-          // if key exists in testData, update it
-          let found = false;
-          for (let i = 0; i < testData.length; i++) {
-            if (testData[i][key]) {
-              found = true;
-              testData[i][key] = data[key];
-              break;
-            }
-          }
+      for (let i = 0; i < currentEnvData.length; i++) {
+        const item = currentEnvData[i];
+        if (item.DataType === "secret") {
+          testData.push({ [item.key]: "secret:" + item.value });
+        } else if (item.DataType === "totp") {
+          testData.push({ [item.key]: "totp:" + item.value });
+        } else {
+          testData.push({ [item.key]: item.value });
         }
-      } catch (e) {
-        console.error("Failed to merge data.json file: " + e);
       }
     }
-
-    const dataFile = _getDataFile(world, context, context?.stable);
-    fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
   } catch (e) {
     console.log("Error reading data.json file: " + e);
   }
