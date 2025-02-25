@@ -174,6 +174,8 @@ const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
           }
         }
       }
+      const dataFile = _getDataFile(world, context, context?.stable);
+      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
     console.log("Error reading data.json file: " + e);
