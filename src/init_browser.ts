@@ -181,7 +181,10 @@ const initEnvironment = function () {
         }
       }
     }
-    // console.log("envFile: ", envFile);
+    // check if the envFile is not empty and exists
+    if (!envFile || !fs.existsSync(envFile)) {
+      throw new Error(envFile + " not found");
+    }
     const data = fs.readFileSync(envFile, "utf8");
     //console.log("data", data);
     const envObject = JSON.parse(data);
