@@ -1914,6 +1914,7 @@ class StableBrowser {
     } else {
       fs.writeFileSync(screenshotPath, screenshotBuffer);
     }
+    return screenshotBuffer;
   }
   async verifyElementExistInPage(selectors, _params = null, options = {}, world = null) {
     const state = {
