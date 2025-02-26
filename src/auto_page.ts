@@ -147,18 +147,18 @@ const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
     if (fs.existsSync(path.join("data", "data.json"))) {
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
       const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
-      const testData: Record<string, string>[] = [];
+      const testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
           if (item.DataType === "secret") {
-            testData.push({ [item.key]: "secret:" + item.value });
+            testData[item.key] = "secret:" + item.value;
           } else if (item.DataType === "totp") {
-            testData.push({ [item.key]: "totp:" + item.value });
+            testData[item.key] = "totp:" + item.value;
           } else {
-            testData.push({ [item.key]: item.value });
+            testData[item.key] = item.value;
           }
         }
       }
@@ -166,11 +166,11 @@ const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
           if (item.DataType === "secret") {
-            testData.push({ [item.key]: "secret:" + item.value });
+            testData[item.key] = "secret:" + item.value;
           } else if (item.DataType === "totp") {
-            testData.push({ [item.key]: "totp:" + item.value });
+            testData[item.key] = "totp:" + item.value;
           } else {
-            testData.push({ [item.key]: item.value });
+            testData[item.key] = item.value;
           }
         }
       }
