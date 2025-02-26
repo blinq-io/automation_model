@@ -2030,7 +2030,8 @@ class StableBrowser {
       if (!val.match(regex)) {
         throw new Error(`The ${attribute} attribute has a value of "${val}", but the expected value is "${value}"`);
       }
-      state.info.expectedValue = val;
+      state.info.expectedValue = value;
+      state.info.value = val;
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
