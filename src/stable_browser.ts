@@ -2034,8 +2034,6 @@ class StableBrowser {
         state.info.failCause.lastError = errorMessage;
         throw new Error(errorMessage);
       }
-      state.info.expectedValue = value;
-      state.info.value = val;
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
