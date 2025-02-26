@@ -2557,13 +2557,20 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.text = textToVerify;
+      const resultWithElementsFound = {
+        length: 0,
+      };
       while (true) {
-        const resultWithElementsFound = await this.findTextInAllFrames(
-          dateAlternatives,
-          numberAlternatives,
-          textAnchor,
-          state
-        );
+        try {
+          resultWithElementsFound = await this.findTextInAllFrames(
+            dateAlternatives,
+            numberAlternatives,
+            textAnchor,
+            state
+          );
+        } catch (error) {
+          // ignore
+        }
         if (resultWithElementsFound.length === 0) {
           if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${foundAncore ? textToVerify : textAnchor} not found in page`);
@@ -2571,50 +2578,54 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        for (let i = 0; i < resultWithElementsFound.length; i++) {
-          foundAncore = true;
-          const result = resultWithElementsFound[i];
-          const token = result.randomToken;
-          const frame = result.frame;
-          let css = `[data-blinq-id-${token}]`;
-          const climbArray1 = [];
-          for (let i = 0; i < climb; i++) {
-            climbArray1.push("..");
-          }
-          let climbXpath = "xpath=" + climbArray1.join("/");
-          css = css + " >> " + climbXpath;
-          const count = await frame.locator(css).count();
-          for (let j = 0; j < count; j++) {
-            const continer = await frame.locator(css).nth(j);
-            const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
-            if (result.elementCount > 0) {
-              const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
-              await this._highlightElements(frame, dataAttribute);
-              //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
-              // if (world && world.screenshot && !world.screenshotPath) {
-              // console.log(`Highlighting for vtrt while running from recorder`);
-              // this._highlightElements(frame, dataAttribute)
-              // .then(async () => {
-              // await new Promise((resolve) => setTimeout(resolve, 1000));
-              // this._unhighlightElements(frame, dataAttribute).then(
-              // () => {}
-              // console.log(`Unhighlighting vrtr in recorder is successful`)
-              // );
-              // })
-              // .catch(e);
-              // }
-              //await this._highlightElements(frame, cssAnchor);
-              const element = await frame.locator(dataAttribute).first();
-              // await new Promise((resolve) => setTimeout(resolve, 100));
-              // await this._unhighlightElements(frame, dataAttribute);
-              if (element) {
-                await this.scrollIfNeeded(element, state.info);
-                await element.dispatchEvent("bvt_verify_page_contains_text");
+        try {
+          for (let i = 0; i < resultWithElementsFound.length; i++) {
+            foundAncore = true;
+            const result = resultWithElementsFound[i];
+            const token = result.randomToken;
+            const frame = result.frame;
+            let css = `[data-blinq-id-${token}]`;
+            const climbArray1 = [];
+            for (let i = 0; i < climb; i++) {
+              climbArray1.push("..");
+            }
+            let climbXpath = "xpath=" + climbArray1.join("/");
+            css = css + " >> " + climbXpath;
+            const count = await frame.locator(css).count();
+            for (let j = 0; j < count; j++) {
+              const continer = await frame.locator(css).nth(j);
+              const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
+              if (result.elementCount > 0) {
+                const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
+                await this._highlightElements(frame, dataAttribute);
+                //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
+                // if (world && world.screenshot && !world.screenshotPath) {
+                // console.log(`Highlighting for vtrt while running from recorder`);
+                // this._highlightElements(frame, dataAttribute)
+                // .then(async () => {
+                // await new Promise((resolve) => setTimeout(resolve, 1000));
+                // this._unhighlightElements(frame, dataAttribute).then(
+                // () => {}
+                // console.log(`Unhighlighting vrtr in recorder is successful`)
+                // );
+                // })
+                // .catch(e);
+                // }
+                //await this._highlightElements(frame, cssAnchor);
+                const element = await frame.locator(dataAttribute).first();
+                // await new Promise((resolve) => setTimeout(resolve, 100));
+                // await this._unhighlightElements(frame, dataAttribute);
+                if (element) {
+                  await this.scrollIfNeeded(element, state.info);
+                  await element.dispatchEvent("bvt_verify_page_contains_text");
+                }
+                await _screenshot(state, this);
+                return state.info;
               }
-              await _screenshot(state, this);
-              return state.info;
             }
           }
+        } catch (error) {
+          console.error(error);
         }
       }
       // await expect(element).toHaveCount(1, { timeout: 10000 });
