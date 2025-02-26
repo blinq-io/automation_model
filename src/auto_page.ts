@@ -5,6 +5,7 @@ import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
 import { InitScripts } from "./generation_scripts.js";
+import { _getDataFile } from "./utils.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
@@ -46,7 +47,8 @@ const initContext = async (
   headless = false,
   world: any = null,
   moveToRight = -1,
-  initScript: InitScripts | null = null
+  initScript: InitScripts | null = null,
+  envName: string | null = null
 ) => {
   if (context) {
     return context;
@@ -97,10 +99,32 @@ const initContext = async (
   if (doNavigate) {
     await navigate(path);
   }
+  if (context) {
+    const env = getEnv(envName);
+    if (env) {
+      await getTestData(env, world);
+    }
+  }
 
   return context;
 };
 
+const getEnv = (envName: string | null) => {
+  let env = process.env.BLINQ_ENV;
+  if (envName) {
+    env = envName;
+  }
+  if (env) {
+    try {
+      const content = JSON.parse(fs.readFileSync(env, "utf8"));
+      return content.name;
+    } catch (e) {
+      console.log("Error reading env file: " + e);
+      return null;
+    }
+  }
+  return null;
+};
 const closeContext = async () => {
   try {
     if (context && context.browser) {
@@ -112,4 +136,64 @@ const closeContext = async () => {
   }
   context = null;
 };
-export { initContext, navigate, closeContext };
+type testData = {
+  key: string;
+  value: string;
+  DataType: "string" | "secret" | "totp";
+  environment: string;
+};
+const getTestData = async (currentEnv: string, world: any) => {
+  try {
+    if (fs.existsSync(path.join("data", "data.json"))) {
+      const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
+      const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
+      const testData: Record<string, string> = {};
+      const allEnvData = jsonData["*"];
+      const currentEnvData = jsonData[currentEnv];
+      if (allEnvData) {
+        for (let i = 0; i < allEnvData.length; i++) {
+          const item = allEnvData[i];
+          if (process.env[item.key]) {
+            testData[item.key] = process.env[item.key]!;
+            continue;
+          }
+          if (item.DataType === "secret") {
+            testData[item.key] = "secret:" + item.value;
+          } else if (item.DataType === "totp") {
+            testData[item.key] = "totp:" + item.value;
+          } else {
+            testData[item.key] = item.value;
+          }
+        }
+      }
+      if (currentEnvData) {
+        for (let i = 0; i < currentEnvData.length; i++) {
+          const item = currentEnvData[i];
+          if (process.env[item.key]) {
+            testData[item.key] = process.env[item.key]!;
+            continue;
+          }
+          if (item.DataType === "secret") {
+            testData[item.key] = "secret:" + item.value;
+          } else if (item.DataType === "totp") {
+            testData[item.key] = "totp:" + item.value;
+          } else {
+            testData[item.key] = item.value;
+          }
+        }
+      }
+      const dataFile = _getDataFile(world, context, context?.stable);
+      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+    }
+  } catch (e) {
+    console.log("Error reading data.json file: " + e);
+  }
+};
+
+const resetTestData = async (envPath: string, world: any) => {
+  const envName = getEnv(envPath);
+  if (envName) {
+    getTestData(envName, world);
+  }
+};
+export { initContext, navigate, closeContext, resetTestData };
