@@ -2399,7 +2399,7 @@ class StableBrowser {
       await _preCommand(state, this);
       state.info.text = text;
       while (true) {
-        const resultWithElementsFound = {
+        let resultWithElementsFound = {
           length: 0,
         };
         try {
@@ -2487,7 +2487,7 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.text = text;
-      const resultWithElementsFound = {
+      let resultWithElementsFound = {
         length: null, // initial cannot be 0
       };
       while (true) {
@@ -2552,7 +2552,7 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.text = textToVerify;
-      const resultWithElementsFound = {
+      let resultWithElementsFound = {
         length: 0,
       };
       while (true) {
