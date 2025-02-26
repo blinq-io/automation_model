@@ -46,6 +46,7 @@ import {
 import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
+import axios from "axios";
 
 export const Types = {
   CLICK: "click_element",
@@ -2654,10 +2655,13 @@ class StableBrowser {
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
       const screenshot = await this.takeScreenshot();
-      const request = {
-        method: "POST",
+      let request = {
+        method: "post",
+        maxBodyLength: Infinity,
         url: `${serviceUrl}/api/runs/screenshots/validate-screenshot`,
         headers: {
+          "x-bvt-project-id": path.basename(this.project_path),
+          "x-source": "aaa",
           "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.TOKEN}`,
         },
@@ -2666,7 +2670,7 @@ class StableBrowser {
           screenshot: screenshot,
         }),
       };
-      let result = await this.context.api.request(request);
+      const result = await axios.request(request);
       if (result.data.status !== true) {
         throw new Error("Visual validation failed");
       }
