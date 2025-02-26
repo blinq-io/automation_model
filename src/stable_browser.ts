@@ -1994,8 +1994,11 @@ class StableBrowser {
     };
     await new Promise((resolve) => setTimeout(resolve, 2000));
     let val;
+    let expectedValue;
     try {
       await _preCommand(state, this);
+      expectedValue = state.value;
+      state.info.expectedValue = expectedValue;
       switch (attribute) {
         case "innerText":
           val = String(await state.element.innerText());
@@ -2017,17 +2020,20 @@ class StableBrowser {
           val = String(await state.element.getAttribute(attribute));
           break;
       }
-
+      state.info.value = val;
       let regex;
-      if (value.startsWith("/") && value.endsWith("/")) {
-        const patternBody = value.slice(1, -1);
+      if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
+        const patternBody = expectedValue.slice(1, -1);
         regex = new RegExp(patternBody, "g");
       } else {
-        const escapedPattern = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         regex = new RegExp(escapedPattern, "g");
       }
       if (!val.match(regex)) {
-        throw new Error(`The ${attribute} attribute has a value of "${val}", but the expected value is "${value}"`);
+        let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+        state.info.failCause.assertionFailed = true;
+        state.info.failCause.lastError = errorMessage;
+        throw new Error(errorMessage);
       }
       state.info.expectedValue = value;
       state.info.value = val;
