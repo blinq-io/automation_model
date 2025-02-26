@@ -2404,12 +2404,14 @@ class StableBrowser {
       await _preCommand(state, this);
       state.info.text = text;
       while (true) {
-        const resultWithElementsFound = await this.findTextInAllFrames(
-          dateAlternatives,
-          numberAlternatives,
-          text,
-          state
-        );
+        const resultWithElementsFound = {
+          length: 0,
+        };
+        try {
+          resultWithElementsFound = await this.findTextInAllFrames(dateAlternatives, numberAlternatives, text, state);
+        } catch (error) {
+          // ignore
+        }
         if (resultWithElementsFound.length === 0) {
           if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${text} not found in page`);
@@ -2417,36 +2419,40 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        if (resultWithElementsFound[0].randomToken) {
-          const frame = resultWithElementsFound[0].frame;
-          const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
+        try {
+          if (resultWithElementsFound[0].randomToken) {
+            const frame = resultWithElementsFound[0].frame;
+            const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
 
-          await this._highlightElements(frame, dataAttribute);
-          // if (world && world.screenshot && !world.screenshotPath) {
-          // console.log(`Highlighting for verify text is found while running from recorder`);
-          // this._highlightElements(frame, dataAttribute).then(async () => {
-          // await new Promise((resolve) => setTimeout(resolve, 1000));
-          // this._unhighlightElements(frame, dataAttribute)
-          // .then(async () => {
-          // console.log(`Unhighlighted frame dataAttribute successfully`);
-          // })
-          // .catch(
-          // (e) => {}
-          //  console.error(e)
-          // );
-          // });
-          // }
-          const element = await frame.locator(dataAttribute).first();
-          // await new Promise((resolve) => setTimeout(resolve, 100));
-          // await this._unhighlightElements(frame, dataAttribute);
-          if (element) {
-            await this.scrollIfNeeded(element, state.info);
-            await element.dispatchEvent("bvt_verify_page_contains_text");
-            // await _screenshot(state, this, element);
+            await this._highlightElements(frame, dataAttribute);
+            // if (world && world.screenshot && !world.screenshotPath) {
+            // console.log(`Highlighting for verify text is found while running from recorder`);
+            // this._highlightElements(frame, dataAttribute).then(async () => {
+            // await new Promise((resolve) => setTimeout(resolve, 1000));
+            // this._unhighlightElements(frame, dataAttribute)
+            // .then(async () => {
+            // console.log(`Unhighlighted frame dataAttribute successfully`);
+            // })
+            // .catch(
+            // (e) => {}
+            //  console.error(e)
+            // );
+            // });
+            // }
+            const element = await frame.locator(dataAttribute).first();
+            // await new Promise((resolve) => setTimeout(resolve, 100));
+            // await this._unhighlightElements(frame, dataAttribute);
+            if (element) {
+              await this.scrollIfNeeded(element, state.info);
+              await element.dispatchEvent("bvt_verify_page_contains_text");
+              // await _screenshot(state, this, element);
+            }
           }
+          await _screenshot(state, this);
+          return state.info;
+        } catch (error) {
+          console.error(error);
         }
-        await _screenshot(state, this);
-        return state.info;
       }
 
       // await expect(element).toHaveCount(1, { timeout: 10000 });
@@ -2486,13 +2492,15 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.text = text;
+      const resultWithElementsFound = {
+        length: null, // initial cannot be 0
+      };
       while (true) {
-        const resultWithElementsFound = await this.findTextInAllFrames(
-          dateAlternatives,
-          numberAlternatives,
-          text,
-          state
-        );
+        try {
+          resultWithElementsFound = await this.findTextInAllFrames(dateAlternatives, numberAlternatives, text, state);
+        } catch (error) {
+          // ignore
+        }
         if (resultWithElementsFound.length === 0) {
           await _screenshot(state, this);
           return state.info;
