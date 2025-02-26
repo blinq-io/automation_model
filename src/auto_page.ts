@@ -102,7 +102,7 @@ const initContext = async (
   if (context) {
     const env = getEnv(envName);
     if (env) {
-      await getTestData(reportFolder, env, world);
+      await getTestData(env, world);
     }
   }
 
@@ -142,7 +142,7 @@ type testData = {
   DataType: "string" | "secret" | "totp";
   environment: string;
 };
-const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
+const getTestData = async (currentEnv: string, world: any) => {
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
@@ -182,4 +182,10 @@ const getTestData = async (rFolder: string, currentEnv: string, world: any) => {
   }
 };
 
-export { initContext, navigate, closeContext };
+const resetTestData = async (envPath: string, world: any) => {
+  const envName = getEnv(envPath);
+  if (envName) {
+    getTestData(envName, world);
+  }
+};
+export { initContext, navigate, closeContext, resetTestData };
