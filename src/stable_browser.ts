@@ -2017,7 +2017,6 @@ class StableBrowser {
           break;
       }
 
-      state.info.expectedValue = val;
       let regex;
       if (value.startsWith("/") && value.endsWith("/")) {
         const patternBody = value.slice(1, -1);
@@ -2029,6 +2028,8 @@ class StableBrowser {
       if (!val.match(regex)) {
         throw new Error(`The ${attribute} attribute has a value of "${val}", but the expected value is "${value}"`);
       }
+      state.info.expectedValue = value;
+      state.info.value = val;
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
