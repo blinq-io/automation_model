@@ -213,6 +213,12 @@ const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => 
       errorMessage: failCause.lastError ?? `Found ${failCause.count} elements`,
     };
   }
+  if (failCause.assertionFailed) {
+    return {
+      errorType: "AssertionError",
+      errorMessage: failCause.lastError,
+    };
+  }
   return {
     errorType: "UnknownError",
     errorMessage: error.message,
