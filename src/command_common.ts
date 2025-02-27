@@ -115,11 +115,25 @@ export async function _commandError(state: any, error: any, stable: any) {
   }
 }
 
-export async function _screenshot(state: any, stable: any) {
+export async function _screenshot(state: any, stable: any, specificElement?: any) {
+  // let focusedElement = null;
+  // if (specificElement !== undefined) {
+  //   focusedElement = specificElement;
+  // } else {
+  //   focusedElement = state.element;
+  // }
+  // const { screenshotId, screenshotPath } = await stable._screenShot(
+  //   state.options,
+  //   state.world,
+  //   state.info,
+  //   focusedElement
+  // );
+  // ;
   const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
 }
+
 export function _commandFinally(state: any, stable: any) {
   if (state && !state.commandError === true) {
     state.info.failCause = {};
@@ -136,7 +150,7 @@ export function _commandFinally(state: any, stable: any) {
           status: "FAILED",
           startTime: state.startTime,
           endTime: state.endTime,
-          message: state.error?.message,
+          message: state?.info?.errorMessage ?? state.error?.message,
         }
       : {
           status: "PASSED",
