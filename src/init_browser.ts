@@ -22,7 +22,8 @@ const getContext = async function (
   stable: StableBrowser | null = null,
   moveToRight = -1,
   reportFolder: string | null = null,
-  initScripts: InitScripts | null = null
+  initScripts: InitScripts | null = null,
+  storageState: any | null = null
 ) {
   if (environment === null) {
     environment = initEnvironment();
@@ -70,7 +71,8 @@ const getContext = async function (
       userAgent = configuration.overrideUserAgent;
     }
   }
-  let storageState = { cookies, origins };
+  let usedStorageState = null;
+  usedStorageState = { cookies, origins };
   let downloadsPath = "downloads";
   if (reportFolder) {
     downloadsPath = path.join(reportFolder, "downloads");
@@ -93,14 +95,16 @@ const getContext = async function (
       const dataObject = JSON.parse(data);
       if (dataObject.storageState) {
         console.log("Init browser with storage state");
-        storageState = dataObject.storageState;
+        usedStorageState = dataObject.storageState;
       }
     }
   }
-
+  if (storageState) {
+    usedStorageState = storageState;
+  }
   let browser = await browserManager.createBrowser(
     headless,
-    storageState,
+    usedStorageState,
     extensionPath,
     userDataDirPath,
     reportFolder ? reportFolder : ".",
@@ -118,6 +122,7 @@ const getContext = async function (
   context.environment = environment;
   context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
   context.reportFolder = reportFolder;
+  context.initScripts = initScripts;
 
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
@@ -153,6 +158,45 @@ const getContext = async function (
 
   // await _initCookies(context);
   return context;
+};
+const refreshBrowser = async function (stable: any, sessionPath: string, world: any) {
+  await stable.context.browserObject.close();
+  stable.context.pages = [];
+
+  let storageState = null;
+  if (sessionPath) {
+    if (!fs.existsSync(sessionPath)) {
+      throw new Error("Session path not found: " + sessionPath);
+    }
+    const data = fs.readFileSync(sessionPath, "utf8");
+    storageState = JSON.parse(data).storageState;
+  }
+  const newContext = await getContext(
+    stable.context.environment,
+    stable.context.headless,
+    world,
+    null,
+    stable.context.appName,
+    false,
+    stable,
+    -1,
+    stable.context.reportFolder,
+    stable.context.initScripts,
+    storageState
+  );
+  // clone all the new context properties to the old context
+  stable.context.browser = newContext.browser;
+  stable.context.browserObject = newContext.browserObject;
+  stable.context.playContext = newContext.playContext;
+  stable.context.page = newContext.page;
+  stable.page = newContext.page;
+  stable.context.pages.push(newContext.page);
+  stable.context.headless = newContext.headless;
+  stable.context.environment = newContext.environment;
+  stable.context.browserName = newContext.browserName;
+  stable.context.reportFolder = newContext.reportFolder;
+  stable.context.initScripts = newContext.initScripts;
+  await stable.goto(stable.context.environment.baseUrl);
 };
 
 const closeBrowser = async function (browser?: Browser | PlaywrightBrowser) {
@@ -209,4 +253,4 @@ const checkForEnvArg = function () {
   }
   return null;
 };
-export { getContext, closeBrowser };
+export { getContext, closeBrowser, refreshBrowser };
