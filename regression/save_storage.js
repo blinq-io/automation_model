@@ -78,4 +78,19 @@ describe("store session", function () {
     // verify browser on the products page
     await context.stable.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
   });
+  it("restore session test", async function () {
+    // login to the app
+    const _params = {};
+    const options = {};
+    await context.stable.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
+    // Fill password field with "password"
+    await context.stable.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
+    // Click on login button
+    await context.stable.click(elements["button_login"], _params, options, null);
+    // store the session
+    await context.stable.saveStoreState("test.json", this);
+    await context.stable.restoreSaveState("test.json", this);
+    // verify browser on the products page
+    await context.stable.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
+  });
 });
