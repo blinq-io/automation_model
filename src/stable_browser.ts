@@ -634,13 +634,15 @@ class StableBrowser {
       if (!element.rerun) {
         const randomToken = Math.random().toString(36).substring(7);
         element.evaluate((el, randomToken) => {
-          el.setAttribute("data-blinq-id-" + randomToken, "");
+            el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
-        const scope = element._frame ?? element.page();
-
+        if (element._frame){
+            return element
+        }
+        const scope =  element.page();
         const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
         return newSelector;
-      }
+    }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
