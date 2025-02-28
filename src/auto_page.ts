@@ -142,7 +142,7 @@ type testData = {
   DataType: "string" | "secret" | "totp";
   environment: string;
 };
-const getTestData = async (currentEnv: string, world: any) => {
+const getTestData = async (currentEnv: string, world: any, dataFile?: string) => {
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
@@ -189,7 +189,7 @@ const getTestData = async (currentEnv: string, world: any) => {
           }
         }
       }
-      const dataFile = _getDataFile(world, context, context?.stable);
+      if (!dataFile) dataFile = _getDataFile(world, context, context?.stable);
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
