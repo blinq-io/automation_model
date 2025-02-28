@@ -196,4 +196,4 @@ const resetTestData = async (envPath: string, world: any) => {
     getTestData(envName, world);
   }
 };
-export { initContext, navigate, closeContext, resetTestData };
+export { initContext, navigate, closeContext, resetTestData, getTestData };
