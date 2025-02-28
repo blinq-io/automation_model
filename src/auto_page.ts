@@ -169,7 +169,14 @@ const getTestData = async (currentEnv: string, world: any) => {
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
-          if (process.env[item.key]) {
+          if (
+            process.env[item.key] &&
+            item.key.toLowerCase() !== "os" &&
+            item.key.toLowerCase() !== "username" &&
+            item.key.toLowerCase() !== "password" &&
+            item.key.toLowerCase() !== "windir" &&
+            item.key.toLowerCase() !== "prompt"
+          ) {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
