@@ -153,7 +153,7 @@ const getTestData = async (currentEnv: string, world: any) => {
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          if (process.env[item.key]) {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
@@ -169,7 +169,7 @@ const getTestData = async (currentEnv: string, world: any) => {
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
-          if (process.env[item.key] && item.key.toLowerCase() !== "username") {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
