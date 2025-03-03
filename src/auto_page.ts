@@ -1,6 +1,6 @@
 import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
-import fs from "fs";
+import fs, { existsSync } from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
@@ -189,6 +189,10 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           }
         }
       }
+      if (dataFile && !existsSync(path.dirname(dataFile!))) {
+        fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
+      }
+
       if (!dataFile) dataFile = _getDataFile(world, context, context?.stable);
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
