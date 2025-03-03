@@ -1,6 +1,6 @@
 import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
-import fs from "fs";
+import fs, { existsSync } from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
@@ -142,7 +142,7 @@ type testData = {
   DataType: "string" | "secret" | "totp";
   environment: string;
 };
-const getTestData = async (currentEnv: string, world: any) => {
+const getTestData = async (currentEnv: string, world: any, dataFile?: string) => {
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
@@ -153,7 +153,7 @@ const getTestData = async (currentEnv: string, world: any) => {
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          if (process.env[item.key]) {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
@@ -169,7 +169,7 @@ const getTestData = async (currentEnv: string, world: any) => {
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
-          if (process.env[item.key]) {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
@@ -182,7 +182,11 @@ const getTestData = async (currentEnv: string, world: any) => {
           }
         }
       }
-      const dataFile = _getDataFile(world, context, context?.stable);
+      if (dataFile && !existsSync(path.dirname(dataFile!))) {
+        fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
+      }
+
+      if (!dataFile) dataFile = _getDataFile(world, context, context?.stable);
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
@@ -196,4 +200,4 @@ const resetTestData = async (envPath: string, world: any) => {
     getTestData(envName, world);
   }
 };
-export { initContext, navigate, closeContext, resetTestData };
+export { initContext, navigate, closeContext, resetTestData, getTestData };
