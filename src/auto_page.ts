@@ -169,7 +169,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
-          if (process.env[item.key]) {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
