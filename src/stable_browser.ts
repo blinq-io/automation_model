@@ -277,6 +277,9 @@ class StableBrowser {
   //   await closeUnexpectedPopups(this.page);
   // }
   async goto(url: string, world = null) {
+    if (!url) {
+      throw new Error("url is null, verify that the environment file is correct");
+    }
     if (!url.startsWith("http")) {
       url = "https://" + url;
     }
