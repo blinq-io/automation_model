@@ -5,7 +5,7 @@ import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
 import { InitScripts } from "./generation_scripts.js";
-import { _getDataFile } from "./utils.js";
+import { _getDataFile, decrypt } from "./utils.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
@@ -157,13 +157,19 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
             testData[item.key] = process.env[item.key]!;
             continue;
           }
+          let useValue = item.value;
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
+            // decrypt the secret
+            useValue = await decrypt("secret:" + item.value);
           } else if (item.DataType === "totp") {
             testData[item.key] = "totp:" + item.value;
+            useValue = "totp:" + item.value;
           } else {
             testData[item.key] = item.value;
           }
+          // if the key is not part of process.env, add it so any test dava value can be access via process.env
+          process.env[item.key] = useValue;
         }
       }
       if (currentEnvData) {
