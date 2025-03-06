@@ -199,6 +199,8 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
+      } else {
+        contextOptions.viewport = null;
       }
 
       if (userAgent) {
