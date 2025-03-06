@@ -3196,7 +3196,7 @@ class StableBrowser {
       if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
         const snapshot = await this.getAriaSnapshot();
         if (snapshot) {
-          await world.attach({ snapshot_init: snapshot }, "application/json+snapshot");
+          await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
         }
       }
     }
@@ -3243,8 +3243,7 @@ class StableBrowser {
       const snapshot = await this.getAriaSnapshot();
       if (snapshot) {
         const obj = {};
-        obj[`snapshot_${this.stepIndex}`] = snapshot;
-        await world.attach(obj, "application/json+snapshot");
+        await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
   }
