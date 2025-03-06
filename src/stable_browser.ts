@@ -93,6 +93,7 @@ class StableBrowser {
   appName = "main";
   tags = null;
   isRecording = false;
+  initSnapshotTaken = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -634,15 +635,15 @@ class StableBrowser {
       if (!element.rerun) {
         const randomToken = Math.random().toString(36).substring(7);
         element.evaluate((el, randomToken) => {
-            el.setAttribute("data-blinq-id-" + randomToken, "");
+          el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
-        if (element._frame){
-            return element
+        if (element._frame) {
+          return element;
         }
-        const scope =  element.page();
+        const scope = element.page();
         const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
         return newSelector;
-    }
+      }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
@@ -3190,6 +3191,41 @@ class StableBrowser {
         this.saveTestDataAsGlobal({}, world);
       }
     }
+    if (this.initSnapshotTaken === false) {
+      this.initSnapshotTaken = true;
+      if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+        const snapshot = await this.getAriaSnapshot();
+        if (snapshot) {
+          await world.attach({ snapshot_init: snapshot }, "application/json+snapshot");
+        }
+      }
+    }
+  }
+  async getAriaSnapshot() {
+    try {
+      // find the page url
+      const url = await this.page.url();
+
+      // extract the path from the url
+      const path = new URL(url).pathname;
+      // get the page title
+      const title = await this.page.title();
+      // go over other frams
+      const frames = this.page.frames();
+      const snapshots = [];
+      const content = [`- path: ${path}`, `- title: ${title}`];
+      const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
+      for (let i = 0; i < frames.length; i++) {
+        content.push(`- frame: ${i}`);
+        const frame = frames[i];
+        const snapshot = await frame.locator("body").ariaSnapshot({ timeout });
+        content.push(snapshot);
+      }
+      return content.join("\n");
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
   }
   async afterStep(world, step) {
     this.stepName = null;
@@ -3202,6 +3238,14 @@ class StableBrowser {
     }
     if (this.context) {
       this.context.examplesRow = null;
+    }
+    if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+      const snapshot = await this.getAriaSnapshot();
+      if (snapshot) {
+        const obj = {};
+        obj[`snapshot_${this.stepIndex}`] = snapshot;
+        await world.attach(obj, "application/json+snapshot");
+      }
     }
   }
 }
