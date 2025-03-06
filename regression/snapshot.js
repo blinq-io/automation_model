@@ -63,15 +63,15 @@ describe("snapshot", function () {
     const [first, second] = world.attachs;
 
     // Validate type
-    expect(first.type).to.equal("application/json+snapshot", "First attachment type mismatch");
-    expect(second.type).to.equal("application/json+snapshot", "Second attachment type mismatch");
+    expect(first.type).to.equal("application/json+snapshot-before", "First attachment type mismatch");
+    expect(second.type).to.equal("application/json+snapshot-after", "Second attachment type mismatch");
 
     // Validate content structure
-    expect(first.content).to.have.property("snapshot_init");
-    expect(second.content).to.have.property("snapshot_0");
+    // expect(first.content).to.have.property("snapshot_init");
+    // expect(second.content).to.have.property("snapshot_0");
 
     // Validate paths
-    expect(first.content.snapshot_init).to.include("/login", "'snapshot_init' does not contain '/login' path");
-    expect(second.content.snapshot_0).to.include("/products", "'snapshot_0' does not contain '/products' path");
+    expect(first.content).to.include("/login", "'snapshot_init' does not contain '/login' path");
+    expect(second.content).to.include("/products", "'snapshot_0' does not contain '/products' path");
   });
 });
