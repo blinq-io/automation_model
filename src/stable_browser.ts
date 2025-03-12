@@ -1061,6 +1061,7 @@ class StableBrowser {
       options,
       world,
       text: "Click element",
+      _text: "Click on " + selectors.element_name,
       type: Types.CLICK,
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
@@ -1095,6 +1096,7 @@ class StableBrowser {
       world,
       type: checked ? Types.CHECK : Types.UNCHECK,
       text: checked ? `Check element` : `Uncheck element`,
+      _text: checked ? `Check ${selectors.element_name}` : `Uncheck ${selectors.element_name}`,
       operation: "setCheck",
       log: "***** check " + selectors.element_name + " *****\n",
     };
@@ -1143,6 +1145,7 @@ class StableBrowser {
       world,
       type: Types.HOVER,
       text: `Hover element`,
+      _text: `Hover on ${selectors.element_name}`,
       operation: "hover",
       log: "***** hover " + selectors.element_name + " *****\n",
     };
@@ -1183,6 +1186,7 @@ class StableBrowser {
       value: values.toString(),
       type: Types.SELECT,
       text: `Select option: ${values}`,
+      _text: `Select option: ${values} on ${selectors.element_name}`,
       operation: "selectOption",
       log: "***** select option " + selectors.element_name + " *****\n",
     };
@@ -1216,6 +1220,7 @@ class StableBrowser {
       highlight: false,
       type: Types.TYPE_PRESS,
       text: `Type value: ${_value}`,
+      _text: `Type value: ${_value}`,
       operation: "type",
       log: "",
     };
@@ -1291,6 +1296,7 @@ class StableBrowser {
       world,
       type: Types.SET_DATE_TIME,
       text: `Set date time value: ${value}`,
+      _text: `Set date time value: ${value} on ${selectors.element_name}`,
       operation: "setDateTime",
       log: "***** set date time value " + selectors.element_name + " *****\n",
       throwError: false,
@@ -1358,6 +1364,7 @@ class StableBrowser {
       world,
       type: Types.FILL,
       text: `Click type input with value: ${_value}`,
+      _text: "Fill " + selectors.element_name + " with value " + maskValue(_value),
       operation: "clickType",
       log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
@@ -1544,6 +1551,7 @@ class StableBrowser {
       highlight: false,
       type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
       text: `Verify element contains pattern: ${pattern}`,
+      _text: "Verify element " + selectors.element_name + " contains pattern " + pattern,
       operation: "containsPattern",
       log: "***** verify element " + selectors.element_name + " contains pattern " + pattern + " *****\n",
     };
@@ -1953,6 +1961,7 @@ class StableBrowser {
       world,
       type: Types.EXTRACT,
       text: `Extract attribute from element`,
+      _text: `Extract attribute ${attribute} from ${selectors.element_name}`,
       operation: "extractAttribute",
       log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
@@ -1998,6 +2007,7 @@ class StableBrowser {
       highlight: true,
       screenshot: true,
       text: `Verify element attribute`,
+      _text: `Verify attribute ${attribute} from ${selectors.element.name} is ${value}`,
       operation: "verifyAttribute",
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
@@ -2310,6 +2320,7 @@ class StableBrowser {
       _reportToWorld(world, {
         type: Types.VERIFY_PAGE_PATH,
         text: "Verify page path",
+        _text: "Verify the page path contains " + pathPart,
         screenshotId,
         result: error
           ? {
@@ -2389,6 +2400,7 @@ class StableBrowser {
       highlight: false,
       type: Types.VERIFY_PAGE_CONTAINS_TEXT,
       text: `Verify text exists in page`,
+      _text: `Verify the text '${text}' exists in page`,
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
     };
@@ -2478,6 +2490,7 @@ class StableBrowser {
       highlight: false,
       type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
       text: `Verify text does not exist in page`,
+      _text: `Verify the text '${text}' does not exist in page`,
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
     };
@@ -2538,6 +2551,7 @@ class StableBrowser {
       highlight: false,
       type: Types.VERIFY_TEXT_WITH_RELATION,
       text: `Verify text with relation to another text`,
+      _text: "Search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found",
       operation: "verify_text_with_relation",
       log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
     };
@@ -2698,6 +2712,7 @@ class StableBrowser {
       _reportToWorld(world, {
         type: Types.VERIFY_VISUAL,
         text: "Visual verification",
+        _text: "Visual verification of " + text,
         screenshotId,
         result: error
           ? {
@@ -3049,6 +3064,7 @@ class StableBrowser {
       highlight: false,
       type: Types.CLOSE_PAGE,
       text: `Close page`,
+      _text: `Close the page`,
       operation: "closePage",
       log: "***** close page *****\n",
       throwError: false,
@@ -3093,6 +3109,7 @@ class StableBrowser {
       _reportToWorld(world, {
         type: Types.SET_VIEWPORT,
         text: "set viewport size to " + width + "x" + hight,
+        _text: "Set the viewport size to " + width + "x" + hight,
         screenshotId,
         result: error
           ? {
