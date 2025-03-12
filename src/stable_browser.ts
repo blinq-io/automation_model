@@ -30,7 +30,7 @@ import {
 import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
-import { getContext } from "./init_browser.js";
+import { getContext, refreshBrowser } from "./init_browser.js";
 import { navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
 import { randomUUID } from "crypto";
@@ -277,6 +277,9 @@ class StableBrowser {
   //   await closeUnexpectedPopups(this.page);
   // }
   async goto(url: string, world = null) {
+    if (!url) {
+      throw new Error("url is null, verify that the environment file is correct");
+    }
     if (!url.startsWith("http")) {
       url = "https://" + url;
     }
@@ -2965,6 +2968,12 @@ class StableBrowser {
     } else {
       await this.setTestData({ storageState: storageState }, world);
     }
+  }
+  async restoreSaveState(path: string | null = null, world: any = null) {
+    await refreshBrowser(this, path, world);
+    this.registerEventListeners(this.context);
+    registerNetworkEvents(this.world, this, this.context, this.page);
+    registerDownloadEvent(this.page, this.world, this.context);
   }
 
   async waitForPageLoad(options = {}, world = null) {

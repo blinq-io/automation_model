@@ -30,7 +30,10 @@ class BrowserManager {
   }
   async closeBrowser(browser?: PlaywrightBrowser | Browser) {
     if (!browser && this.browsers.length > 0) {
-      browser = this.browsers[0];
+      for (let i = 0; i < this.browsers.length; i++) {
+        await this.browsers[i].close();
+      }
+      this.browsers = [];
     }
 
     if (browser) {
@@ -196,6 +199,8 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
+      } else {
+        contextOptions.viewport = null;
       }
 
       if (userAgent) {
