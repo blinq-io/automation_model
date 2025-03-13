@@ -632,15 +632,15 @@ class StableBrowser {
       if (!element.rerun) {
         const randomToken = Math.random().toString(36).substring(7);
         element.evaluate((el, randomToken) => {
-            el.setAttribute("data-blinq-id-" + randomToken, "");
+          el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
-        if (element._frame){
-            return element
+        if (element._frame) {
+          return element;
         }
-        const scope =  element.page();
+        const scope = element.page();
         const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
         return newSelector;
-    }
+      }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
@@ -2003,7 +2003,7 @@ class StableBrowser {
       highlight: true,
       screenshot: true,
       text: `Verify element attribute`,
-      _text: `Verify attribute ${attribute} from ${selectors.element.name} is ${value}`,
+      _text: `Verify attribute ${attribute} from ${selectors.element_name} is ${value}`,
       operation: "verifyAttribute",
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
