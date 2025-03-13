@@ -2007,7 +2007,7 @@ class StableBrowser {
       highlight: true,
       screenshot: true,
       text: `Verify element attribute`,
-      _text: `Verify attribute ${attribute} from ${selectors.element.name} is ${value}`,
+      _text: `Verify attribute ${attribute} from ${selectors.element_name} is ${value}`,
       operation: "verifyAttribute",
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
