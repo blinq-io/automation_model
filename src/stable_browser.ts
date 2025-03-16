@@ -50,6 +50,7 @@ import axios from "axios";
 
 export const Types = {
   CLICK: "click_element",
+  WAIT_ELEMENT: "wait_element",
   NAVIGATE: "navigate", ///
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
@@ -1087,6 +1088,36 @@ class StableBrowser {
     } finally {
       _commandFinally(state, this);
     }
+  }
+  async waitForElement(selectors, _params?: Params, options = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
+    const state = {
+      selectors,
+      _params,
+      options,
+      world,
+      text: "Wait for element",
+      _text: "Wait for " + selectors.element_name,
+      type: Types.WAIT_ELEMENT,
+      operation: "waitForElement",
+      log: "***** wait for " + selectors.element_name + " *****\n",
+    };
+    let found = false;
+    try {
+      await _preCommand(state, this);
+      // if (state.options && state.options.context) {
+      //   state.selectors.locators[0].text = state.options.context;
+      // }
+      await state.element.waitFor({ timeout: timeout });
+      found = true;
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (e) {
+      console.error("Error on waitForElement", e);
+      // await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+    return found;
   }
   async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
     const state = {
