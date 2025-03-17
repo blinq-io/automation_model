@@ -143,6 +143,7 @@ export function _commandFinally(state: any, stable: any) {
     element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
     text: state.text,
+    _text: state._text,
     value: state.originalValue ? maskValue(state.originalValue) : state.value,
     screenshotId: state.screenshotId,
     result: state.error
