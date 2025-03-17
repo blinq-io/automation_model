@@ -19,6 +19,7 @@ import {
   _fixUsingParams,
   _getServerUrl,
   decrypt,
+  extractStepExampleParameters,
   KEYBOARD_EVENTS,
   maskValue,
   Params,
@@ -92,6 +93,8 @@ class StableBrowser {
   configuration = null;
   appName = "main";
   tags = null;
+  isRecording = false;
+  initSnapshotTaken = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -123,10 +126,10 @@ class StableBrowser {
       this.logger.error("unable to read ai_config.json");
     }
 
+    context.pageLoading = { status: false };
+    context.pages = [this.page];
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
-    context.pages = [this.page];
-    context.pageLoading = { status: false };
 
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
@@ -181,7 +184,7 @@ class StableBrowser {
     if (this.appName === appName) {
       return;
     }
-    let navigate = false;
+    let newContextCreated = false;
     if (!apps[appName]) {
       let newContext = await getContext(
         null,
@@ -206,7 +209,8 @@ class StableBrowser {
     _copyContext(apps[appName], this);
     apps[this.appName] = tempContext;
     this.appName = appName;
-    if (navigate) {
+    if (newContextCreated) {
+      this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
       await this.waitForPageLoad();
     }
@@ -391,7 +395,6 @@ class StableBrowser {
       climbArray.push("..");
     }
     let climbXpath = "xpath=" + climbArray.join("/");
-
     let resultCss = textElementCss + " >> " + climbXpath;
     if (css) {
       resultCss = resultCss + " >> " + css;
@@ -576,7 +579,7 @@ class StableBrowser {
       for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
         handlerGroup.push(this.configuration.popupHandlers[i].locator);
       }
-      const scopes = [this.page, ...this.page.frames()];
+      const scopes = this.page.frames().filter((frame) => frame.url() !== "about:blank");
       let result = null;
       let scope = null;
       for (let i = 0; i < scopes.length; i++) {
@@ -1236,6 +1239,7 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+
   async type(_value, _params = null, options = {}, world = null) {
     const state = {
       value: _value,
@@ -2385,7 +2389,6 @@ class StableBrowser {
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
     const frames = this.page.frames();
     let results = [];
-
     let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
@@ -3247,6 +3250,9 @@ class StableBrowser {
     } else {
       this.stepName = "step " + this.stepIndex;
     }
+    if (this.context) {
+      this.context.examplesRow = extractStepExampleParameters(step);
+    }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
@@ -3259,6 +3265,41 @@ class StableBrowser {
         this.saveTestDataAsGlobal({}, world);
       }
     }
+    if (this.initSnapshotTaken === false) {
+      this.initSnapshotTaken = true;
+      if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+        const snapshot = await this.getAriaSnapshot();
+        if (snapshot) {
+          await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
+        }
+      }
+    }
+  }
+  async getAriaSnapshot() {
+    try {
+      // find the page url
+      const url = await this.page.url();
+
+      // extract the path from the url
+      const path = new URL(url).pathname;
+      // get the page title
+      const title = await this.page.title();
+      // go over other frams
+      const frames = this.page.frames();
+      const snapshots = [];
+      const content = [`- path: ${path}`, `- title: ${title}`];
+      const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
+      for (let i = 0; i < frames.length; i++) {
+        content.push(`- frame: ${i}`);
+        const frame = frames[i];
+        const snapshot = await frame.locator("body").ariaSnapshot({ timeout });
+        content.push(snapshot);
+      }
+      return content.join("\n");
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
   }
   async afterStep(world, step) {
     this.stepName = null;
@@ -3267,6 +3308,16 @@ class StableBrowser {
         await this.context.browserObject.context.tracing.stopChunk({
           path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
         });
+      }
+    }
+    if (this.context) {
+      this.context.examplesRow = null;
+    }
+    if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+      const snapshot = await this.getAriaSnapshot();
+      if (snapshot) {
+        const obj = {};
+        await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
   }
