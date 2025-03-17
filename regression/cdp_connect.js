@@ -48,10 +48,11 @@ describe("cdp attach", function () {
     port = await findFreePort();
     process.env.CDP_LISTEN_PORT = port;
     context = await getContext(null, false, null, null, null, true, null, -1, null);
-    await context.stable.goto("https://shop-blinq.io");
     process.env.CDP_LISTEN_PORT = "";
+    await context.stable.goto("https://shop-blinq.io");
     process.env.CDP_CONNECT_URL = `http://localhost:${port}`;
     context2 = await getContext(null, false, null, null, null, true, null, -1, null);
+    process.env.CDP_CONNECT_URL = "";
   });
   afterEach(async function () {
     await closeContext();

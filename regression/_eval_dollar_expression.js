@@ -1,8 +1,6 @@
 import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
 import { getContext } from "../build/lib/init_browser.js";
 import fs from "fs";
-import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
 import { expect } from "chai";
 let context = null;
 const locElements = {
@@ -15,20 +13,8 @@ const locElements = {
   },
 };
 //{"status":true,"result":{"elementNumber":2,"reason":"The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.","name":"locate_element"}}
-describe("find date api", function () {
-  const handlers = [
-    // Intercept "GET https://example.com/user" requests...
-    http.post("*/api/runs/find-date/find", () => {
-      // ...and respond to them using this JSON response.
-      return HttpResponse.json({
-        status: true,
-        result: "13-02-2025",
-      });
-    }),
-  ];
-  const server = setupServer(...handlers);
+describe("use dollar expression", function () {
   before(async function () {
-    server.listen();
     // check if temp directory exists
     if (!fs.existsSync("temp")) {
       try {
@@ -46,22 +32,21 @@ describe("find date api", function () {
   afterEach(async function () {
     await closeContext();
   });
-  after(async function () {
-    server.close();
-  });
+  after(async function () {});
 
-  it("check conversion", async function () {
+  it("expression evaluation", async function () {
     let info = {};
     info.log = "";
+    context.examplesRow = { user: "user_" };
     const element = await context.stable.clickType(
       locElements["textbox_username"],
-      "{{date:tomorow>>mm/dd/yyyy}}",
+      "${user + '123'}",
       false,
       null,
       null,
       this
     );
     info = await context.stable.extractAttribute(locElements["textbox_username"], "value", "result");
-    expect(info.value).to.be.equals("02/13/2025");
+    expect(info.value).to.be.equals("user_123");
   });
 });
