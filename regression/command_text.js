@@ -7,7 +7,6 @@ let context = null;
 const elements = {
   textbox_username: {
     locators: [
-      { role: ["textbox", { name: "Username" }] },
       { priority: 1, css: "#username" },
       { priority: 1, css: "[name='username']" },
     ],
@@ -23,7 +22,6 @@ const elements = {
     element_name: "password field",
   },
 };
-//{"status":true,"result":{"elementNumber":2,"reason":"The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.","name":"locate_element"}}
 describe("_text", function () {
   before(async function () {
     // check if temp directory exists
@@ -34,6 +32,7 @@ describe("_text", function () {
   beforeEach(async function () {
     context = await getContext(null, false, null, null, null, true, null, -1, null);
     await context.stable.goto("https://shop-blinq.io");
+    await context.stable.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
@@ -45,14 +44,16 @@ describe("_text", function () {
     },
   };
   it("check comamnd _text", async function () {
+    console.log("check comamnd _text");
+    const start = Date.now();
     let info = {};
     info.log = "";
     const element = {
       locators: [{ text: "login", climb: 1, css: "button" }],
     };
     //await context.stable.beforeStep(world);
-    await context.stable.clickType(elements["textbox_username"], "blinq_user", false, {}, {}, world);
-    await context.stable.clickType(elements["textbox_password"], "let_me_in", false, {}, {}, world);
+    await context.stable.clickType(elements["textbox_username"], "blinq_user", false, null, null, world);
+    await context.stable.clickType(elements["textbox_password"], "let_me_in", false, null, null, world);
     // check that the document.test variable is set
     console.log(world.attachs);
     expect(world.attachs).to.have.lengthOf(2, "Expected exactly 2 attachments");

@@ -37,7 +37,6 @@ describe("find date api", function () {
         console.log(e);
       }
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await getContext(null, false, null);
@@ -49,7 +48,6 @@ describe("find date api", function () {
   });
   after(async function () {
     server.close();
-    console.log("Actions Tests: after");
   });
 
   it("check conversion", async function () {
@@ -64,7 +62,6 @@ describe("find date api", function () {
       this
     );
     info = await context.stable.extractAttribute(locElements["textbox_username"], "value", "result");
-    console.log(info);
     expect(info.value).to.be.equals("02/13/2025");
   });
 });

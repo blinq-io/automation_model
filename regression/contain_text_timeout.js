@@ -24,7 +24,6 @@ describe("contain text timeout", function () {
     await context.stable.goto(url);
   });
   afterEach(async function () {
-    console.log("Closing browser");
     await closeContext();
   });
 
