@@ -8,12 +8,12 @@ describe("Click Tests", function () {
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
     console.log(`Navigating to URL ${url}`);
     await context.stable.goto(url);
-    console.log("click_element.test6.js: beforeEach");
+    //console.log("click_element.test6.js: beforeEach");
   });
   afterEach(async function () {
-    console.log("Closing browser");
+    //console.log("Closing browser");
     await closeContext();
-    console.log("click_element.test6.js: afterEach");
+    //console.log("click_element.test6.js: afterEach");
   });
 
   it("Click elements by CSS Locators", async function () {

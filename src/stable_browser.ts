@@ -49,6 +49,7 @@ import axios from "axios";
 
 export const Types = {
   CLICK: "click_element",
+  WAIT_ELEMENT: "wait_element",
   NAVIGATE: "navigate", ///
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
@@ -1085,6 +1086,36 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  async waitForElement(selectors, _params?: Params, options = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
+    const state = {
+      selectors,
+      _params,
+      options,
+      world,
+      text: "Wait for element",
+      _text: "Wait for " + selectors.element_name,
+      type: Types.WAIT_ELEMENT,
+      operation: "waitForElement",
+      log: "***** wait for " + selectors.element_name + " *****\n",
+    };
+    let found = false;
+    try {
+      await _preCommand(state, this);
+      // if (state.options && state.options.context) {
+      //   state.selectors.locators[0].text = state.options.context;
+      // }
+      await state.element.waitFor({ timeout: timeout });
+      found = true;
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (e) {
+      console.error("Error on waitForElement", e);
+      // await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+    return found;
+  }
   async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
     const state = {
       selectors,
@@ -1472,6 +1503,7 @@ class StableBrowser {
     return await this._getText(selectors, 0, _params, options, info, world);
   }
   async _getText(selectors, climb, _params = null, options = {}, info = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
     _validateSelectors(selectors);
     let screenshotId = null;
     let screenshotPath = null;
@@ -1481,7 +1513,7 @@ class StableBrowser {
     }
     info.operation = "getText";
     info.selectors = selectors;
-    let element = await this._locate(selectors, info, _params);
+    let element = await this._locate(selectors, info, _params, timeout);
     if (climb > 0) {
       const climbArray = [];
       for (let i = 0; i < climb; i++) {
@@ -1584,6 +1616,9 @@ class StableBrowser {
   }
 
   async containsText(selectors, text, climb, _params = null, options = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
+    const startTime = Date.now();
+
     const state = {
       selectors,
       _params,
@@ -1599,6 +1634,7 @@ class StableBrowser {
       operation: "containsText",
       log: "***** verify element " + selectors.element_name + " contains text " + text + " *****\n",
     };
+
     if (!text) {
       throw new Error("text is null");
     }
@@ -1609,44 +1645,56 @@ class StableBrowser {
       this.logger.info(text + "=" + newValue);
       text = newValue;
     }
+
     let foundObj = null;
     try {
-      await _preCommand(state, this);
-      foundObj = await this._getText(selectors, climb, _params, options, state.info, world);
-      if (foundObj && foundObj.element) {
-        await this.scrollIfNeeded(foundObj.element, state.info);
-      }
-      await _screenshot(state, this);
-      const dateAlternatives = findDateAlternatives(text);
-      const numberAlternatives = findNumberAlternatives(text);
-      if (dateAlternatives.date) {
-        for (let i = 0; i < dateAlternatives.dates.length; i++) {
-          if (
-            foundObj?.text.includes(dateAlternatives.dates[i]) ||
-            foundObj?.value?.includes(dateAlternatives.dates[i])
-          ) {
+      while (Date.now() - startTime < timeout) {
+        try {
+          await _preCommand(state, this);
+          foundObj = await this._getText(selectors, climb, _params, { timeout: 2000 }, state.info, world);
+
+          if (foundObj && foundObj.element) {
+            await this.scrollIfNeeded(foundObj.element, state.info);
+          }
+
+          await _screenshot(state, this);
+          const dateAlternatives = findDateAlternatives(text);
+          const numberAlternatives = findNumberAlternatives(text);
+
+          if (dateAlternatives.date) {
+            for (let i = 0; i < dateAlternatives.dates.length; i++) {
+              if (
+                foundObj?.text.includes(dateAlternatives.dates[i]) ||
+                foundObj?.value?.includes(dateAlternatives.dates[i])
+              ) {
+                return state.info;
+              }
+            }
+          } else if (numberAlternatives.number) {
+            for (let i = 0; i < numberAlternatives.numbers.length; i++) {
+              if (
+                foundObj?.text.includes(numberAlternatives.numbers[i]) ||
+                foundObj?.value?.includes(numberAlternatives.numbers[i])
+              ) {
+                return state.info;
+              }
+            }
+          } else if (foundObj?.text.includes(text) || foundObj?.value?.includes(text)) {
             return state.info;
           }
+        } catch (e) {
+          // Log error but continue retrying until timeout is reached
+          this.logger.warn("Retrying containsText due to: " + e.message);
         }
-        throw new Error("element doesn't contain text " + text);
-      } else if (numberAlternatives.number) {
-        for (let i = 0; i < numberAlternatives.numbers.length; i++) {
-          if (
-            foundObj?.text.includes(numberAlternatives.numbers[i]) ||
-            foundObj?.value?.includes(numberAlternatives.numbers[i])
-          ) {
-            return state.info;
-          }
-        }
-        throw new Error("element doesn't contain text " + text);
-      } else if (!foundObj?.text.includes(text) && !foundObj?.value?.includes(text)) {
-        state.info.foundText = foundObj?.text;
-        state.info.value = foundObj?.value;
-        throw new Error("element doesn't contain text " + text);
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
       }
-      return state.info;
+
+      state.info.foundText = foundObj?.text;
+      state.info.value = foundObj?.value;
+      throw new Error("element doesn't contain text " + text);
     } catch (e) {
       await _commandError(state, e, this);
+      throw e;
     } finally {
       _commandFinally(state, this);
     }
@@ -2402,7 +2450,7 @@ class StableBrowser {
       log: "***** verify text " + text + " exists in page *****\n",
     };
 
-    const timeout = this._getLoadTimeout(options);
+    const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const newValue = await this._replaceWithLocalData(text, world);
@@ -2492,7 +2540,7 @@ class StableBrowser {
       log: "***** verify text " + text + " does not exist in page *****\n",
     };
 
-    const timeout = this._getLoadTimeout(options);
+    const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const newValue = await this._replaceWithLocalData(text, world);
@@ -2553,7 +2601,7 @@ class StableBrowser {
       log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
     };
 
-    const timeout = this._getLoadTimeout(options);
+    const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     let newValue = await this._replaceWithLocalData(textAnchor, world);
@@ -2973,6 +3021,15 @@ class StableBrowser {
       timeout = options.page_timeout;
     }
     return timeout;
+  }
+  _getFindElementTimeout(options) {
+    if (options && options.timeout) {
+      return options.timeout;
+    }
+    if (this.configuration.find_element_timeout) {
+      return this.configuration.find_element_timeout;
+    }
+    return 30000;
   }
   async saveStoreState(path: string | null = null, world: any = null) {
     const storageState = await this.page.context().storageState();

@@ -10,7 +10,6 @@ describe("Iframe Tests", function () {
     if (!fs.existsSync("temp")) {
       fs.mkdirSync("temp");
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await initContext("/", true, false);
@@ -39,7 +38,7 @@ describe("Iframe Tests", function () {
       null
     );
     const locatorLog = info.locatorLog.toString();
-    console.log("locatorLog: " + locatorLog);
+    //console.log("locatorLog: " + locatorLog);
     // verify that the locatorLog contain ***** click on login button *****
     await context.stable.verifyTextExistInPage("Hello! You clicked the button.");
   });

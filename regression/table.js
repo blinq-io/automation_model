@@ -11,7 +11,7 @@ describe("Actions Tests", function () {
     if (!fs.existsSync("temp")) {
       fs.mkdirSync("temp");
     }
-    console.log("Actions Tests: before");
+    //console.log("Actions Tests: before");
     context = await getContext(null, true, this);
 
     //context = await initContext("/", true, false);

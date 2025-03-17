@@ -130,6 +130,10 @@ class Browser {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     }
+    const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
+    if (process.env.CDP_LISTEN_PORT) {
+      args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
+    }
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
@@ -155,14 +159,14 @@ class Browser {
         this.browser = await firefox.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+          args,
           //downloadsPath: downloadsPath,
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+          args,
           //downloadsPath: downloadsPath,
         });
       } else if (channel) {
@@ -170,18 +174,22 @@ class Browser {
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
-            args: ["--ignore-https-errors", "--ignore-certificate-errors"],
+            args,
             channel: channel,
             //downloadsPath: downloadsPath,
           });
         }
       } else {
-        this.browser = await chromium.launch({
-          headless: headless,
-          timeout: 0,
-          args: ["--ignore-https-errors", "--ignore-certificate-errors"],
-          //downloadsPath: downloadsPath,
-        });
+        if (process.env.CDP_CONNECT_URL) {
+          this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
+        } else {
+          this.browser = await chromium.launch({
+            headless: headless,
+            timeout: 0,
+            args,
+            //downloadsPath: downloadsPath,
+          });
+        }
       }
       // downloadsPath
       let contextOptions: any = {};
@@ -208,7 +216,11 @@ class Browser {
       }
 
       if (!this.context && this.browser) {
-        this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+        if (this.browser.contexts().length > 0) {
+          this.context = this.browser.contexts()[this.browser.contexts().length - 1];
+        } else {
+          this.context = await this.browser.newContext(contextOptions as unknown as BrowserContextOptions);
+        }
       }
     }
     if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
@@ -258,13 +270,17 @@ class Browser {
     await this.context?.addInitScript({
       content: axeMinJsContent,
     });
-    this.page = await this.context!.newPage();
+    if (this.context && this.context.pages().length > 0) {
+      this.page = this.context.pages()[this.context.pages().length - 1];
+    } else {
+      this.page = await this.context!.newPage();
+    }
   }
 
   async close() {
-    // if (this.context && this.trace) {
-    //   await this.context.tracing.stop({ path: traceFile });
-    // }
+    if (process.env.IGNORE_BROWSER_CLOSE === "true") {
+      return;
+    }
     if (this.browser !== null) {
       await this.browser.close();
       this.browser = null;

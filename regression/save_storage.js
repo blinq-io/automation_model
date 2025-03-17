@@ -42,7 +42,6 @@ describe("store session", function () {
         // ignore
       }
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await getContext(null, true, null);
@@ -51,9 +50,6 @@ describe("store session", function () {
   });
   afterEach(async function () {
     await closeContext();
-  });
-  after(async function () {
-    console.log("Actions Tests: after");
   });
 
   it("store session test", async function () {
@@ -74,6 +70,8 @@ describe("store session", function () {
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
     // create new session
     context = await initContext("/", true, true);
+    process.env.GLOBAL_TEST_DATA_FILE = "";
+
     await context.stable.waitForPageLoad();
     // verify browser on the products page
     await context.stable.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);

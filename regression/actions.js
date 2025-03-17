@@ -14,7 +14,6 @@ describe("Actions Tests", function () {
         // ignore
       }
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await initContext("/", true, false);
@@ -77,29 +76,29 @@ describe("Actions Tests", function () {
       null
     );
     const locatorLog = info.locatorLog.toString();
-    console.log("locatorLog: " + locatorLog);
+    //console.log("locatorLog: " + locatorLog);
     // verify that the locatorLog contain ***** click on login button *****
     expect(locatorLog).to.include("***** click on login button *****");
     expect(locatorLog).to.include('#1 {"text":"LOGIN","tag":"button"}');
     expect(locatorLog).to.include("0s 0s FOUND");
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("hover", async function () {
     let info = null;
     let key = "button_login";
-    console.log(`hover "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    //console.log(`hover "${key}" element using locator "${locElements[key].locators[0].css}"`);
     info = await context.stable.hover(
       locElements[key],
       null,
       { screenshotPath: "./temp/2.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("clickType", async function () {
     let info = null;
     let key = "textbox_username";
-    console.log(`clickType "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    //console.log(`clickType "${key}" element using locator "${locElements[key].locators[0].css}"`);
     info = await context.stable.clickType(
       locElements[key],
       "hi",
@@ -108,12 +107,12 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/3.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("fill", async function () {
     let info = null;
     let key = "textbox_username";
-    console.log(`fill "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    //console.log(`fill "${key}" element using locator "${locElements[key].locators[0].css}"`);
     info = await context.stable.fill(
       locElements[key],
       "hi",
@@ -122,12 +121,12 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/4.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("containsPattern", async function () {
     let info = null;
     let key = "section2";
-    console.log(`containsPattern "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    //console.log(`containsPattern "${key}" element using locator "${locElements[key].locators[0].css}"`);
     info = await context.stable.containsPattern(
       locElements[key],
       "{text}",
@@ -136,22 +135,22 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/5.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("verifyTextExistInPage", async function () {
     let info = null;
     //let key = "section2";
-    console.log(`verifyTextExistInPage let_me_in"`);
+    //console.log(`verifyTextExistInPage let_me_in"`);
     info = await context.stable.verifyTextExistInPage(
       "let_me_in",
       { screenshotPath: "./temp/6.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("verifyTextRelatedToText", async function () {
     let info = null;
-    console.log(`verifyTextRelatedToText"`);
+    //console.log(`verifyTextRelatedToText"`);
     info = await context.stable.verifyTextRelatedToText(
       "blinq_user",
       2,
@@ -159,12 +158,12 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/6.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("extract", async function () {
     let info = null;
     let key = "button_login";
-    console.log(`extract "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    //console.log(`extract "${key}" element using locator "${locElements[key].locators[0].css}"`);
     info = await context.stable.extractAttribute(
       locElements[key],
       "inner_text",
@@ -173,7 +172,7 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/7.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
     const dataFilePath = path.join(context.reportFolder, "data.json");
     const data = JSON.parse(fs.readFileSync(dataFilePath));
     expect(data.login_name).to.equal("LOGIN");
@@ -183,24 +182,24 @@ describe("Actions Tests", function () {
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/form/";
     await context.stable.goto(url);
     let key = "button_google";
-    console.log(`click "${key}" element using locator "${locElements[key].locators[0].css}"`);
+    //console.log(`click "${key}" element using locator "${locElements[key].locators[0].css}"`);
     info = await context.stable.click(
       locElements[key],
       null,
       { screenshotPath: "./temp/8.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
-    console.log("closePage");
+    //console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("closePage");
     info = await context.stable.closePage({ screenshotPath: "./temp/9.png", screenshot: true }, null);
-    console.log("info object: " + JSON.stringify(info, null, 2));
-    console.log(`verifyTextExistInPage Hi you"`);
+    //console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log(`verifyTextExistInPage Hi you"`);
     info = await context.stable.verifyTextExistInPage(
       "Hi you",
       { screenshotPath: "./temp/10.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("setDateTime", async function () {
     let info = null;
@@ -216,7 +215,7 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/11.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
     key = "time";
     info = await context.stable.setDateTime(
       locElements[key],
@@ -227,7 +226,7 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/12.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
 
   it("verifyAttribute", async function () {
@@ -241,7 +240,7 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/13.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("verifyTextExistInPage regex", async function () {
     let info = null;
@@ -252,6 +251,6 @@ describe("Actions Tests", function () {
       { screenshotPath: "./temp/14.png", screenshot: true },
       null
     );
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
 });
