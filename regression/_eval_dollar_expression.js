@@ -23,7 +23,6 @@ describe("use dollar expression", function () {
         console.log(e);
       }
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await getContext(null, false, null);
@@ -33,9 +32,7 @@ describe("use dollar expression", function () {
   afterEach(async function () {
     await closeContext();
   });
-  after(async function () {
-    console.log("Actions Tests: after");
-  });
+  after(async function () {});
 
   it("expression evaluation", async function () {
     let info = {};
@@ -50,7 +47,6 @@ describe("use dollar expression", function () {
       this
     );
     info = await context.stable.extractAttribute(locElements["textbox_username"], "value", "result");
-    console.log(info);
     expect(info.value).to.be.equals("user_123");
   });
 });

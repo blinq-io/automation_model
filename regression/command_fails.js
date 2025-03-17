@@ -9,7 +9,7 @@ describe("Actions Tests", function () {
     if (!fs.existsSync("temp")) {
       fs.mkdirSync("temp");
     }
-    console.log("Actions Tests: before");
+    //console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await initContext("/", true, false);
@@ -81,7 +81,7 @@ describe("Actions Tests", function () {
     expect(ex.info.failCause.fail).to.be.true;
     expect(ex.info.failCause.textNotFound).to.be.true;
     expect(ex.info.failCause.locatorNotFound).to.be.true;
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("click no selectors", async function () {
     let info = null;
@@ -105,7 +105,7 @@ describe("Actions Tests", function () {
     expect(ex.info.failCause).to.not.be.null;
     expect(ex.info.failCause.fail).to.be.true;
     expect(ex.message).to.be.equal("selectors.locators expected to be non empty array");
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   // it("hover", async function () {
   //   let info = null;
@@ -142,7 +142,7 @@ describe("Actions Tests", function () {
     expect(ex.info.failCause).to.not.be.null;
     expect(ex.info.failCause.fail).to.be.true;
     expect(ex.info.failCause.locatorNotFound).to.be.true;
-    console.log("info object: " + JSON.stringify(info, null, 2));
+    //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   // it("fill", async function () {
   //   let info = null;
