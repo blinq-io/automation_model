@@ -153,6 +153,7 @@ export function _commandFinally(state: any, stable: any) {
           startTime: state.startTime,
           endTime: state.endTime,
           message: state?.info?.errorMessage ?? state.error?.message,
+          stack: state.error?.stack,
         }
       : {
           status: "PASSED",
