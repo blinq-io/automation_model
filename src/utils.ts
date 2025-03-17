@@ -545,4 +545,5 @@ export {
   _getServerUrl,
   _convertToRegexQuery,
   _getDataFile,
+  extractStepExampleParameters
 };
