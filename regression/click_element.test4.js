@@ -6,14 +6,14 @@ describe("Click Tests", function () {
     context = await initContext("/", true, false);
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
-    console.log(`Navigating to URL ${url}`);
+    //console.log(`Navigating to URL ${url}`);
     await context.stable.goto(url);
-    console.log("click_element.test4.js: beforeEach");
+    //console.log("click_element.test4.js: beforeEach");
   });
   afterEach(async function () {
-    console.log("Closing browser");
+    //console.log("Closing browser");
     await closeContext();
-    console.log("click_element.test4.js: afterEach");
+    //console.log("click_element.test4.js: afterEach");
   });
 
   it("Click elements by Tag Name", async function () {
