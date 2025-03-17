@@ -228,7 +228,6 @@ describe("Actions Tests", function () {
     );
     //console.log("info object: " + JSON.stringify(info, null, 2));
   });
-
   it("verifyAttribute", async function () {
     let info = null;
     let key = "button_login";

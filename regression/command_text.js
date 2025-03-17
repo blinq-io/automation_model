@@ -7,7 +7,6 @@ let context = null;
 const elements = {
   textbox_username: {
     locators: [
-      { role: ["textbox", { name: "Username" }] },
       { priority: 1, css: "#username" },
       { priority: 1, css: "[name='username']" },
     ],

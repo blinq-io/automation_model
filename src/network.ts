@@ -153,14 +153,12 @@ function registerNetworkEvents(world: any, stable: any, context: any, page: any)
         const requestId = request.requestId;
         const endTime = Date.now();
         const startTime = requestTimes.get(requestId);
-
         try {
           const res = await request.response();
           const statusCode = res ? res.status() : request.failure().errorText;
+
           // Find the corresponding data object
           const data = networkData.find((item: any) => item.requestId === requestId);
-
-
           if (data) {
             data.responseEnd = endTime;
             data.responseTime = endTime - startTime;
