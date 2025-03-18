@@ -402,7 +402,7 @@ class StableBrowser {
     return resultCss;
   }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
-    const query = _convertToRegexQuery(text1, regex1, !partial1, ignoreCase);
+    const query = `${_convertToRegexQuery(text1, regex1, !partial1, ignoreCase)}`;
     const locator = scope.locator(query);
     const count = await locator.count();
     if (!tag1) {
