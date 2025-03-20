@@ -3138,7 +3138,7 @@ class StableBrowser {
     }
   }
   saveTestDataAsGlobal(options: any, world: any) {
-    const dataFile = this._getDataFile(world);
+    const dataFile = _getDataFile(world, this.context, this);
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
     this.logger.info("Save the scenario test data as global for the following scenarios.");
   }
