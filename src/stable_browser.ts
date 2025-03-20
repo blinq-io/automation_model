@@ -428,11 +428,11 @@ class StableBrowser {
               el = el.parentElement;
             }
             // remove any attributes start with data-blinq-id
-            for (let i = 0; i < el.attributes.length; i++) {
-              if (el.attributes[i].name.startsWith("data-blinq-id")) {
-                el.removeAttribute(el.attributes[i].name);
-              }
-            }
+            // for (let i = 0; i < el.attributes.length; i++) {
+            //   if (el.attributes[i].name.startsWith("data-blinq-id")) {
+            //     el.removeAttribute(el.attributes[i].name);
+            //   }
+            // }
             el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
