@@ -52,6 +52,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
     if (match) {
       try {
         const regex = new RegExp(text.substring(1, text.lastIndexOf("/")), text.match(regexEndPattern)![1]);
+        text = text.replace(/"/, '\\"');
         return "internal:text=" + text;
       } catch {
         // not regex
