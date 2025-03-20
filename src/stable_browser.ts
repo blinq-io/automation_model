@@ -3158,7 +3158,7 @@ class StableBrowser {
     }
     operation = options.operation;
     // validate operation is one of the supported operations
-    if (operation != "click") {
+    if (operation != "click" && operation != "hover+click") {
       throw new Error("operation is not supported");
     }
     const state = {
@@ -3217,6 +3217,19 @@ class StableBrowser {
             state.element = results[0];
             await results[0].click();
           }
+          break;
+        case "hover+click":
+          if (!options.css) {
+            throw new Error("css is not defined");
+          }
+          const results = await findElementsInArea(options.css, cellArea, this.page, this, options);
+          if (results.length === 0) {
+            throw new Error(`Element not found in cell area`);
+          }
+          state.element = results[0];
+          await results[0].hover();
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await results[0].click();
           break;
         default:
           throw new Error("operation is not supported");
