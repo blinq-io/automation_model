@@ -42,6 +42,23 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
   const bytes = CryptoJS.AES.decrypt(encryptedText, key);
   return bytes.toString(CryptoJS.enc.Utf8);
 }
+
+export function testForRegex(text: string): boolean {
+  const regexEndPattern = /\/([gimuy]*)$/;
+  if (text.startsWith("/")) {
+    const match = regexEndPattern.test(text);
+    if (match) {
+      try {
+        const regex = new RegExp(text.substring(1, text.lastIndexOf("/")), text.match(regexEndPattern)![1]);
+        return true;
+      } catch {
+        // not regex
+      }
+    }
+  }
+  return false;
+}
+
 function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean, ignoreCase: boolean) {
   let query = "internal:text=/";
   let queryEnd = "/";
@@ -52,7 +69,6 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
     if (match) {
       try {
         const regex = new RegExp(text.substring(1, text.lastIndexOf("/")), text.match(regexEndPattern)![1]);
-        text = text.replace(/"/, '\\"');
         return "internal:text=" + text;
       } catch {
         // not regex
