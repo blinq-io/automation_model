@@ -2455,7 +2455,7 @@ class StableBrowser {
     };
 
     if (testForRegex(text)) {
-      text = text.replace(/"/, '\\"');
+      text = text.replace(/"/, '\\"', g);
     }
 
     const timeout = this._getFindElementTimeout(options);
