@@ -27,6 +27,7 @@ import {
   scrollPageToLoadLazyElements,
   unEscapeString,
   _getDataFile,
+  testForRegex,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -47,6 +48,7 @@ import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
+import { _findCellArea, findElementsInArea } from "./table_helper.js";
 
 export const Types = {
   CLICK: "click_element",
@@ -72,6 +74,7 @@ export const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  TABLE_OPERATION: "table_operation",
   SET_DATE_TIME: "set_date_time",
   SET_VIEWPORT: "set_viewport",
   VERIFY_VISUAL: "verify_visual",
@@ -424,6 +427,12 @@ class StableBrowser {
             if (!el.setAttribute) {
               el = el.parentElement;
             }
+            // remove any attributes start with data-blinq-id
+            // for (let i = 0; i < el.attributes.length; i++) {
+            //   if (el.attributes[i].name.startsWith("data-blinq-id")) {
+            //     el.removeAttribute(el.attributes[i].name);
+            //   }
+            // }
             el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
@@ -1055,6 +1064,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
+
   async click(selectors, _params?: Params, options = {}, world = null) {
     const state = {
       selectors,
@@ -3145,8 +3155,98 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  async tableCellOperation(headerText: string, rowText: string, options: any, world = null) {
+    let operation = null;
+    if (!options || !options.operation) {
+      throw new Error("operation is not defined");
+    }
+    operation = options.operation;
+    // validate operation is one of the supported operations
+    if (operation != "click" && operation != "hover+click") {
+      throw new Error("operation is not supported");
+    }
+    const state = {
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.TABLE_OPERATION,
+      text: `Table operation`,
+      _text: `Table ${operation} operation`,
+      operation: operation,
+      log: "***** Table operation *****\n",
+    };
+    const timeout = this._getFindElementTimeout(options);
+    try {
+      await _preCommand(state, this);
+      const start = Date.now();
+      let cellArea = null;
+      while (true) {
+        try {
+          cellArea = await _findCellArea(headerText, rowText, this, state);
+          if (cellArea) {
+            break;
+          }
+        } catch (e) {
+          // ignore
+        }
+        if (Date.now() - start > timeout) {
+          throw new Error(`Cell not found in table`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      switch (operation) {
+        case "click":
+          if (!options.css) {
+            // will click in the center of the cell
+            let xOffset = 0;
+            let yOffset = 0;
+            if (options.xOffset) {
+              xOffset = options.xOffset;
+            }
+            if (options.yOffset) {
+              yOffset = options.yOffset;
+            }
+            await this.page.mouse.click(
+              cellArea.x + cellArea.width / 2 + xOffset,
+              cellArea.y + cellArea.height / 2 + yOffset
+            );
+          } else {
+            const results = await findElementsInArea(options.css, cellArea, this.page, this, options);
+            if (results.length === 0) {
+              throw new Error(`Element not found in cell area`);
+            }
+            state.element = results[0];
+            await results[0].click();
+          }
+          break;
+        case "hover+click":
+          if (!options.css) {
+            throw new Error("css is not defined");
+          }
+          const results = await findElementsInArea(options.css, cellArea, this.page, this, options);
+          if (results.length === 0) {
+            throw new Error(`Element not found in cell area`);
+          }
+          state.element = results[0];
+          await results[0].hover();
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await results[0].click();
+          break;
+        default:
+          throw new Error("operation is not supported");
+      }
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+  }
+
   saveTestDataAsGlobal(options: any, world: any) {
-    const dataFile = this._getDataFile(world);
+    const dataFile = _getDataFile(world, this.context, this);
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
     this.logger.info("Save the scenario test data as global for the following scenarios.");
   }
