@@ -27,6 +27,7 @@ import {
   scrollPageToLoadLazyElements,
   unEscapeString,
   _getDataFile,
+  testForRegex,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -2452,6 +2453,10 @@ class StableBrowser {
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
     };
+
+    if (testForRegex(text)) {
+      text = text.replace(/"/g, '\\"');
+    }
 
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
