@@ -2464,7 +2464,7 @@ class StableBrowser {
     };
 
     if (testForRegex(text)) {
-      text = text.replace(/"/g, '\\"');
+      text = text.replace(/\\"/g, '"');
     }
 
     const timeout = this._getFindElementTimeout(options);
@@ -2556,6 +2556,10 @@ class StableBrowser {
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
     };
+
+    if (testForRegex(text)) {
+      text = text.replace(/\\"/g, '"');
+    }
 
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
