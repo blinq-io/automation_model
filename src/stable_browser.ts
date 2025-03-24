@@ -28,6 +28,7 @@ import {
   unEscapeString,
   _getDataFile,
   testForRegex,
+  performAction,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -1079,18 +1080,7 @@ class StableBrowser {
     };
     try {
       await _preCommand(state, this);
-      // if (state.options && state.options.context) {
-      //   state.selectors.locators[0].text = state.options.context;
-      // }
-      try {
-        await state.element.click();
-        // await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (e) {
-        // await this.closeUnexpectedPopups();
-        state.element = await this._locate(selectors, state.info, _params);
-        await state.element.dispatchEvent("click");
-        // await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+      await performAction("click", state.element, options, this, state, _params);
       await this.waitForPageLoad();
       return state.info;
     } catch (e) {
@@ -1193,18 +1183,7 @@ class StableBrowser {
 
     try {
       await _preCommand(state, this);
-      try {
-        await state.element.hover();
-        // await _screenshot(state, this);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (e) {
-        //await this.closeUnexpectedPopups();
-        state.info.log += "hover failed, will try again" + "\n";
-        state.element = await this._locate(selectors, state.info, _params);
-        await state.element.hover({ timeout: 10000 });
-        // await _screenshot(state, this);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+      await performAction("hover", state.element, options, this, state, _params);
       await _screenshot(state, this);
       await this.waitForPageLoad();
       return state.info;
@@ -1345,7 +1324,7 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       try {
-        await state.element.click();
+        await performAction("click", state.element, options, this, state, _params);
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
           state.value = dayjs(state.value).format(format);
@@ -1428,11 +1407,11 @@ class StableBrowser {
         }
       }
       if (options === null || options === undefined || options.press) {
-        try {
-          await state.element.click({ timeout: 5000 });
-        } catch (e) {
-          await state.element.dispatchEvent("click");
+        if (!options) {
+          options = {};
         }
+        options.timeout = 5000;
+        await performAction("click", state.element, options, this, state, _params);
       } else {
         try {
           await state.element.focus();
@@ -3155,7 +3134,7 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
-  async tableCellOperation(headerText: string, rowText: string, options: any, world = null) {
+  async tableCellOperation(headerText: string, rowText: string, options: any, _params: Params, world = null) {
     let operation = null;
     if (!options || !options.operation) {
       throw new Error("operation is not defined");
@@ -3214,26 +3193,24 @@ class StableBrowser {
               cellArea.y + cellArea.height / 2 + yOffset
             );
           } else {
-            const results = await findElementsInArea(options.css, cellArea, this.page, this, options);
+            const results = await findElementsInArea(options.css, cellArea, this, options);
             if (results.length === 0) {
               throw new Error(`Element not found in cell area`);
             }
             state.element = results[0];
-            await results[0].click();
+            await performAction("click", state.element, options, this, state, _params);
           }
           break;
         case "hover+click":
           if (!options.css) {
             throw new Error("css is not defined");
           }
-          const results = await findElementsInArea(options.css, cellArea, this.page, this, options);
+          const results = await findElementsInArea(options.css, cellArea, this, options);
           if (results.length === 0) {
             throw new Error(`Element not found in cell area`);
           }
           state.element = results[0];
-          await results[0].hover();
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          await results[0].click();
+          await performAction("hover+click", state.element, options, this, state, _params);
           break;
         default:
           throw new Error("operation is not supported");

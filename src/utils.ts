@@ -383,6 +383,79 @@ function extractStepExampleParameters(step: any) {
     return {};
   }
 }
+export async function performAction(action: string, element: any, options: any, web: any, state: any, _params: Params) {
+  let usedOptions;
+  if (!options) {
+    options = {};
+  }
+  if (!element) {
+    throw new Error("Element not found");
+  }
+  switch (action) {
+    case "click":
+      // copy any of the following options to usedOptions: button, clickCount, delay, modifiers, force, position, trial
+      usedOptions = ["button", "clickCount", "delay", "modifiers", "force", "position", "trial", "timeout"].reduce(
+        (acc: any, key) => {
+          if (options[key]) {
+            acc[key] = options[key];
+          }
+          return acc;
+        },
+        {}
+      );
+      if (!usedOptions.timeout) {
+        usedOptions.timeout = 10000;
+        if (usedOptions.position) {
+          usedOptions.timeout = 1000;
+        }
+      }
+      try {
+        await element.click(usedOptions);
+      } catch (e) {
+        if (usedOptions.position) {
+          // find the element bounding box
+          const rect = await element.boundingBox();
+          // calculate the x and y position
+          const x = rect.x + rect.width / 2 + (usedOptions.position.x || 0);
+          const y = rect.y + rect.height / 2 + (usedOptions.position.y || 0);
+          // click on the x and y position
+          await web.page.mouse.click(x, y);
+        } else {
+          if (state && state.selectors) {
+            state.element = await web._locate(state.selectors, state.info, _params);
+            element = state.element;
+          }
+          await element.dispatchEvent("click");
+        }
+      }
+      break;
+    case "hover":
+      usedOptions = ["position", "trial", "timeout"].reduce((acc: any, key) => {
+        acc[key] = options[key];
+        return acc;
+      }, {});
+      try {
+        await element.hover(usedOptions);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        if (state && state.selectors) {
+          state.info.log += "hover failed, will try again" + "\n";
+          state.element = await web._locate(state.selectors, state.info, _params);
+          element = state.element;
+        }
+        usedOptions.timeout = 10000;
+        await element.hover(usedOptions);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      break;
+    case "hover+click":
+      await performAction("hover", element, options, web, state, _params);
+      await performAction("click", element, options, web, state, _params);
+      break;
+    default:
+      throw new Error(`Action ${action} not supported`);
+  }
+}
 
 const KEYBOARD_EVENTS = [
   "ALT",
