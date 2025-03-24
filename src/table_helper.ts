@@ -75,12 +75,18 @@ export async function _findCellArea(headerText: string, rowText: string, web: an
   );
   return await findCellRectangle(headerResult, rowResult, web, state.info);
 }
-export async function findElementsInArea(cssSelector: string, area: any, scope: any, web: any, options: any) {
-  const count = await scope.locator(cssSelector).count();
+export async function findElementsInArea(cssSelector: string, area: any, web: any, options: any) {
+  if (!cssSelector) {
+    cssSelector = "*";
+  }
+  const frames = await web.page.frames();
   const elements = [];
-  for (let i = 0; i < count; i++) {
-    const element = await scope.locator(cssSelector).nth(i);
-    elements.push(element);
+  for (const scope of frames) {
+    const count = await scope.locator(cssSelector).count();
+    for (let i = 0; i < count; i++) {
+      const element = await scope.locator(cssSelector).nth(i);
+      elements.push(element);
+    }
   }
   const foundElements = [];
   let hTollarance = 10;
