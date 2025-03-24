@@ -1,5 +1,4 @@
 import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
-import { getContext } from "../build/lib/init_browser.js";
 import fs from "fs";
 import { _getDataFile } from "../build/lib/utils.js";
 
@@ -44,7 +43,7 @@ describe("store session", function () {
     }
   });
   beforeEach(async function () {
-    context = await getContext(null, true, null);
+    context = await initContext(null, false, false, this);
     await context.stable.goto("https://shop-blinq.io");
     await context.stable.waitForPageLoad();
   });

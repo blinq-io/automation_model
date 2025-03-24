@@ -1,12 +1,12 @@
 import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
+import { getContext } from "../build/lib/init_browser.js";
 import fs from "fs";
 import { expect } from "chai";
 
 let context = null;
-let context2 = null;
 const elements = {
   textbox_username: {
-    locators: [{ role: ["textbox", { name: "Username1" }] }],
+    locators: [{ role: ["textbox", { name: "Username" }] }],
     element_name: "username field",
   },
 
@@ -19,9 +19,8 @@ const elements = {
     element_name: "password field",
   },
 };
-let port = -1;
 //{"status":true,"result":{"elementNumber":2,"reason":"The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.","name":"locate_element"}}
-describe("wait for element", function () {
+describe("click offset", function () {
   before(async function () {
     // check if temp directory exists
     if (!fs.existsSync("temp")) {
@@ -35,18 +34,20 @@ describe("wait for element", function () {
   afterEach(async function () {
     await closeContext();
   });
-  it("wait for element", async function () {
+  it("basic click offset", async function () {
     let info = {};
     info.log = "";
     const element = {
-      locators: [{ text: "login", climb: 1, css: "button" }],
+      locators: [{ css: "button" }],
       element_name: "login button",
     };
-    // await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    // await context2.stable.clickType(elements["textbox_password"], "let_me_in", false);
-    const found = await context.stable.waitForElement(element, null, { timeout: 2000 }, this);
-    expect(found).to.be.true;
-    const found2 = await context.stable.waitForElement(elements.textbox_username, null, { timeout: 2000 }, this);
-    expect(found2).to.be.false;
+    await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
+    await context.stable.clickType(elements["textbox_password"], "let_me_in", false);
+    const options = {
+      position: { x: 50, y: 150 },
+    };
+    // will click outside the button
+    await context.stable.click(element, null, options, this);
+    await context.stable.click(element, null, null, this);
   });
 });
