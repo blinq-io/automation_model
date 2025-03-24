@@ -50,10 +50,10 @@ const initContext = async (
   initScript: InitScripts | null = null,
   envName: string | null = null
 ) => {
-  if (context) {
+  if (context && context.playContext && (context.playContext as any).isClosed !== true) {
     return context;
   }
-  if (world && world.context) {
+  if (world && world.context && world.context.playContext && world.context.playContext.isClosed !== true) {
     return world.context;
   }
   if (!reportFolder) {
@@ -135,6 +135,7 @@ const closeContext = async () => {
     // ignore
   }
   context = null;
+  reportFolder = "";
 };
 type testData = {
   key: string;

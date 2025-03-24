@@ -275,6 +275,11 @@ class Browser {
     } else {
       this.page = await this.context!.newPage();
     }
+    if (this.context) {
+      this.context.on("close", () => {
+        (this.context as any).isClosed = true;
+      });
+    }
   }
 
   async close() {
