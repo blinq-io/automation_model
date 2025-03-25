@@ -124,6 +124,11 @@ const getContext = async function (
   context.reportFolder = reportFolder;
   context.initScripts = initScripts;
 
+  if (process.env.CDP_CONNECT_URL) {
+    // settin it to true will not navigate
+    context.navigate = true;
+  }
+
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
   } else {
