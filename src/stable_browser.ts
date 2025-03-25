@@ -985,7 +985,7 @@ class StableBrowser {
         }
         if (boxes.length === 1) {
           result.foundElements.push({
-            locator: boxes[0].locator,
+            locator: boxes[0].locator.first(),
             box: boxes[0].box,
             unique: true,
           });
