@@ -123,8 +123,10 @@ class Browser {
     let viewport = null;
     if (process.env.HEADLESS === "true") {
       headless = true;
+      this.headless = true;
     } else if (process.env.HEADLESS === "false") {
       headless = false;
+      this.headless = false;
     }
     if (process.env.VIEWPORT) {
       let viewportParts = process.env.VIEWPORT.split(",");
@@ -200,7 +202,9 @@ class Browser {
       if (viewport) {
         contextOptions.viewport = viewport;
       } else {
-        contextOptions.viewport = null;
+        if (!this.headless) {
+          contextOptions.viewport = null;
+        }
       }
 
       if (userAgent) {
