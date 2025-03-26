@@ -2407,10 +2407,10 @@ class StableBrowser {
       });
     }
   }
-  async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
+  async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state, partial = true, ignoreCase = false) {
     const frames = this.page.frames();
     let results = [];
-    let ignoreCase = false;
+    // let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
@@ -2419,7 +2419,7 @@ class StableBrowser {
             dateAlternatives.dates[j],
             "*:not(script, style, head)",
             false,
-            true,
+            partial,
             ignoreCase,
             {}
           );
@@ -2433,7 +2433,7 @@ class StableBrowser {
             numberAlternatives.numbers[j],
             "*:not(script, style, head)",
             false,
-            true,
+            partial,
             ignoreCase,
             {}
           );
@@ -2446,7 +2446,7 @@ class StableBrowser {
           text,
           "*:not(script, style, head)",
           false,
-          true,
+          partial,
           ignoreCase,
           {}
         );
@@ -2658,10 +2658,11 @@ class StableBrowser {
       while (true) {
         try {
           resultWithElementsFound = await this.findTextInAllFrames(
-            dateAlternatives,
-            numberAlternatives,
+            findDateAlternatives(textAnchor),
+            findNumberAlternatives(textAnchor),
             textAnchor,
-            state
+            state,
+            false
           );
         } catch (error) {
           // ignore
@@ -2689,7 +2690,15 @@ class StableBrowser {
             const count = await frame.locator(css).count();
             for (let j = 0; j < count; j++) {
               const continer = await frame.locator(css).nth(j);
-              const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
+              const result = await this._locateElementByText(
+                continer,
+                textToVerify,
+                "*:not(script, style, head)",
+                false,
+                false,
+                true,
+                {}
+              );
               if (result.elementCount > 0) {
                 const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
                 await this._highlightElements(frame, dataAttribute);
@@ -2729,6 +2738,49 @@ class StableBrowser {
     } finally {
       _commandFinally(state, this);
     }
+  }
+  async findRelatedTextInAllFrames(
+    textAnchor: string,
+    climb: number,
+    textToVerify: string,
+    params?: Params = {},
+    options = {},
+    world: any = null
+  ) {
+    const frames = this.page.frames();
+    let results = [];
+    let ignoreCase = false;
+    for (let i = 0; i < frames.length; i++) {
+      const result = await this._locateElementByText(
+        frames[i],
+        textAnchor,
+        "*:not(script, style, head)",
+        false,
+        true,
+        ignoreCase,
+        {}
+      );
+      result.frame = frames[i];
+
+      const climbArray = [];
+      for (let i = 0; i < climb; i++) {
+        climbArray.push("..");
+      }
+      let climbXpath = "xpath=" + climbArray.join("/");
+
+      const newLocator = `[data-blinq-id-${result.randomToken}] ${climb > 0 ? ">> " + climbXpath : ""} >> internal:text=${testForRegex(textToVerify) ? textToVerify : unEscapeString(textToVerify)}`;
+
+      const count = await frames[i].locator(newLocator).count();
+      if (count > 0) {
+        result.elementCount = count;
+        result.locator = newLocator;
+        results.push(result);
+      }
+    }
+    // state.info.results = results;
+    const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
+
+    return resultWithElementsFound;
   }
 
   async visualVerification(text, options = {}, world = null) {
