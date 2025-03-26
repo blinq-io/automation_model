@@ -960,9 +960,41 @@ class StableBrowser {
         result.locatorIndex = i;
       }
       if (foundLocators.length > 1) {
-        info.failCause.foundMultiple = true;
-        if (info.locatorLog) {
-          info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
+        // remove elements that consume the same space with 10 pixels tolerance
+        const boxes = [];
+        for (let j = 0; j < foundLocators.length; j++) {
+          boxes.push({ box: await foundLocators[j].boundingBox(), locator: foundLocators[j] });
+        }
+        for (let j = 0; j < boxes.length; j++) {
+          for (let k = 0; k < boxes.length; k++) {
+            if (j === k) {
+              continue;
+            }
+            // check if x, y, width, height are the same with 10 pixels tolerance
+            if (
+              Math.abs(boxes[j].box.x - boxes[k].box.x) < 10 &&
+              Math.abs(boxes[j].box.y - boxes[k].box.y) < 10 &&
+              Math.abs(boxes[j].box.width - boxes[k].box.width) < 10 &&
+              Math.abs(boxes[j].box.height - boxes[k].box.height) < 10
+            ) {
+              // as the element is not unique, will remove it
+              boxes.splice(k, 1);
+              k--;
+            }
+          }
+        }
+        if (boxes.length === 1) {
+          result.foundElements.push({
+            locator: boxes[0].locator.first(),
+            box: boxes[0].box,
+            unique: true,
+          });
+          result.locatorIndex = i;
+        } else {
+          info.failCause.foundMultiple = true;
+          if (info.locatorLog) {
+            info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
+          }
         }
       }
     }
