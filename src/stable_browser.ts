@@ -2474,6 +2474,7 @@ class StableBrowser {
       log: "***** verify text " + text + " exists in page *****\n",
     };
 
+
     if (testForRegex(text)) {
       text = text.replace(/\\"/g, '"');
     }
@@ -2567,6 +2568,7 @@ class StableBrowser {
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
     };
+
 
     if (testForRegex(text)) {
       text = text.replace(/\\"/g, '"');
