@@ -107,6 +107,7 @@ export async function _commandError(state: any, error: any, stable: any) {
   const errorClassification = getHumanReadableErrorMessage(error, state.info);
   state.info.errorType = errorClassification.errorType;
   state.info.errorMessage = errorClassification.errorMessage;
+
   Object.assign(error, { info: state.info });
   state.error = error;
   state.commandError = true;
@@ -143,6 +144,7 @@ export function _commandFinally(state: any, stable: any) {
     element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
     text: state.text,
+    _text: state._text,
     value: state.originalValue ? maskValue(state.originalValue) : state.value,
     screenshotId: state.screenshotId,
     result: state.error
@@ -151,6 +153,7 @@ export function _commandFinally(state: any, stable: any) {
           startTime: state.startTime,
           endTime: state.endTime,
           message: state?.info?.errorMessage ?? state.error?.message,
+          stack: state.error?.stack,
         }
       : {
           status: "PASSED",

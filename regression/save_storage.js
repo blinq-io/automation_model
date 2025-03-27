@@ -1,5 +1,4 @@
 import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
-import { getContext } from "../build/lib/init_browser.js";
 import fs from "fs";
 import { _getDataFile } from "../build/lib/utils.js";
 
@@ -42,18 +41,14 @@ describe("store session", function () {
         // ignore
       }
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
-    context = await getContext(null, true, null);
+    context = await initContext(null, false, false, this);
     await context.stable.goto("https://shop-blinq.io");
     await context.stable.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
-  });
-  after(async function () {
-    console.log("Actions Tests: after");
   });
 
   it("store session test", async function () {
@@ -74,6 +69,8 @@ describe("store session", function () {
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
     // create new session
     context = await initContext("/", true, true);
+    process.env.GLOBAL_TEST_DATA_FILE = "";
+
     await context.stable.waitForPageLoad();
     // verify browser on the products page
     await context.stable.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);

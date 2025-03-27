@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { expect } from "chai";
 import { Table } from "../build/lib/table.js";
-import { getContext } from "../build/lib/init_browser.js";
 describe("Actions Tests", function () {
   let context = null;
   before(async function () {
@@ -11,8 +10,8 @@ describe("Actions Tests", function () {
     if (!fs.existsSync("temp")) {
       fs.mkdirSync("temp");
     }
-    console.log("Actions Tests: before");
-    context = await getContext(null, true, this);
+    //console.log("Actions Tests: before");
+    context = await initContext(null, false, false, this);
 
     //context = await initContext("/", true, false);
     await context.stable.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table2.html");

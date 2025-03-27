@@ -118,6 +118,7 @@ const getContext = async function (
   context.browserObject = browser;
   context.playContext = browser.context;
   context.page = browser.page;
+  context.headless = headless;
   context.environment = environment;
   context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
   context.reportFolder = reportFolder;

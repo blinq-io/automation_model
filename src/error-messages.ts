@@ -224,6 +224,7 @@ const classifyErrorFromInfo = (error: Error, info: any): ErrorClassification => 
     errorMessage: error.message,
   };
 };
+
 const getHumanReadableErrorMessage = (error: Error, info: any): ErrorClassification => {
   // @ts-ignore
   if (error.errors && error.errors.length > 0) {

@@ -34,7 +34,6 @@ describe("Actions Tests", function () {
         // ignore
       }
     }
-    console.log("Actions Tests: before");
   });
   beforeEach(async function () {
     context = await getContext(null, false, null);
@@ -46,7 +45,6 @@ describe("Actions Tests", function () {
   });
   after(async function () {
     server.close();
-    console.log("Actions Tests: after");
   });
 
   it("simple click", async function () {

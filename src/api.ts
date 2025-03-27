@@ -6,7 +6,6 @@ import objectPath from "object-path";
 import { _commandFinally, _reportToWorld } from "./command_common.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 
-
 interface Config {
   url: string;
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";

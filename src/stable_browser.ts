@@ -19,6 +19,7 @@ import {
   _fixUsingParams,
   _getServerUrl,
   decrypt,
+  extractStepExampleParameters,
   KEYBOARD_EVENTS,
   maskValue,
   Params,
@@ -26,6 +27,8 @@ import {
   scrollPageToLoadLazyElements,
   unEscapeString,
   _getDataFile,
+  testForRegex,
+  performAction,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -46,9 +49,11 @@ import { register } from "module";
 import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
+import { _findCellArea, findElementsInArea } from "./table_helper.js";
 
 export const Types = {
   CLICK: "click_element",
+  WAIT_ELEMENT: "wait_element",
   NAVIGATE: "navigate", ///
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
@@ -70,6 +75,7 @@ export const Types = {
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
   CLOSE_PAGE: "close_page",
+  TABLE_OPERATION: "table_operation",
   SET_DATE_TIME: "set_date_time",
   SET_VIEWPORT: "set_viewport",
   VERIFY_VISUAL: "verify_visual",
@@ -91,6 +97,8 @@ class StableBrowser {
   configuration = null;
   appName = "main";
   tags = null;
+  isRecording = false;
+  initSnapshotTaken = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -122,10 +130,10 @@ class StableBrowser {
       this.logger.error("unable to read ai_config.json");
     }
 
+    context.pageLoading = { status: false };
+    context.pages = [this.page];
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
-    context.pages = [this.page];
-    context.pageLoading = { status: false };
 
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
@@ -180,7 +188,7 @@ class StableBrowser {
     if (this.appName === appName) {
       return;
     }
-    let navigate = false;
+    let newContextCreated = false;
     if (!apps[appName]) {
       let newContext = await getContext(
         null,
@@ -205,7 +213,8 @@ class StableBrowser {
     _copyContext(apps[appName], this);
     apps[this.appName] = tempContext;
     this.appName = appName;
-    if (navigate) {
+    if (newContextCreated) {
+      this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
       await this.waitForPageLoad();
     }
@@ -390,7 +399,6 @@ class StableBrowser {
       climbArray.push("..");
     }
     let climbXpath = "xpath=" + climbArray.join("/");
-
     let resultCss = textElementCss + " >> " + climbXpath;
     if (css) {
       resultCss = resultCss + " >> " + css;
@@ -398,7 +406,7 @@ class StableBrowser {
     return resultCss;
   }
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
-    const query = _convertToRegexQuery(text1, regex1, !partial1, ignoreCase);
+    const query = `${_convertToRegexQuery(text1, regex1, !partial1, ignoreCase)}`;
     const locator = scope.locator(query);
     const count = await locator.count();
     if (!tag1) {
@@ -420,6 +428,12 @@ class StableBrowser {
             if (!el.setAttribute) {
               el = el.parentElement;
             }
+            // remove any attributes start with data-blinq-id
+            // for (let i = 0; i < el.attributes.length; i++) {
+            //   if (el.attributes[i].name.startsWith("data-blinq-id")) {
+            //     el.removeAttribute(el.attributes[i].name);
+            //   }
+            // }
             el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
@@ -575,7 +589,7 @@ class StableBrowser {
       for (let i = 0; i < this.configuration.popupHandlers.length; i++) {
         handlerGroup.push(this.configuration.popupHandlers[i].locator);
       }
-      const scopes = [this.page, ...this.page.frames()];
+      const scopes = this.page.frames().filter((frame) => frame.url() !== "about:blank");
       let result = null;
       let scope = null;
       for (let i = 0; i < scopes.length; i++) {
@@ -946,9 +960,41 @@ class StableBrowser {
         result.locatorIndex = i;
       }
       if (foundLocators.length > 1) {
-        info.failCause.foundMultiple = true;
-        if (info.locatorLog) {
-          info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
+        // remove elements that consume the same space with 10 pixels tolerance
+        const boxes = [];
+        for (let j = 0; j < foundLocators.length; j++) {
+          boxes.push({ box: await foundLocators[j].boundingBox(), locator: foundLocators[j] });
+        }
+        for (let j = 0; j < boxes.length; j++) {
+          for (let k = 0; k < boxes.length; k++) {
+            if (j === k) {
+              continue;
+            }
+            // check if x, y, width, height are the same with 10 pixels tolerance
+            if (
+              Math.abs(boxes[j].box.x - boxes[k].box.x) < 10 &&
+              Math.abs(boxes[j].box.y - boxes[k].box.y) < 10 &&
+              Math.abs(boxes[j].box.width - boxes[k].box.width) < 10 &&
+              Math.abs(boxes[j].box.height - boxes[k].box.height) < 10
+            ) {
+              // as the element is not unique, will remove it
+              boxes.splice(k, 1);
+              k--;
+            }
+          }
+        }
+        if (boxes.length === 1) {
+          result.foundElements.push({
+            locator: boxes[0].locator.first(),
+            box: boxes[0].box,
+            unique: true,
+          });
+          result.locatorIndex = i;
+        } else {
+          info.failCause.foundMultiple = true;
+          if (info.locatorLog) {
+            info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
+          }
         }
       }
     }
@@ -1051,6 +1097,7 @@ class StableBrowser {
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
+
   async click(selectors, _params?: Params, options = {}, world = null) {
     const state = {
       selectors,
@@ -1058,24 +1105,14 @@ class StableBrowser {
       options,
       world,
       text: "Click element",
+      _text: "Click on " + selectors.element_name,
       type: Types.CLICK,
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
     };
     try {
       await _preCommand(state, this);
-      // if (state.options && state.options.context) {
-      //   state.selectors.locators[0].text = state.options.context;
-      // }
-      try {
-        await state.element.click();
-        // await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (e) {
-        // await this.closeUnexpectedPopups();
-        state.element = await this._locate(selectors, state.info, _params);
-        await state.element.dispatchEvent("click");
-        // await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+      await performAction("click", state.element, options, this, state, _params);
       await this.waitForPageLoad();
       return state.info;
     } catch (e) {
@@ -1083,6 +1120,36 @@ class StableBrowser {
     } finally {
       _commandFinally(state, this);
     }
+  }
+  async waitForElement(selectors, _params?: Params, options = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
+    const state = {
+      selectors,
+      _params,
+      options,
+      world,
+      text: "Wait for element",
+      _text: "Wait for " + selectors.element_name,
+      type: Types.WAIT_ELEMENT,
+      operation: "waitForElement",
+      log: "***** wait for " + selectors.element_name + " *****\n",
+    };
+    let found = false;
+    try {
+      await _preCommand(state, this);
+      // if (state.options && state.options.context) {
+      //   state.selectors.locators[0].text = state.options.context;
+      // }
+      await state.element.waitFor({ timeout: timeout });
+      found = true;
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (e) {
+      console.error("Error on waitForElement", e);
+      // await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+    return found;
   }
   async setCheck(selectors, checked = true, _params?: Params, options = {}, world = null) {
     const state = {
@@ -1092,6 +1159,7 @@ class StableBrowser {
       world,
       type: checked ? Types.CHECK : Types.UNCHECK,
       text: checked ? `Check element` : `Uncheck element`,
+      _text: checked ? `Check ${selectors.element_name}` : `Uncheck ${selectors.element_name}`,
       operation: "setCheck",
       log: "***** check " + selectors.element_name + " *****\n",
     };
@@ -1140,24 +1208,14 @@ class StableBrowser {
       world,
       type: Types.HOVER,
       text: `Hover element`,
+      _text: `Hover on ${selectors.element_name}`,
       operation: "hover",
       log: "***** hover " + selectors.element_name + " *****\n",
     };
 
     try {
       await _preCommand(state, this);
-      try {
-        await state.element.hover();
-        // await _screenshot(state, this);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (e) {
-        //await this.closeUnexpectedPopups();
-        state.info.log += "hover failed, will try again" + "\n";
-        state.element = await this._locate(selectors, state.info, _params);
-        await state.element.hover({ timeout: 10000 });
-        // await _screenshot(state, this);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+      await performAction("hover", state.element, options, this, state, _params);
       await _screenshot(state, this);
       await this.waitForPageLoad();
       return state.info;
@@ -1180,6 +1238,7 @@ class StableBrowser {
       value: values.toString(),
       type: Types.SELECT,
       text: `Select option: ${values}`,
+      _text: `Select option: ${values} on ${selectors.element_name}`,
       operation: "selectOption",
       log: "***** select option " + selectors.element_name + " *****\n",
     };
@@ -1201,6 +1260,7 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+
   async type(_value, _params = null, options = {}, world = null) {
     const state = {
       value: _value,
@@ -1212,6 +1272,7 @@ class StableBrowser {
       highlight: false,
       type: Types.TYPE_PRESS,
       text: `Type value: ${_value}`,
+      _text: `Type value: ${_value}`,
       operation: "type",
       log: "",
     };
@@ -1287,6 +1348,7 @@ class StableBrowser {
       world,
       type: Types.SET_DATE_TIME,
       text: `Set date time value: ${value}`,
+      _text: `Set date time value: ${value} on ${selectors.element_name}`,
       operation: "setDateTime",
       log: "***** set date time value " + selectors.element_name + " *****\n",
       throwError: false,
@@ -1294,7 +1356,7 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       try {
-        await state.element.click();
+        await performAction("click", state.element, options, this, state, _params);
         await new Promise((resolve) => setTimeout(resolve, 500));
         if (format) {
           state.value = dayjs(state.value).format(format);
@@ -1354,6 +1416,7 @@ class StableBrowser {
       world,
       type: Types.FILL,
       text: `Click type input with value: ${_value}`,
+      _text: "Fill " + selectors.element_name + " with value " + maskValue(_value),
       operation: "clickType",
       log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
@@ -1376,11 +1439,11 @@ class StableBrowser {
         }
       }
       if (options === null || options === undefined || options.press) {
-        try {
-          await state.element.click({ timeout: 5000 });
-        } catch (e) {
-          await state.element.dispatchEvent("click");
+        if (!options) {
+          options = {};
         }
+        options.timeout = 5000;
+        await performAction("click", state.element, options, this, state, _params);
       } else {
         try {
           await state.element.focus();
@@ -1541,6 +1604,7 @@ class StableBrowser {
       highlight: false,
       type: Types.VERIFY_ELEMENT_CONTAINS_TEXT,
       text: `Verify element contains pattern: ${pattern}`,
+      _text: "Verify element " + selectors.element_name + " contains pattern " + pattern,
       operation: "containsPattern",
       log: "***** verify element " + selectors.element_name + " contains pattern " + pattern + " *****\n",
     };
@@ -1966,6 +2030,7 @@ class StableBrowser {
       world,
       type: Types.EXTRACT,
       text: `Extract attribute from element`,
+      _text: `Extract attribute ${attribute} from ${selectors.element_name}`,
       operation: "extractAttribute",
       log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
@@ -2324,6 +2389,7 @@ class StableBrowser {
       _reportToWorld(world, {
         type: Types.VERIFY_PAGE_PATH,
         text: "Verify page path",
+        _text: "Verify the page path contains " + pathPart,
         screenshotId,
         result: error
           ? {
@@ -2341,11 +2407,10 @@ class StableBrowser {
       });
     }
   }
-  async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state) {
+  async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state, partial = true, ignoreCase = false) {
     const frames = this.page.frames();
     let results = [];
-
-    let ignoreCase = false;
+    // let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
@@ -2354,7 +2419,7 @@ class StableBrowser {
             dateAlternatives.dates[j],
             "*:not(script, style, head)",
             false,
-            true,
+            partial,
             ignoreCase,
             {}
           );
@@ -2368,7 +2433,7 @@ class StableBrowser {
             numberAlternatives.numbers[j],
             "*:not(script, style, head)",
             false,
-            true,
+            partial,
             ignoreCase,
             {}
           );
@@ -2381,7 +2446,7 @@ class StableBrowser {
           text,
           "*:not(script, style, head)",
           false,
-          true,
+          partial,
           ignoreCase,
           {}
         );
@@ -2404,9 +2469,15 @@ class StableBrowser {
       highlight: false,
       type: Types.VERIFY_PAGE_CONTAINS_TEXT,
       text: `Verify text exists in page`,
+      _text: `Verify the text '${text}' exists in page`,
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
     };
+
+
+    if (testForRegex(text)) {
+      text = text.replace(/\\"/g, '"');
+    }
 
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -2493,9 +2564,15 @@ class StableBrowser {
       highlight: false,
       type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
       text: `Verify text does not exist in page`,
+      _text: `Verify the text '${text}' does not exist in page`,
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
     };
+
+
+    if (testForRegex(text)) {
+      text = text.replace(/\\"/g, '"');
+    }
 
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -2553,6 +2630,7 @@ class StableBrowser {
       highlight: false,
       type: Types.VERIFY_TEXT_WITH_RELATION,
       text: `Verify text with relation to another text`,
+      _text: "Search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found",
       operation: "verify_text_with_relation",
       log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
     };
@@ -2582,10 +2660,11 @@ class StableBrowser {
       while (true) {
         try {
           resultWithElementsFound = await this.findTextInAllFrames(
-            dateAlternatives,
-            numberAlternatives,
+            findDateAlternatives(textAnchor),
+            findNumberAlternatives(textAnchor),
             textAnchor,
-            state
+            state,
+            false
           );
         } catch (error) {
           // ignore
@@ -2613,7 +2692,15 @@ class StableBrowser {
             const count = await frame.locator(css).count();
             for (let j = 0; j < count; j++) {
               const continer = await frame.locator(css).nth(j);
-              const result = await this._locateElementByText(continer, textToVerify, "*", false, true, true, {});
+              const result = await this._locateElementByText(
+                continer,
+                textToVerify,
+                "*:not(script, style, head)",
+                false,
+                false,
+                true,
+                {}
+              );
               if (result.elementCount > 0) {
                 const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
                 await this._highlightElements(frame, dataAttribute);
@@ -2653,6 +2740,49 @@ class StableBrowser {
     } finally {
       _commandFinally(state, this);
     }
+  }
+  async findRelatedTextInAllFrames(
+    textAnchor: string,
+    climb: number,
+    textToVerify: string,
+    params?: Params = {},
+    options = {},
+    world: any = null
+  ) {
+    const frames = this.page.frames();
+    let results = [];
+    let ignoreCase = false;
+    for (let i = 0; i < frames.length; i++) {
+      const result = await this._locateElementByText(
+        frames[i],
+        textAnchor,
+        "*:not(script, style, head)",
+        false,
+        true,
+        ignoreCase,
+        {}
+      );
+      result.frame = frames[i];
+
+      const climbArray = [];
+      for (let i = 0; i < climb; i++) {
+        climbArray.push("..");
+      }
+      let climbXpath = "xpath=" + climbArray.join("/");
+
+      const newLocator = `[data-blinq-id-${result.randomToken}] ${climb > 0 ? ">> " + climbXpath : ""} >> internal:text=${testForRegex(textToVerify) ? textToVerify : unEscapeString(textToVerify)}`;
+
+      const count = await frames[i].locator(newLocator).count();
+      if (count > 0) {
+        result.elementCount = count;
+        result.locator = newLocator;
+        results.push(result);
+      }
+    }
+    // state.info.results = results;
+    const resultWithElementsFound = results.filter((result) => result.elementCount > 0);
+
+    return resultWithElementsFound;
   }
 
   async visualVerification(text, options = {}, world = null) {
@@ -2713,6 +2843,7 @@ class StableBrowser {
       _reportToWorld(world, {
         type: Types.VERIFY_VISUAL,
         text: "Visual verification",
+        _text: "Visual verification of " + text,
         screenshotId,
         result: error
           ? {
@@ -3073,6 +3204,7 @@ class StableBrowser {
       highlight: false,
       type: Types.CLOSE_PAGE,
       text: `Close page`,
+      _text: `Close the page`,
       operation: "closePage",
       log: "***** close page *****\n",
       throwError: false,
@@ -3088,8 +3220,96 @@ class StableBrowser {
       _commandFinally(state, this);
     }
   }
+  async tableCellOperation(headerText: string, rowText: string, options: any, _params: Params, world = null) {
+    let operation = null;
+    if (!options || !options.operation) {
+      throw new Error("operation is not defined");
+    }
+    operation = options.operation;
+    // validate operation is one of the supported operations
+    if (operation != "click" && operation != "hover+click") {
+      throw new Error("operation is not supported");
+    }
+    const state = {
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.TABLE_OPERATION,
+      text: `Table operation`,
+      _text: `Table ${operation} operation`,
+      operation: operation,
+      log: "***** Table operation *****\n",
+    };
+    const timeout = this._getFindElementTimeout(options);
+    try {
+      await _preCommand(state, this);
+      const start = Date.now();
+      let cellArea = null;
+      while (true) {
+        try {
+          cellArea = await _findCellArea(headerText, rowText, this, state);
+          if (cellArea) {
+            break;
+          }
+        } catch (e) {
+          // ignore
+        }
+        if (Date.now() - start > timeout) {
+          throw new Error(`Cell not found in table`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      switch (operation) {
+        case "click":
+          if (!options.css) {
+            // will click in the center of the cell
+            let xOffset = 0;
+            let yOffset = 0;
+            if (options.xOffset) {
+              xOffset = options.xOffset;
+            }
+            if (options.yOffset) {
+              yOffset = options.yOffset;
+            }
+            await this.page.mouse.click(
+              cellArea.x + cellArea.width / 2 + xOffset,
+              cellArea.y + cellArea.height / 2 + yOffset
+            );
+          } else {
+            const results = await findElementsInArea(options.css, cellArea, this, options);
+            if (results.length === 0) {
+              throw new Error(`Element not found in cell area`);
+            }
+            state.element = results[0];
+            await performAction("click", state.element, options, this, state, _params);
+          }
+          break;
+        case "hover+click":
+          if (!options.css) {
+            throw new Error("css is not defined");
+          }
+          const results = await findElementsInArea(options.css, cellArea, this, options);
+          if (results.length === 0) {
+            throw new Error(`Element not found in cell area`);
+          }
+          state.element = results[0];
+          await performAction("hover+click", state.element, options, this, state, _params);
+          break;
+        default:
+          throw new Error("operation is not supported");
+      }
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      _commandFinally(state, this);
+    }
+  }
+
   saveTestDataAsGlobal(options: any, world: any) {
-    const dataFile = this._getDataFile(world);
+    const dataFile = _getDataFile(world, this.context, this);
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
     this.logger.info("Save the scenario test data as global for the following scenarios.");
   }
@@ -3117,6 +3337,7 @@ class StableBrowser {
       _reportToWorld(world, {
         type: Types.SET_VIEWPORT,
         text: "set viewport size to " + width + "x" + hight,
+        _text: "Set the viewport size to " + width + "x" + hight,
         screenshotId,
         result: error
           ? {
@@ -3200,6 +3421,9 @@ class StableBrowser {
     } else {
       this.stepName = "step " + this.stepIndex;
     }
+    if (this.context) {
+      this.context.examplesRow = extractStepExampleParameters(step);
+    }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
@@ -3212,6 +3436,41 @@ class StableBrowser {
         this.saveTestDataAsGlobal({}, world);
       }
     }
+    if (this.initSnapshotTaken === false) {
+      this.initSnapshotTaken = true;
+      if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+        const snapshot = await this.getAriaSnapshot();
+        if (snapshot) {
+          await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
+        }
+      }
+    }
+  }
+  async getAriaSnapshot() {
+    try {
+      // find the page url
+      const url = await this.page.url();
+
+      // extract the path from the url
+      const path = new URL(url).pathname;
+      // get the page title
+      const title = await this.page.title();
+      // go over other frams
+      const frames = this.page.frames();
+      const snapshots = [];
+      const content = [`- path: ${path}`, `- title: ${title}`];
+      const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
+      for (let i = 0; i < frames.length; i++) {
+        content.push(`- frame: ${i}`);
+        const frame = frames[i];
+        const snapshot = await frame.locator("body").ariaSnapshot({ timeout });
+        content.push(snapshot);
+      }
+      return content.join("\n");
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
   }
   async afterStep(world, step) {
     this.stepName = null;
@@ -3220,6 +3479,16 @@ class StableBrowser {
         await this.context.browserObject.context.tracing.stopChunk({
           path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
         });
+      }
+    }
+    if (this.context) {
+      this.context.examplesRow = null;
+    }
+    if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+      const snapshot = await this.getAriaSnapshot();
+      if (snapshot) {
+        const obj = {};
+        await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
   }

@@ -42,6 +42,23 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
   const bytes = CryptoJS.AES.decrypt(encryptedText, key);
   return bytes.toString(CryptoJS.enc.Utf8);
 }
+
+export function testForRegex(text: string): boolean {
+  const regexEndPattern = /\/([gimuy]*)$/;
+  if (text.startsWith("/")) {
+    const match = regexEndPattern.test(text);
+    if (match) {
+      try {
+        const regex = new RegExp(text.substring(1, text.lastIndexOf("/")), text.match(regexEndPattern)![1]);
+        return true;
+      } catch {
+        // not regex
+      }
+    }
+  }
+  return false;
+}
+
 function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean, ignoreCase: boolean) {
   let query = "internal:text=/";
   let queryEnd = "/";
@@ -52,6 +69,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
     if (match) {
       try {
         const regex = new RegExp(text.substring(1, text.lastIndexOf("/")), text.match(regexEndPattern)![1]);
+        text = text.replace(/"/g, '\\"');
         return "internal:text=" + text;
       } catch {
         // not regex
@@ -149,7 +167,6 @@ async function replaceWithLocalTestData(
   if (!value) {
     return value;
   }
-
   // find all the accurance of {{(.*?)}} and replace with the value
   let regex = /{{(.*?)}}/g;
   let matches = value.match(regex);
@@ -197,7 +214,23 @@ async function replaceWithLocalTestData(
   if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
     return await decrypt(value, null, totpWait);
   }
+  // check if the value is ${}
+  if (value.startsWith("${") && value.endsWith("}")) {
+    value = evaluateString(value, context.examplesRow);
+  }
+
   return value;
+}
+function evaluateString(template: string, parameters: any) {
+  if (!parameters) {
+    parameters = {};
+  }
+  try {
+    return new Function(...Object.keys(parameters), `return \`${template}\`;`)(...Object.values(parameters));
+  } catch (e) {
+    console.error(e);
+    return template;
+  }
 }
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
@@ -307,6 +340,123 @@ function scanAndManipulate(currentObj: any, _params: Params) {
     }
   }
 }
+
+function extractStepExampleParameters(step: any) {
+  if (
+    !step ||
+    !step.gherkinDocument ||
+    !step.pickle ||
+    !step.pickle.astNodeIds ||
+    !(step.pickle.astNodeIds.length > 1) ||
+    !step.gherkinDocument.feature ||
+    !step.gherkinDocument.feature.children
+  ) {
+    return {};
+  }
+  try {
+    const scenarioId = step.pickle.astNodeIds[0];
+    const exampleId = step.pickle.astNodeIds[1];
+    // find the scenario in the gherkin document
+    const scenario = step.gherkinDocument.feature.children.find(
+      (child: any) => child.scenario.id === scenarioId
+    ).scenario;
+    if (!scenario || !scenario.examples || !scenario.examples[0].tableBody) {
+      return {};
+    }
+    // find the table body in the examples
+    const row = scenario.examples[0].tableBody.find((r: any) => r.id === exampleId);
+    if (!row) {
+      return {};
+    }
+    // extract the cells values (row.cells.value) into an array
+    const values = row.cells.map((cell: any) => cell.value);
+    // extract the table headers keys (scenario.examples.tableHeader.cells.value) into an array
+    const keys = scenario.examples[0].tableHeader.cells.map((cell: any) => cell.value);
+    // create a dictionary of the keys and values
+    const params: any = {};
+    for (let i = 0; i < keys.length; i++) {
+      params[keys[i]] = values[i];
+    }
+    return params;
+  } catch (e) {
+    console.error(e);
+    return {};
+  }
+}
+export async function performAction(action: string, element: any, options: any, web: any, state: any, _params: Params) {
+  let usedOptions;
+  if (!options) {
+    options = {};
+  }
+  if (!element) {
+    throw new Error("Element not found");
+  }
+  switch (action) {
+    case "click":
+      // copy any of the following options to usedOptions: button, clickCount, delay, modifiers, force, position, trial
+      usedOptions = ["button", "clickCount", "delay", "modifiers", "force", "position", "trial", "timeout"].reduce(
+        (acc: any, key) => {
+          if (options[key]) {
+            acc[key] = options[key];
+          }
+          return acc;
+        },
+        {}
+      );
+      if (!usedOptions.timeout) {
+        usedOptions.timeout = 10000;
+        if (usedOptions.position) {
+          usedOptions.timeout = 1000;
+        }
+      }
+      try {
+        await element.click(usedOptions);
+      } catch (e) {
+        if (usedOptions.position) {
+          // find the element bounding box
+          const rect = await element.boundingBox();
+          // calculate the x and y position
+          const x = rect.x + rect.width / 2 + (usedOptions.position.x || 0);
+          const y = rect.y + rect.height / 2 + (usedOptions.position.y || 0);
+          // click on the x and y position
+          await web.page.mouse.click(x, y);
+        } else {
+          if (state && state.selectors) {
+            state.element = await web._locate(state.selectors, state.info, _params);
+            element = state.element;
+          }
+          await element.dispatchEvent("click");
+        }
+      }
+      break;
+    case "hover":
+      usedOptions = ["position", "trial", "timeout"].reduce((acc: any, key) => {
+        acc[key] = options[key];
+        return acc;
+      }, {});
+      try {
+        await element.hover(usedOptions);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        if (state && state.selectors) {
+          state.info.log += "hover failed, will try again" + "\n";
+          state.element = await web._locate(state.selectors, state.info, _params);
+          element = state.element;
+        }
+        usedOptions.timeout = 10000;
+        await element.hover(usedOptions);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      break;
+    case "hover+click":
+      await performAction("hover", element, options, web, state, _params);
+      await performAction("click", element, options, web, state, _params);
+      break;
+    default:
+      throw new Error(`Action ${action} not supported`);
+  }
+}
+
 const KEYBOARD_EVENTS = [
   "ALT",
   "AltGraph",
@@ -486,4 +636,5 @@ export {
   _getServerUrl,
   _convertToRegexQuery,
   _getDataFile,
+  extractStepExampleParameters
 };
