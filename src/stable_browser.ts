@@ -1438,7 +1438,7 @@ class StableBrowser {
           this.logger.info("unable to clear input value");
         }
       }
-      if (options === null || options === undefined || options.press) {
+      if (options && options.press) {
         if (!options) {
           options = {};
         }
