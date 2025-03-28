@@ -1420,6 +1420,9 @@ class StableBrowser {
       operation: "clickType",
       log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
+    if (!options) {
+      options = {};
+    }
 
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
@@ -1428,7 +1431,7 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.value = _value;
-      if (options === null || options === undefined || !options.press) {
+      if (!options.press) {
         try {
           let currentValue = await state.element.inputValue();
           if (currentValue) {
@@ -1438,10 +1441,7 @@ class StableBrowser {
           this.logger.info("unable to clear input value");
         }
       }
-      if (options === null || options === undefined || options.press) {
-        if (!options) {
-          options = {};
-        }
+      if (options.press) {
         options.timeout = 5000;
         await performAction("click", state.element, options, this, state, _params);
       } else {
