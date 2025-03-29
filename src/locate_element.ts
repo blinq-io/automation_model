@@ -25,9 +25,9 @@ export async function locate_element(
 
   // // Read the content of axe.min.js synchronously
   // const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
-  // await Promise.all(context.stable.page.frames().map((frame: any) => frame.evaluate(axeMinJsContent)));
+  // await Promise.all(context.web.page.frames().map((frame: any) => frame.evaluate(axeMinJsContent)));
 
-  const frames = await context.stable.page.frames();
+  const frames = await context.web.page.frames();
   // for each frame create a tree of the accessibility nodes
   const frameDump: any[] = [];
   let iframeIndex = 0;

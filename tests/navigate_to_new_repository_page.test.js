@@ -31,13 +31,13 @@ const elements = {
 const context = await initContext(path, true, false);
 const loginAndNavigate = async function () {
   let info = null;
-  await context.stable.fill(elements.textbox_username, "username");
-  await context.stable.fill(elements.textbox_password, "password");
-  info = await context.stable.click(elements.button_signin);
-  await context.stable.waitForPageLoad();
+  await context.web.fill(elements.textbox_username, "username");
+  await context.web.fill(elements.textbox_password, "password");
+  info = await context.web.click(elements.button_signin);
+  await context.web.waitForPageLoad();
 
-  await context.stable.goto("https://github.com/new");
-  await context.stable.waitForPageLoad();
+  await context.web.goto("https://github.com/new");
+  await context.web.waitForPageLoad();
 };
 await loginAndNavigate();
 

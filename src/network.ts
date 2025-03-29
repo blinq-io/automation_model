@@ -1,11 +1,11 @@
 import path from "path";
 import fs from "fs";
-function _getNetworkFile(world: any = null, stable: any = null, context: any = null) {
+function _getNetworkFile(world: any = null, web: any = null, context: any = null) {
   let networkFile = null;
   if (world && world.reportFolder) {
     networkFile = path.join(world.reportFolder, "network.json");
-  } else if (stable.reportFolder) {
-    networkFile = path.join(stable.reportFolder, "network.json");
+  } else if (web.reportFolder) {
+    networkFile = path.join(web.reportFolder, "network.json");
   } else if (context && context.reportFolder) {
     networkFile = path.join(context.reportFolder, "network.json");
   } else {
@@ -38,8 +38,8 @@ function registerDownloadEvent(page: any, world: any, context: any) {
     });
   }
 }
-function registerNetworkEvents(world: any, stable: any, context: any, page: any) {
-  const networkFile = _getNetworkFile(world, stable, context);
+function registerNetworkEvents(world: any, web: any, context: any, page: any) {
+  const networkFile = _getNetworkFile(world, web, context);
   function saveNetworkData() {
     if (context && context.networkData) {
       fs.writeFileSync(networkFile, JSON.stringify(context.networkData, null, 2), "utf8");

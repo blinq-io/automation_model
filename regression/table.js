@@ -14,8 +14,8 @@ describe("Actions Tests", function () {
     context = await initContext(null, false, false, this);
 
     //context = await initContext("/", true, false);
-    await context.stable.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table2.html");
-    await context.stable.waitForPageLoad();
+    await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table2.html");
+    await context.web.waitForPageLoad();
   });
   after(async function () {
     await closeContext();
@@ -30,9 +30,9 @@ describe("Actions Tests", function () {
     let info = {};
     info.log = "";
     info.failCause = {};
-    const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
+    const element = await context.web._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
-    await table.initFromElement(context.stable.page, element);
+    await table.initFromElement(context.web.page, element);
     let result = table.analyze({
       type: "FIND_ROW",
       cells: ["azul", "bleu", "gorm", "glas"],
@@ -46,9 +46,9 @@ describe("Actions Tests", function () {
     let info = {};
     info.log = "";
     info.failCause = {};
-    const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
+    const element = await context.web._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
-    await table.initFromElement(context.stable.page, element);
+    await table.initFromElement(context.web.page, element);
     let result = table.analyze({
       type: "FIND_ROW",
       cells: ["Black", /negr.*/],
@@ -62,9 +62,9 @@ describe("Actions Tests", function () {
     let info = {};
     info.log = "";
     info.failCause = {};
-    const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
+    const element = await context.web._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
-    await table.initFromElement(context.stable.page, element);
+    await table.initFromElement(context.web.page, element);
     let result = table.analyze({
       type: "VALIDATE_HEADER",
       cells: ["French", "Irish", "Welsh"],
@@ -76,9 +76,9 @@ describe("Actions Tests", function () {
     let info = {};
     info.log = "";
     info.failCause = {};
-    const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
+    const element = await context.web._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
-    await table.initFromElement(context.stable.page, element);
+    await table.initFromElement(context.web.page, element);
     let result = table.analyze({
       type: "VALIDATE_HEADER",
       cells: ["French", "Irish", "Welsh"],
@@ -90,9 +90,9 @@ describe("Actions Tests", function () {
     let info = {};
     info.log = "";
     info.failCause = {};
-    const element = await context.stable._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
+    const element = await context.web._locate({ locators: [{ css: "#table2" }] }, info, null, 10000);
     const table = new Table();
-    await table.initFromElement(context.stable.page, element);
+    await table.initFromElement(context.web.page, element);
     let result = table.analyze({
       type: "VALIDATE_CELL",
       row_anchor_value: "Blue",

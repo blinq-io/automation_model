@@ -19,7 +19,7 @@ const getContext = async function (
   logger?: null,
   appName?: string | null,
   createStable = true,
-  stable: StableBrowser | null = null,
+  web: StableBrowser | null = null,
   moveToRight = -1,
   reportFolder: string | null = null,
   initScripts: InitScripts | null = null,
@@ -76,15 +76,15 @@ const getContext = async function (
   let downloadsPath = "downloads";
   if (reportFolder) {
     downloadsPath = path.join(reportFolder, "downloads");
-  } else if (stable && stable.context && stable.context.reportFolder) {
-    reportFolder = stable.context.reportFolder;
-    downloadsPath = path.join(stable.context.reportFolder, "downloads");
+  } else if (web && web.context && web.context.reportFolder) {
+    reportFolder = web.context.reportFolder;
+    downloadsPath = path.join(web.context.reportFolder, "downloads");
   }
   if (world) {
     world.downloadsPath = downloadsPath;
   }
-  if (stable && stable.context) {
-    stable.context.downloadsPath = downloadsPath;
+  if (web && web.context) {
+    web.context.downloadsPath = downloadsPath;
   }
   // check if data.json exists in the report folder
   // and if it contain storageState field, if so, use it
@@ -131,8 +131,10 @@ const getContext = async function (
 
   if (createStable) {
     context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
+    context.web = context.stable;
   } else {
-    context.stable = stable;
+    context.stable = web;
+    context.web = web;
   }
   context.api = new Api(logger);
   if (moveToRight > 0 && context.browserName === "chromium") {
@@ -164,9 +166,9 @@ const getContext = async function (
   // await _initCookies(context);
   return context;
 };
-const refreshBrowser = async function (stable: any, sessionPath: string, world: any) {
-  await stable.context.browserObject.close();
-  stable.context.pages = [];
+const refreshBrowser = async function (web: any, sessionPath: string, world: any) {
+  await web.context.browserObject.close();
+  web.context.pages = [];
 
   let storageState = null;
   if (sessionPath) {
@@ -177,31 +179,31 @@ const refreshBrowser = async function (stable: any, sessionPath: string, world: 
     storageState = JSON.parse(data).storageState;
   }
   const newContext = await getContext(
-    stable.context.environment,
-    stable.context.headless,
+    web.context.environment,
+    web.context.headless,
     world,
     null,
-    stable.context.appName,
+    web.context.appName,
     false,
-    stable,
+    web,
     -1,
-    stable.context.reportFolder,
-    stable.context.initScripts,
+    web.context.reportFolder,
+    web.context.initScripts,
     storageState
   );
   // clone all the new context properties to the old context
-  stable.context.browser = newContext.browser;
-  stable.context.browserObject = newContext.browserObject;
-  stable.context.playContext = newContext.playContext;
-  stable.context.page = newContext.page;
-  stable.page = newContext.page;
-  stable.context.pages.push(newContext.page);
-  stable.context.headless = newContext.headless;
-  stable.context.environment = newContext.environment;
-  stable.context.browserName = newContext.browserName;
-  stable.context.reportFolder = newContext.reportFolder;
-  stable.context.initScripts = newContext.initScripts;
-  await stable.goto(stable.context.environment.baseUrl);
+  web.context.browser = newContext.browser;
+  web.context.browserObject = newContext.browserObject;
+  web.context.playContext = newContext.playContext;
+  web.context.page = newContext.page;
+  web.page = newContext.page;
+  web.context.pages.push(newContext.page);
+  web.context.headless = newContext.headless;
+  web.context.environment = newContext.environment;
+  web.context.browserName = newContext.browserName;
+  web.context.reportFolder = newContext.reportFolder;
+  web.context.initScripts = newContext.initScripts;
+  await web.goto(web.context.environment.baseUrl);
 };
 
 const closeBrowser = async function (browser?: Browser | PlaywrightBrowser) {

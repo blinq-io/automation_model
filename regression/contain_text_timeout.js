@@ -21,7 +21,7 @@ describe("contain text timeout", function () {
     context = await initContext("/", true, false);
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/time/index.html";
     console.log(`Navigating to URL ${url}`);
-    await context.stable.goto(url);
+    await context.web.goto(url);
   });
   afterEach(async function () {
     // console.log("Closing browser");
@@ -34,7 +34,7 @@ describe("contain text timeout", function () {
     const _params = { _delayed_message_text };
     // Verify The message will appear after 35 seconds. Text contains text "_delayed_message_text"
     try {
-      await context.stable.containsText(
+      await context.web.containsText(
         elements["null_the_message_will_appear_after_35_se"],
         _delayed_message_text,
         null,
@@ -51,7 +51,7 @@ describe("contain text timeout", function () {
     const _delayed_message_text = "Hello! This is your delayed message.";
     const _params = { _delayed_message_text };
     // Verify The message will appear after 35 seconds. Text contains text "_delayed_message_text"
-    await context.stable.containsText(
+    await context.web.containsText(
       elements["null_the_message_will_appear_after_35_se"],
       _delayed_message_text,
       null,

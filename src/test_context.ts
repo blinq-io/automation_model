@@ -6,6 +6,7 @@ import { InitScripts } from "./generation_scripts.js";
 
 class TestContext {
   stable: StableBrowser | null = null;
+  web: StableBrowser | null = null;
   browser: PlaywrightBrowser | null = null;
   playContext: BrowserContext | null = null;
   page: Page | null = null;
