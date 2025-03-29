@@ -40,8 +40,8 @@ describe("find date api", function () {
   });
   beforeEach(async function () {
     context = await getContext(null, false, null);
-    await context.stable.goto("https://shop-blinq.io");
-    await context.stable.waitForPageLoad();
+    await context.web.goto("https://shop-blinq.io");
+    await context.web.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
@@ -53,7 +53,7 @@ describe("find date api", function () {
   it("check conversion", async function () {
     let info = {};
     info.log = "";
-    const element = await context.stable.clickType(
+    const element = await context.web.clickType(
       locElements["textbox_username"],
       "{{date:tomorow>>mm/dd/yyyy}}",
       false,
@@ -61,7 +61,7 @@ describe("find date api", function () {
       null,
       this
     );
-    info = await context.stable.extractAttribute(locElements["textbox_username"], "value", "result");
+    info = await context.web.extractAttribute(locElements["textbox_username"], "value", "result");
     expect(info.value).to.be.equals("02/13/2025");
   });
 });

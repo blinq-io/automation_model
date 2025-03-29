@@ -30,7 +30,7 @@ describe("wait for element", function () {
   });
   beforeEach(async function () {
     context = await initContext(null, false, false, this);
-    await context.stable.goto("https://shop-blinq.io");
+    await context.web.goto("https://shop-blinq.io");
   });
   afterEach(async function () {
     await closeContext();
@@ -42,11 +42,11 @@ describe("wait for element", function () {
       locators: [{ text: "login", climb: 1, css: "button" }],
       element_name: "login button",
     };
-    // await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    // await context2.stable.clickType(elements["textbox_password"], "let_me_in", false);
-    const found = await context.stable.waitForElement(element, null, { timeout: 2000 }, this);
+    // await context.web.clickType(elements["textbox_username"], "blinq_user", false);
+    // await context2.web.clickType(elements["textbox_password"], "let_me_in", false);
+    const found = await context.web.waitForElement(element, null, { timeout: 2000 }, this);
     expect(found).to.be.true;
-    const found2 = await context.stable.waitForElement(elements.textbox_username, null, { timeout: 2000 }, this);
+    const found2 = await context.web.waitForElement(elements.textbox_username, null, { timeout: 2000 }, this);
     expect(found2).to.be.false;
   });
 });

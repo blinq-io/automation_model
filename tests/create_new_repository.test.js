@@ -1,7 +1,6 @@
 import { initContext } from "../build/auto_page.js";
 import { closeBrowser } from "../build/init_browser.js";
 
-
 const path = "https://github.com/login";
 const elements = {
   textbox_username: [
@@ -48,14 +47,14 @@ const elements = {
 const context = await initContext(path, true, false);
 const loginAndCreateRepo = async function () {
   let info = null;
-  await context.stable.fill(elements.textbox_username, "username");
-  await context.stable.fill(elements.textbox_password, "password");
-  info = await context.stable.click(elements.button_signin);
-  await context.stable.waitForPageLoad();
+  await context.web.fill(elements.textbox_username, "username");
+  await context.web.fill(elements.textbox_password, "password");
+  info = await context.web.click(elements.button_signin);
+  await context.web.waitForPageLoad();
 
-  await context.stable.fill(elements.textbox_repositoryname, "new-repo");
-  info = await context.stable.click(elements.button_create);
-  await context.stable.waitForPageLoad();
+  await context.web.fill(elements.textbox_repositoryname, "new-repo");
+  info = await context.web.click(elements.button_create);
+  await context.web.waitForPageLoad();
 };
 await loginAndCreateRepo();
 

@@ -33,7 +33,7 @@ describe("snapshot", function () {
   });
   beforeEach(async function () {
     context = await getContext(null, false, null, null, null, true, null, -1, null);
-    await context.stable.goto("https://shop-blinq.io");
+    await context.web.goto("https://shop-blinq.io");
   });
   afterEach(async function () {
     await closeContext();
@@ -50,12 +50,12 @@ describe("snapshot", function () {
     // const element = {
     //   locators: [{ text: "login", climb: 1, css: "button" }],
     // };
-    // await context.stable.beforeStep(world);
-    // await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    // await context.stable.clickType(elements["textbox_password"], "let_me_in", false);
+    // await context.web.beforeStep(world);
+    // await context.web.clickType(elements["textbox_username"], "blinq_user", false);
+    // await context.web.clickType(elements["textbox_password"], "let_me_in", false);
     // // check that the document.test variable is set
-    // await context.stable.click(element);
-    // await context.stable.afterStep(world, null);
+    // await context.web.click(element);
+    // await context.web.afterStep(world, null);
     // console.log(world.attachs);
     // expect(world.attachs).to.have.lengthOf(2, "Expected exactly 2 attachments");
     // const [first, second] = world.attachs;
