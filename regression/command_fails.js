@@ -15,7 +15,7 @@ describe("Actions Tests", function () {
     context = await initContext("/", true, false);
     //let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
-    //await context.stable.goto(url);
+    //await context.web.goto(url);
   });
   afterEach(async function () {
     await closeContext();
@@ -63,7 +63,7 @@ describe("Actions Tests", function () {
     console.log(`click "${key}" element using locator "${locElements[key].locators[0].css}"`);
     let ex = null;
     try {
-      info = await context.stable.click(
+      info = await context.web.click(
         locElements[key],
         null,
         { screenshotPath: "./temp/1.png", screenshot: true, timeout: 1000 },
@@ -88,7 +88,7 @@ describe("Actions Tests", function () {
     let key = "button_login_no_locators";
     let ex = null;
     try {
-      info = await context.stable.click(
+      info = await context.web.click(
         locElements[key],
         null,
         { screenshotPath: "./temp/1.png", screenshot: true, timeout: 1000 },
@@ -111,7 +111,7 @@ describe("Actions Tests", function () {
   //   let info = null;
   //   let key = "button_login";
   //   console.log(`hover "${key}" element using locator "${locElements[key].locators[0].css}"`);
-  //   info = await context.stable.hover(
+  //   info = await context.web.hover(
   //     locElements[key],
   //     null,
   //     { screenshotPath: "./temp/2.png", screenshot: true },
@@ -125,7 +125,7 @@ describe("Actions Tests", function () {
     console.log(`clickType "${key}" element using locator "${locElements[key].locators[0].css}"`);
     let ex = null;
     try {
-      info = await context.stable.clickType(
+      info = await context.web.clickType(
         locElements[key],
         "hi",
         false,
@@ -148,7 +148,7 @@ describe("Actions Tests", function () {
   //   let info = null;
   //   let key = "textbox_username";
   //   console.log(`fill "${key}" element using locator "${locElements[key].locators[0].css}"`);
-  //   info = await context.stable.fill(
+  //   info = await context.web.fill(
   //     locElements[key],
   //     "hi",
   //     false,
@@ -162,7 +162,7 @@ describe("Actions Tests", function () {
   //   let info = null;
   //   let key = "section2";
   //   console.log(`containsPattern "${key}" element using locator "${locElements[key].locators[0].css}"`);
-  //   info = await context.stable.containsPattern(
+  //   info = await context.web.containsPattern(
   //     locElements[key],
   //     "{text}",
   //     "Accepted usernames are:",

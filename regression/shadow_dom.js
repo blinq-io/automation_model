@@ -15,8 +15,8 @@
 //   });
 //   beforeEach(async function () {
 //     context = await getContext(null, false, null, null, null, true, null, -1, null);
-//     await context.stable.goto("https://books-pwakit.appspot.com/explore?q=catch%2022");
-//     await context.stable.waitForPageLoad();
+//     await context.web.goto("https://books-pwakit.appspot.com/explore?q=catch%2022");
+//     await context.web.waitForPageLoad();
 //   });
 //   afterEach(async function () {
 //     await closeContext();
@@ -25,11 +25,11 @@
 //   it("verify text exist in page", async function () {
 //     let info = {};
 //     info.log = "";
-//     await context.stable.verifyTextExistInPage("Joseph Heller's Catch-22");
+//     await context.web.verifyTextExistInPage("Joseph Heller's Catch-22");
 //   });
 //   it("verify text exist in page regex", async function () {
 //     let info = {};
 //     info.log = "";
-//     await context.stable.verifyTextExistInPage("Joseph Heller's /Catch-\\d+/");
+//     await context.web.verifyTextExistInPage("Joseph Heller's /Catch-\\d+/");
 //   });
 // });

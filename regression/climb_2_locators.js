@@ -33,7 +33,7 @@ describe("climb", function () {
   });
   beforeEach(async function () {
     context = await getContext(null, false, null, null, null, true, null, -1, null);
-    await context.stable.goto("https://shop-blinq.io");
+    await context.web.goto("https://shop-blinq.io");
   });
   afterEach(async function () {
     await closeContext();
@@ -45,12 +45,12 @@ describe("climb", function () {
     const element = {
       locators: [{ text: "login", climb: 1, css: "button" }],
     };
-    await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    await context.stable.clickType(elements["textbox_password"], "123456", false);
+    await context.web.clickType(elements["textbox_username"], "blinq_user", false);
+    await context.web.clickType(elements["textbox_password"], "123456", false);
 
     // check that the document.test variable is set
-    await context.stable.click(element);
-    await context.stable.verifyTextExistInPage("Invalid username or password", {}, null);
+    await context.web.click(element);
+    await context.web.verifyTextExistInPage("Invalid username or password", {}, null);
   });
   it("climb 2 locators for same element", async function () {
     let info = {};
@@ -61,9 +61,9 @@ describe("climb", function () {
         { text: "login", climb: 1, css: "button" },
       ],
     };
-    await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    await context.stable.clickType(elements["textbox_password"], "123456", false);
-    await context.stable.click(element);
-    await context.stable.verifyTextExistInPage("Invalid username or password", {}, null);
+    await context.web.clickType(elements["textbox_username"], "blinq_user", false);
+    await context.web.clickType(elements["textbox_password"], "123456", false);
+    await context.web.click(element);
+    await context.web.verifyTextExistInPage("Invalid username or password", {}, null);
   });
 });

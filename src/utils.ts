@@ -135,12 +135,12 @@ function _findKey() {
   // extract the base folder name
   return path.basename(folder);
 }
-function _getDataFile(world: any = null, context: any = null, stable: any = null) {
+function _getDataFile(world: any = null, context: any = null, web: any = null) {
   let dataFile = null;
   if (world && world.reportFolder) {
     dataFile = path.join(world.reportFolder, "data.json");
-  } else if (stable && stable.reportFolder) {
-    dataFile = path.join(stable.reportFolder, "data.json");
+  } else if (web && web.reportFolder) {
+    dataFile = path.join(web.reportFolder, "data.json");
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
   } else {
@@ -148,8 +148,8 @@ function _getDataFile(world: any = null, context: any = null, stable: any = null
   }
   return dataFile;
 }
-function _getTestData(world = null, context = null, stable = null) {
-  const dataFile = _getDataFile(world, context, stable);
+function _getTestData(world = null, context = null, web = null) {
+  const dataFile = _getDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -162,7 +162,7 @@ async function replaceWithLocalTestData(
   _decrypt = true,
   totpWait = true,
   context: any = null,
-  stable: any = null
+  web: any = null
 ) {
   if (!value) {
     return value;
@@ -171,7 +171,7 @@ async function replaceWithLocalTestData(
   let regex = /{{(.*?)}}/g;
   let matches = value.match(regex);
   if (matches) {
-    const testData = _getTestData(world, context, stable);
+    const testData = _getTestData(world, context, web);
 
     for (let i = 0; i < matches.length; i++) {
       let match = matches[i];

@@ -18,9 +18,9 @@ const navigate = async (path = "") => {
   } else {
     url = new URL(path, context!.environment!.baseUrl).href;
   }
-  await context!.stable!.goto(url);
+  await context!.web!.goto(url);
   context!.navigate = true;
-  await context!.stable!.waitForPageLoad();
+  await context!.web!.waitForPageLoad();
 };
 const _findEmptyFolder = (folder?: string) => {
   if (!folder) {
@@ -193,7 +193,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
         fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
       }
 
-      if (!dataFile) dataFile = _getDataFile(world, context, context?.stable);
+      if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {

@@ -7,7 +7,7 @@ describe("Click Tests", function () {
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
     console.log(`Navigating to URL ${url}`);
-    await context.stable.goto(url);
+    await context.web.goto(url);
     //console.log("click_element.test1.js: beforeEach");
   });
   afterEach(async function () {
@@ -91,7 +91,7 @@ describe("Click Tests", function () {
     let info = null;
     for (let key in nameLocElements) {
       console.log(`Click "${key}" element using locator "${nameLocElements[key].locators[0].css}"`);
-      info = await context.stable.click(nameLocElements[key]);
+      info = await context.web.click(nameLocElements[key]);
       //console.log(info.log);
     }
   });

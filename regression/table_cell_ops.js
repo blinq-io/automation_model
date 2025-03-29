@@ -13,7 +13,7 @@ describe("table_cell", function () {
   });
   beforeEach(async function () {
     context = await initContext(null, false, false, this);
-    await context.stable.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table3.html");
+    await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/tables/table3.html");
   });
   afterEach(async function () {
     await closeContext();
@@ -21,7 +21,7 @@ describe("table_cell", function () {
   it("find_rec", async function () {
     let info = {};
     info.log = "";
-    await context.stable.tableCellOperation("French", "Blue", { operation: "click", css: "td" }, {}, this);
+    await context.web.tableCellOperation("French", "Blue", { operation: "click", css: "td" }, {}, this);
     //console.log(result);
   });
 });

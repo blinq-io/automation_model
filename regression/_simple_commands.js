@@ -37,8 +37,8 @@ describe("Actions Tests", function () {
   });
   beforeEach(async function () {
     context = await getContext(null, false, null);
-    await context.stable.goto("https://shop-blinq.io");
-    await context.stable.waitForPageLoad();
+    await context.web.goto("https://shop-blinq.io");
+    await context.web.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
@@ -50,6 +50,6 @@ describe("Actions Tests", function () {
   it("simple click", async function () {
     let info = {};
     info.log = "";
-    const element = await context.stable.simpleClick("Login button");
+    const element = await context.web.simpleClick("Login button");
   });
 });
