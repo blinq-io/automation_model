@@ -6,9 +6,9 @@ const path = "/";
 process.env.PROJECT_PATH = "./tests";
 const context = await initContext(path, true, false);
 const testData = async function () {
-  let data = await context.stable.loadTestDataAsync("csv", "data.csv:0");
+  let data = await context.web.loadTestDataAsync("csv", "data.csv:0");
   console.log(data);
-  let d = await context.stable._replaceWithLocalData("{{NAME}}");
+  let d = await context.web._replaceWithLocalData("{{NAME}}");
   console.log(d);
 };
 await testData();

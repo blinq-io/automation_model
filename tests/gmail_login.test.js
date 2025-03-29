@@ -11,8 +11,7 @@ const elements = {
       },
     ],
   ],
-  button_next: [[{ role: ["button",
-   { name: "Next" }] }], [{ css: "#identifierNext" }]],
+  button_next: [[{ role: ["button", { name: "Next" }] }], [{ css: "#identifierNext" }]],
   textbox_password: [
     [{ role: ["textbox", { name: "Enter your password" }] }],
     [
@@ -26,12 +25,12 @@ const elements = {
 const context = await initContext(path, true, false);
 const login = async function () {
   let info = null;
-  await context.stable.fill(elements.textbox_username, "username");
-  info = await context.stable.click(elements.button_next);
-  await context.stable.waitForPageLoad();
-  await context.stable.fill(elements.textbox_password, "password");
-  info = await context.stable.click(elements.button_login);
-  await context.stable.waitForPageLoad();
+  await context.web.fill(elements.textbox_username, "username");
+  info = await context.web.click(elements.button_next);
+  await context.web.waitForPageLoad();
+  await context.web.fill(elements.textbox_password, "password");
+  info = await context.web.click(elements.button_login);
+  await context.web.waitForPageLoad();
 };
 await login();
 

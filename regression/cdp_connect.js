@@ -49,7 +49,7 @@ describe("cdp attach", function () {
     process.env.CDP_LISTEN_PORT = port;
     context = await getContext(null, false, null, null, null, true, null, -1, null);
     process.env.CDP_LISTEN_PORT = "";
-    await context.stable.goto("https://shop-blinq.io");
+    await context.web.goto("https://shop-blinq.io");
     process.env.CDP_CONNECT_URL = `http://localhost:${port}`;
     context2 = await getContext(null, false, null, null, null, true, null, -1, null);
     process.env.CDP_CONNECT_URL = "";
@@ -63,11 +63,11 @@ describe("cdp attach", function () {
     const element = {
       locators: [{ text: "login", climb: 1, css: "button" }],
     };
-    await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    await context2.stable.clickType(elements["textbox_password"], "let_me_in", false);
+    await context.web.clickType(elements["textbox_username"], "blinq_user", false);
+    await context2.web.clickType(elements["textbox_password"], "let_me_in", false);
 
     // check that the document.test variable is set
-    await context.stable.click(element);
-    await context2.stable.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
+    await context.web.click(element);
+    await context2.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
   });
 });

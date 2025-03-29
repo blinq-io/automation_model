@@ -4,7 +4,7 @@ import { LocatorLog } from "./locator_log.js";
 import { JsonCommandReport } from "./stable_browser.js";
 import { _fixUsingParams, maskValue } from "./utils.js";
 
-export async function _preCommand(state: any, stable: any) {
+export async function _preCommand(state: any, web: any) {
   if (!state) {
     return;
   }
@@ -63,41 +63,41 @@ export async function _preCommand(state: any, stable: any) {
     if (state.options && state.options.timeout) {
       timeout = state.options.timeout;
     }
-    state.element = await stable._locate(state.selectors, state.info, state._params, timeout, allowDisabled);
+    state.element = await web._locate(state.selectors, state.info, state._params, timeout, allowDisabled);
   }
   if (state.scroll === true) {
-    await stable.scrollIfNeeded(state.element, state.info);
+    await web.scrollIfNeeded(state.element, state.info);
   }
   if (state.screenshot === true) {
-    await _screenshot(state, stable);
+    await _screenshot(state, web);
   }
   if (state.highlight === true) {
     try {
-      await stable._highlightElements(state.element);
+      await web._highlightElements(state.element);
     } catch (e) {
       // ignore
     }
   }
   state.info.failCause.operationFailed = true;
 }
-export async function _commandError(state: any, error: any, stable: any) {
+export async function _commandError(state: any, error: any, web: any) {
   if (!state.info) {
     state.info = {};
   }
   if (!state.info.failCause) {
     state.info.failCause = {};
   }
-  stable.logger.error(state.text + " failed");
+  web.logger.error(state.text + " failed");
   if (error && error.message) {
-    stable.logger.error(error.message);
+    web.logger.error(error.message);
   }
   if (state.info.locatorLog) {
     const lines = state.info.locatorLog.toString().split("\n");
     for (let line of lines) {
-      stable.logger.error(line);
+      web.logger.error(line);
     }
   }
-  const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
+  const { screenshotId, screenshotPath } = await web._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
   state.info.screenshotPath = screenshotPath;
@@ -116,26 +116,26 @@ export async function _commandError(state: any, error: any, stable: any) {
   }
 }
 
-export async function _screenshot(state: any, stable: any, specificElement?: any) {
+export async function _screenshot(state: any, web: any, specificElement?: any) {
   // let focusedElement = null;
   // if (specificElement !== undefined) {
   //   focusedElement = specificElement;
   // } else {
   //   focusedElement = state.element;
   // }
-  // const { screenshotId, screenshotPath } = await stable._screenShot(
+  // const { screenshotId, screenshotPath } = await web._screenShot(
   //   state.options,
   //   state.world,
   //   state.info,
   //   focusedElement
   // );
   // ;
-  const { screenshotId, screenshotPath } = await stable._screenShot(state.options, state.world, state.info);
+  const { screenshotId, screenshotPath } = await web._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
 }
 
-export function _commandFinally(state: any, stable: any) {
+export function _commandFinally(state: any, web: any) {
   if (state && !state.commandError === true) {
     state.info.failCause = {};
   }

@@ -43,12 +43,12 @@ const login = async function () {
   let password = "let_me_in";
   let item = "Urban Backpack - Compact & Durable";
   const _params = { username, password, item };
-  await context.stable.goto("https://shop-blinq.io");
-  await context.stable.clickType(elements["textbox_username"], username, false, _params, null, this);
-  await context.stable.clickType(elements["textbox_password"], password, false, _params, null, this);
-  await context.stable.click(elements["button_login"], _params, null, this);
-  await context.stable.click(elements["shop_icon"], _params, null, this);
-  await context.stable.waitForPageLoad();
+  await context.web.goto("https://shop-blinq.io");
+  await context.web.clickType(elements["textbox_username"], username, false, _params, null, this);
+  await context.web.clickType(elements["textbox_password"], password, false, _params, null, this);
+  await context.web.click(elements["button_login"], _params, null, this);
+  await context.web.click(elements["shop_icon"], _params, null, this);
+  await context.web.waitForPageLoad();
 };
 await login();
 

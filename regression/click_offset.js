@@ -29,7 +29,7 @@ describe("click offset", function () {
   });
   beforeEach(async function () {
     context = await initContext(null, false, false, this);
-    await context.stable.goto("https://shop-blinq.io");
+    await context.web.goto("https://shop-blinq.io");
   });
   afterEach(async function () {
     await closeContext();
@@ -41,13 +41,13 @@ describe("click offset", function () {
       locators: [{ css: "button" }],
       element_name: "login button",
     };
-    await context.stable.clickType(elements["textbox_username"], "blinq_user", false);
-    await context.stable.clickType(elements["textbox_password"], "let_me_in", false);
+    await context.web.clickType(elements["textbox_username"], "blinq_user", false);
+    await context.web.clickType(elements["textbox_password"], "let_me_in", false);
     const options = {
       position: { x: 50, y: 150 },
     };
     // will click outside the button
-    await context.stable.click(element, null, options, this);
-    await context.stable.click(element, null, null, this);
+    await context.web.click(element, null, options, this);
+    await context.web.click(element, null, null, this);
   });
 });

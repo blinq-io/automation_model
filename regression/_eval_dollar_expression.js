@@ -26,8 +26,8 @@ describe("use dollar expression", function () {
   });
   beforeEach(async function () {
     context = await getContext(null, false, null);
-    await context.stable.goto("https://shop-blinq.io");
-    await context.stable.waitForPageLoad();
+    await context.web.goto("https://shop-blinq.io");
+    await context.web.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
@@ -38,7 +38,7 @@ describe("use dollar expression", function () {
     let info = {};
     info.log = "";
     context.examplesRow = { user: "user_" };
-    const element = await context.stable.clickType(
+    const element = await context.web.clickType(
       locElements["textbox_username"],
       "${user + '123'}",
       false,
@@ -46,7 +46,7 @@ describe("use dollar expression", function () {
       null,
       this
     );
-    info = await context.stable.extractAttribute(locElements["textbox_username"], "value", "result");
+    info = await context.web.extractAttribute(locElements["textbox_username"], "value", "result");
     expect(info.value).to.be.equals("user_123");
   });
 });

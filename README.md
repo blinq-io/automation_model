@@ -63,11 +63,11 @@ async getAriaSnapshot();
 async function login_with_user_and_password(_username, _password) {
   const _params = { _username, _password };
   // Fill Username textbox with "_username"
-  await context.stable.clickType(elements["textbox_username"], _username, false, _params, null, this);
+  await context.web.clickType(elements["textbox_username"], _username, false, _params, null, this);
   // Fill Password textbox with "_password"
-  await context.stable.clickType(elements["textbox_password"], _password, false, _params, null, this);
+  await context.web.clickType(elements["textbox_password"], _password, false, _params, null, this);
   // Click on Login button
-  await context.stable.click(elements["button_login"], _params, null, this);
+  await context.web.click(elements["button_login"], _params, null, this);
 }
 ```
 
@@ -77,9 +77,9 @@ async function login_with_user_and_password(_username, _password) {
 async function login_with_user_and_password(_username, _password) {
   const _params = { _username, _password };
   try {
-    await context.stable.clickType(elements["textbox_username"], _username, false, _params, null, this);
-    await context.stable.clickType(elements["textbox_password"], _password, false, _params, null, this);
-    await context.stable.click(elements["button_login"], _params, null, this);
+    await context.web.clickType(elements["textbox_username"], _username, false, _params, null, this);
+    await context.web.clickType(elements["textbox_password"], _password, false, _params, null, this);
+    await context.web.click(elements["button_login"], _params, null, this);
   } catch (error) {}
 }
 ```
@@ -89,10 +89,10 @@ async function login_with_user_and_password(_username, _password) {
 ```javascript
 async function login_with_user_and_password(_username, _password) {
   const _params = { _username, _password };
-  if (await context.stable.waitForElement(elements["textbox_username"], _params, { timeout: 4000 }, this)) {
-    await context.stable.clickType(elements["textbox_username"], _username, false, _params, null, this);
-    await context.stable.clickType(elements["textbox_password"], _password, false, _params, null, this);
-    await context.stable.click(elements["button_login"], _params, null, this);
+  if (await context.web.waitForElement(elements["textbox_username"], _params, { timeout: 4000 }, this)) {
+    await context.web.clickType(elements["textbox_username"], _username, false, _params, null, this);
+    await context.web.clickType(elements["textbox_password"], _password, false, _params, null, this);
+    await context.web.click(elements["button_login"], _params, null, this);
   }
 }
 ```
@@ -105,9 +105,9 @@ async function login_with_user_and_password(_username, _password) {
   const maxRetry = 2;
   for (let i = 0; i < maxRetry; i++) {
     try {
-      await context.stable.clickType(elements["textbox_username"], _username, false, _params, null, this);
-      await context.stable.clickType(elements["textbox_password"], _password, false, _params, null, this);
-      await context.stable.click(elements["button_login"], _params, null, this);
+      await context.web.clickType(elements["textbox_username"], _username, false, _params, null, this);
+      await context.web.clickType(elements["textbox_password"], _password, false, _params, null, this);
+      await context.web.click(elements["button_login"], _params, null, this);
       break;
     } catch (error) {
       if (i === maxRetry - 1) {
@@ -123,8 +123,8 @@ async function login_with_user_and_password(_username, _password) {
 ```javascript
 async function login_with_user_and_password(_username, _password) {
   const _params = { _username, _password };
-  await context.stable.clickType(elements["textbox_username"], _username, false, _params, { timeout: 120000 }, this);
-  await context.stable.clickType(elements["textbox_password"], _password, false, _params, { timeout: 120000 }, this);
-  await context.stable.click(elements["button_login"], _params, { timeout: 120000 }, this);
+  await context.web.clickType(elements["textbox_username"], _username, false, _params, { timeout: 120000 }, this);
+  await context.web.clickType(elements["textbox_password"], _password, false, _params, { timeout: 120000 }, this);
+  await context.web.click(elements["button_login"], _params, { timeout: 120000 }, this);
 }
 ```

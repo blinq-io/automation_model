@@ -15,8 +15,8 @@ describe("Iframe Tests", function () {
     context = await initContext("/", true, false);
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/table_iframe/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
-    await context.stable.goto(url);
-    await context.stable.waitForPageLoad();
+    await context.web.goto(url);
+    await context.web.waitForPageLoad();
   });
   afterEach(async function () {
     await closeContext();
@@ -31,15 +31,10 @@ describe("Iframe Tests", function () {
   it("click", async function () {
     let info = null;
     let key = "button";
-    info = await context.stable.click(
-      locElements[key],
-      null,
-      { screenshotPath: "./temp/1.png", screenshot: true },
-      null
-    );
+    info = await context.web.click(locElements[key], null, { screenshotPath: "./temp/1.png", screenshot: true }, null);
     const locatorLog = info.locatorLog.toString();
     //console.log("locatorLog: " + locatorLog);
     // verify that the locatorLog contain ***** click on login button *****
-    await context.stable.verifyTextExistInPage("Hello! You clicked the button.");
+    await context.web.verifyTextExistInPage("Hello! You clicked the button.");
   });
 });

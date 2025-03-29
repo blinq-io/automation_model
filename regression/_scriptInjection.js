@@ -19,7 +19,7 @@ describe("script injection", function () {
       scripts: ["document.test = 'test';"],
     };
     context = await getContext(null, false, null, null, null, true, null, -1, null, initScript);
-    await context.stable.goto("https://shop-blinq.io");
+    await context.web.goto("https://shop-blinq.io");
   });
   afterEach(async function () {
     await closeContext();
@@ -29,7 +29,7 @@ describe("script injection", function () {
     let info = {};
     info.log = "";
     // check that the document.test variable is set
-    const testValue = await context.stable.page.evaluate(() => {
+    const testValue = await context.web.page.evaluate(() => {
       return document.test;
     });
     expect(testValue).to.equal("test");
