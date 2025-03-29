@@ -2468,7 +2468,7 @@ class StableBrowser {
       scroll: false,
       highlight: false,
       type: Types.VERIFY_PAGE_CONTAINS_TEXT,
-      text: `Verify text exists in page`,
+      text: `Verify the text '${text}' exists in page`,
       _text: `Verify the text '${text}' exists in page`,
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
