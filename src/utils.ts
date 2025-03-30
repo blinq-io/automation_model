@@ -152,6 +152,10 @@ function _getTestData(world = null, context = null, web = null) {
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+  } else {
+    if (fs.existsSync("data.json")) {
+      data = JSON.parse(fs.readFileSync("data.json", "utf8"));
+    }
   }
   return data;
 }
