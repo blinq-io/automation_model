@@ -142,8 +142,10 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
     dataFile = path.join(web.reportFolder, "data.json");
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
-  } else {
+  } else if (fs.existsSync(path.join("data", "data.json"))) {
     dataFile = path.join("data", "data.json");
+  } else {
+    dataFile = "data.json";
   }
   return dataFile;
 }
