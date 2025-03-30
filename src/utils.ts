@@ -142,8 +142,10 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
     dataFile = path.join(web.reportFolder, "data.json");
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
-  } else {
+  } else if (fs.existsSync(path.join("data", "data.json"))) {
     dataFile = path.join("data", "data.json");
+  } else {
+    dataFile = "data.json";
   }
   return dataFile;
 }
@@ -152,10 +154,6 @@ function _getTestData(world = null, context = null, web = null) {
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
-  } else {
-    if (fs.existsSync("data.json")) {
-      data = JSON.parse(fs.readFileSync("data.json", "utf8"));
-    }
   }
   return data;
 }
