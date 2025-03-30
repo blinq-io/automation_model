@@ -1,5 +1,4 @@
 import CryptoJS from "crypto-js";
-import objectPath from "object-path";
 
 import path from "path";
 import { TOTP } from "totp-generator";
@@ -144,7 +143,7 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
   } else {
-    dataFile = "data.json";
+    dataFile = path.join("data", "data.json");
   }
   return dataFile;
 }
@@ -166,6 +165,11 @@ async function replaceWithLocalTestData(
 ) {
   if (!value) {
     return value;
+  }
+  let env = "";
+
+  if (context && context.environment) {
+    env = context.environment.name;
   }
   // find all the accurance of {{(.*?)}} and replace with the value
   let regex = /{{(.*?)}}/g;
@@ -203,10 +207,16 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = objectPath.get(testData, key, null);
+        let newValue = await replaceTestDataValue(env, key, testData);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
+        } else {
+          newValue = await replaceTestDataValue("*", key, testData);
+
+          if (newValue !== null) {
+            value = value.replace(match, newValue);
+          }
         }
       }
     }
@@ -221,6 +231,33 @@ async function replaceWithLocalTestData(
 
   return value;
 }
+
+interface TestData {
+  [key: string]: {
+    DataType: string;
+    key: string;
+    value: string;
+  }[];
+}
+
+async function replaceTestDataValue(env: string, key: string, testData: TestData) {
+  const dataArray = testData[env];
+
+  for (const obj of dataArray) {
+    if (obj.key !== key) {
+      continue;
+    }
+
+    if (obj.DataType === "secret") {
+      return await decrypt(`secret:${obj.value}`, null);
+    }
+
+    return obj.value;
+  }
+
+  return null;
+}
+
 function evaluateString(template: string, parameters: any) {
   if (!parameters) {
     parameters = {};
