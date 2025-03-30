@@ -245,6 +245,10 @@ interface TestData {
 async function replaceTestDataValue(env: string, key: string, testData: TestData) {
   const dataArray = testData[env];
 
+  if (!dataArray) {
+    return null;
+  }
+
   for (const obj of dataArray) {
     if (obj.key !== key) {
       continue;
