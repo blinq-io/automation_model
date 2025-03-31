@@ -142,6 +142,20 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
     dataFile = path.join(web.reportFolder, "data.json");
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
+  } else {
+    dataFile = "data.json";
+  }
+  return dataFile;
+}
+
+function _getTestDataFile(world: any = null, context: any = null, web: any = null) {
+  let dataFile = null;
+  if (world && world.reportFolder) {
+    dataFile = path.join(world.reportFolder, "data.json");
+  } else if (web && web.reportFolder) {
+    dataFile = path.join(web.reportFolder, "data.json");
+  } else if (context && context.reportFolder) {
+    dataFile = path.join(context.reportFolder, "data.json");
   } else if (fs.existsSync(path.join("data", "data.json"))) {
     dataFile = path.join("data", "data.json");
   } else {
@@ -149,8 +163,9 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
   }
   return dataFile;
 }
+
 function _getTestData(world = null, context = null, web = null) {
-  const dataFile = _getDataFile(world, context, web);
+  const dataFile = _getTestDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
