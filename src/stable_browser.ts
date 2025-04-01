@@ -2562,7 +2562,7 @@ class StableBrowser {
       scroll: false,
       highlight: false,
       type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
-      text: `Verify text does not exist in page`,
+      text: `Verify the text '${text}' does not exist in page`,
       _text: `Verify the text '${text}' does not exist in page`,
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
