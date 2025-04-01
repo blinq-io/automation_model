@@ -1,5 +1,4 @@
 import CryptoJS from "crypto-js";
-import objectPath from "object-path";
 
 import path from "path";
 import { TOTP } from "totp-generator";
@@ -148,8 +147,25 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
   }
   return dataFile;
 }
+
+function _getTestDataFile(world: any = null, context: any = null, web: any = null) {
+  let dataFile = null;
+  if (world && world.reportFolder) {
+    dataFile = path.join(world.reportFolder, "data.json");
+  } else if (web && web.reportFolder) {
+    dataFile = path.join(web.reportFolder, "data.json");
+  } else if (context && context.reportFolder) {
+    dataFile = path.join(context.reportFolder, "data.json");
+  } else if (fs.existsSync(path.join("data", "data.json"))) {
+    dataFile = path.join("data", "data.json");
+  } else {
+    dataFile = "data.json";
+  }
+  return dataFile;
+}
+
 function _getTestData(world = null, context = null, web = null) {
-  const dataFile = _getDataFile(world, context, web);
+  const dataFile = _getTestDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -166,6 +182,11 @@ async function replaceWithLocalTestData(
 ) {
   if (!value) {
     return value;
+  }
+  let env = "";
+
+  if (context && context.environment) {
+    env = context.environment.name;
   }
   // find all the accurance of {{(.*?)}} and replace with the value
   let regex = /{{(.*?)}}/g;
@@ -203,10 +224,16 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = objectPath.get(testData, key, null);
+        let newValue = await replaceTestDataValue(env, key, testData);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
+        } else {
+          newValue = await replaceTestDataValue("*", key, testData);
+
+          if (newValue !== null) {
+            value = value.replace(match, newValue);
+          }
         }
       }
     }
@@ -221,6 +248,37 @@ async function replaceWithLocalTestData(
 
   return value;
 }
+
+interface TestData {
+  [key: string]: {
+    DataType: string;
+    key: string;
+    value: string;
+  }[];
+}
+
+async function replaceTestDataValue(env: string, key: string, testData: TestData) {
+  const dataArray = testData[env];
+
+  if (!dataArray) {
+    return null;
+  }
+
+  for (const obj of dataArray) {
+    if (obj.key !== key) {
+      continue;
+    }
+
+    if (obj.DataType === "secret") {
+      return await decrypt(`secret:${obj.value}`, null);
+    }
+
+    return obj.value;
+  }
+
+  return null;
+}
+
 function evaluateString(template: string, parameters: any) {
   if (!parameters) {
     parameters = {};
