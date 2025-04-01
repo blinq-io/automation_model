@@ -249,7 +249,7 @@ async function replaceWithLocalTestData(
   return value;
 }
 
-interface TestData {
+interface TestDataArray {
   [key: string]: {
     DataType: string;
     key: string;
@@ -257,8 +257,18 @@ interface TestData {
   }[];
 }
 
+interface TestDataValue {
+  [key: string]: string;
+}
+
+type TestData = TestDataArray | TestDataValue;
+
 async function replaceTestDataValue(env: string, key: string, testData: TestData) {
-  const dataArray = testData[env];
+  if (testData[key] && !Array.isArray(testData[key])) {
+    return testData[key];
+  }
+
+  const dataArray = (testData as TestDataArray)[env];
 
   if (!dataArray) {
     return null;
