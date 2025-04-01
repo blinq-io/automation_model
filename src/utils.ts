@@ -265,7 +265,7 @@ type TestData = TestDataArray | TestDataValue;
 
 async function replaceTestDataValue(env: string, key: string, testData: TestData) {
   if (testData[key] && !Array.isArray(testData[key])) {
-    return testData[key];
+    return testData[key] as string;
   }
 
   const dataArray = (testData as TestDataArray)[env];
