@@ -1173,7 +1173,7 @@ class StableBrowser {
       try {
         // if (world && world.screenshot && !world.screenshotPath) {
         // console.log(`Highlighting while running from recorder`);
-        await this._highlightElements(element);
+        await this._highlightElements(state.element);
         await state.element.setChecked(checked);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         // await this._unHighlightElements(element);
