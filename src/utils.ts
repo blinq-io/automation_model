@@ -682,6 +682,12 @@ function _getServerUrl() {
     serviceUrl = "https://dev.api.blinq.io";
   } else if (process.env.NODE_ENV_BLINQ === "stage") {
     serviceUrl = "https://stage.api.blinq.io";
+  } else if (process.env.NODE_ENV_BLINQ === "prod") {
+    serviceUrl = "https://api.blinq.io";
+  } else if (!process.env.NODE_ENV_BLINQ) {
+    serviceUrl = "https://api.blinq.io";
+  } else {
+    serviceUrl = process.env.NODE_ENV_BLINQ;
   }
   return serviceUrl;
 }
