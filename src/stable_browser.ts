@@ -1758,6 +1758,15 @@ class StableBrowser {
     // save the data to the file
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
   }
+  overwriteTestData(testData, world = null) {
+    if (!testData) {
+      return;
+    }
+    // if data file exists, load it
+    const dataFile = _getDataFile(world, this.context, this);
+    // save the data to the file
+    fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+  }
   _getDataFilePath(fileName) {
     let dataFile = path.join(this.project_path, "data", fileName);
     if (fs.existsSync(dataFile)) {
