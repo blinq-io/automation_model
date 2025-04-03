@@ -648,12 +648,25 @@ class StableBrowser {
         element.evaluate((el, randomToken) => {
           el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
-        if (element._frame) {
-          return element;
+        // if (element._frame) {
+        //   return element;
+        // }
+        const scope = element._frame ?? element.page();
+        let newElementSelector = "[data-blinq-id-" + randomToken + "]";
+        let prefixSelector = "";
+        const frameControlSelector = " >> internal:control=enter-frame";
+        const frameSelectorIndex = element._selector.lastIndexOf(frameControlSelector);
+        if (frameSelectorIndex !== -1) {
+          // remove everything after the >> internal:control=enter-frame
+          const frameSelector = element._selector.substring(0, frameSelectorIndex);
+          prefixSelector = frameSelector + " >> internal:control=enter-frame";
         }
-        const scope = element.page();
-        const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
-        return newSelector;
+        // if (element?._frame?._selector) {
+        //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
+        // }
+        const newSelector = prefixSelector + newElementSelector;
+
+        return scope.locator(newSelector);
       }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
