@@ -101,7 +101,7 @@ const initContext = async (
   }
   if (context) {
     const env = getEnv(envName);
-    if (env) {
+    if (env && !process.env.CDP_CONNECT_URL) {
       await getTestData(env, world);
     }
   }
