@@ -833,7 +833,7 @@ class StableBrowser {
           selectors?.element_name
         );
       }
-      if (result.foundElements.length === 0 && onlyPriority3) {
+      if (result.foundElements.length === 0 && (onlyPriority3 || !highPriorityOnly)) {
         result = await this._scanLocatorsGroup(
           locatorsByPriority["3"],
           scope,
@@ -843,18 +843,6 @@ class StableBrowser {
           allowDisabled,
           selectors?.element_name
         );
-      } else {
-        if (result.foundElements.length === 0 && !highPriorityOnly) {
-          result = await this._scanLocatorsGroup(
-            locatorsByPriority["3"],
-            scope,
-            _params,
-            info,
-            visibleOnly,
-            allowDisabled,
-            selectors?.element_name
-          );
-        }
       }
       let foundElements = result.foundElements;
 
@@ -909,6 +897,11 @@ class StableBrowser {
         visibleOnly = false;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      // sheck of more of half of the timeout has passed
+      if (Date.now() - startTime > timeout / 2) {
+        highPriorityOnly = false;
+        visibleOnly = false;
+      }
     }
     this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
     // if (info.locatorLog) {
@@ -1689,7 +1682,7 @@ class StableBrowser {
       while (Date.now() - startTime < timeout) {
         try {
           await _preCommand(state, this);
-          foundObj = await this._getText(selectors, climb, _params, { timeout: 2000 }, state.info, world);
+          foundObj = await this._getText(selectors, climb, _params, { timeout: 3000 }, state.info, world);
 
           if (foundObj && foundObj.element) {
             await this.scrollIfNeeded(foundObj.element, state.info);
