@@ -11,9 +11,24 @@ function encrypt(text: string, key: string | null = null) {
   }
   return CryptoJS.AES.encrypt(text, key).toString();
 }
-
+function getTestDataValue(key: string, environment = "*") {
+  const blinqEnvPath = "data/data.json";
+  const envPath = path.resolve(process.cwd(), blinqEnvPath);
+  const envJson = JSON.parse(fs.readFileSync(envPath, "utf-8"));
+  const dataArray = envJson[environment];
+  const item = dataArray.find((item: any) => item.key === key);
+  if (!item) {
+    throw new Error(`Key ${key} not found in data.json`);
+  }
+  if (item.DataType === "string") {
+    return item.value;
+  } else if (item.DataType === "secret" || item.DataType === "totp") {
+    return decrypt(item.value, null, false);
+  }
+  throw new Error(`Unsupported data type for key ${key}`);
+}
 // Function to decrypt a string
-async function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
+function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
   if (!key) {
     key = _findKey();
   }
@@ -25,13 +40,13 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
     const bytes = CryptoJS.AES.decrypt(encryptedText, key);
     encryptedText = bytes.toString(CryptoJS.enc.Utf8);
     let { otp, expires } = TOTP.generate(encryptedText);
-    if (totpWait) {
-      // expires is in unix time, check if we have at least 10 seconds left, if it's less than wait for the expires time
-      if (expires - Date.now() < 10000) {
-        await new Promise((resolve) => setTimeout(resolve, (expires - Date.now() + 1000) % 30000));
-        ({ otp, expires } = TOTP.generate(encryptedText));
-      }
-    }
+    // if (totpWait) {
+    //   // expires is in unix time, check if we have at least 10 seconds left, if it's less than wait for the expires time
+    //   if (expires - Date.now() < 10000) {
+    //     await new Promise((resolve) => setTimeout(resolve, (expires - Date.now() + 1000) % 30000));
+    //     ({ otp, expires } = TOTP.generate(encryptedText));
+    //   }
+    // }
     return otp;
   }
 
@@ -224,12 +239,12 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = await replaceTestDataValue(env, key, testData);
+        let newValue = replaceTestDataValue(env, key, testData);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
         } else {
-          newValue = await replaceTestDataValue("*", key, testData);
+          newValue = replaceTestDataValue("*", key, testData);
 
           if (newValue !== null) {
             value = value.replace(match, newValue);
@@ -239,7 +254,7 @@ async function replaceWithLocalTestData(
     }
   }
   if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
-    return await decrypt(value, null, totpWait);
+    return decrypt(value, null, totpWait);
   }
   // check if the value is ${}
   if (value.startsWith("${") && value.endsWith("}")) {
@@ -263,7 +278,7 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-async function replaceTestDataValue(env: string, key: string, testData: TestData) {
+function replaceTestDataValue(env: string, key: string, testData: TestData) {
   if (testData[key] && !Array.isArray(testData[key])) {
     return testData[key] as string;
   }
@@ -280,7 +295,7 @@ async function replaceTestDataValue(env: string, key: string, testData: TestData
     }
 
     if (obj.DataType === "secret") {
-      return await decrypt(`secret:${obj.value}`, null);
+      return decrypt(`secret:${obj.value}`, null);
     }
 
     return obj.value;
@@ -711,4 +726,5 @@ export {
   _convertToRegexQuery,
   extractStepExampleParameters,
   _getDataFile,
+  getTestDataValue,
 };
