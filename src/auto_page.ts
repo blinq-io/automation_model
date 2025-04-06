@@ -162,7 +162,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
-            useValue = await decrypt("secret:" + item.value);
+            useValue = decrypt("secret:" + item.value);
           } else if (item.DataType === "totp") {
             testData[item.key] = "totp:" + item.value;
             useValue = "totp:" + item.value;
