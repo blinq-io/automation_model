@@ -2422,6 +2422,72 @@ class StableBrowser {
       });
     }
   }
+  async verifyPageTitle(title, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = "***** verify page title " + title + " *****\n";
+    info.operation = "verifyPageTitle";
+
+    const newValue = await this._replaceWithLocalData(title, world);
+    if (newValue !== title) {
+      this.logger.info(title + "=" + newValue);
+      title = newValue;
+    }
+    info.title = title;
+    try {
+      for (let i = 0; i < 30; i++) {
+        const foundTitle = await this.page.title();
+        if (!foundTitle.includes(title)) {
+          if (i === 29) {
+            throw new Error(`url ${foundTitle} doesn't contain ${title}`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+        return info;
+      }
+    } catch (e) {
+      //await this.closeUnexpectedPopups();
+      this.logger.error("verify page title failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      // throw e;
+      await _commandError(
+        { text: "verifyPageTitle", operation: "verifyPageTitle", title, info, throwError: true },
+        e,
+        this
+      );
+    } finally {
+      const endTime = Date.now();
+      _reportToWorld(world, {
+        type: Types.VERIFY_PAGE_PATH,
+        text: "Verify page title",
+        _text: "Verify the page title contains " + title,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state, partial = true, ignoreCase = false) {
     const frames = this.page.frames();
     let results = [];
