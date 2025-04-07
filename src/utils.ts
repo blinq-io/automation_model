@@ -4,6 +4,7 @@ import path from "path";
 import { TOTP } from "totp-generator";
 import fs from "fs";
 import axios from "axios";
+import objectPath from "object-path";
 // Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
@@ -92,6 +93,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
   }
   return query + pattern + queryEnd;
 }
+
 function escapeRegex(str: string) {
   // Special regex characters that need to be escaped
   const specialChars = [
@@ -193,7 +195,6 @@ async function replaceWithLocalTestData(
   let matches = value.match(regex);
   if (matches) {
     const testData = _getTestData(world, context, web);
-
     for (let i = 0; i < matches.length; i++) {
       let match = matches[i];
       let key = match.substring(2, match.length - 2);
@@ -264,8 +265,10 @@ interface TestDataValue {
 type TestData = TestDataArray | TestDataValue;
 
 async function replaceTestDataValue(env: string, key: string, testData: TestData) {
-  if (testData[key] && !Array.isArray(testData[key])) {
-    return testData[key] as string;
+  const path = key.split(".");
+  const value = objectPath.get(testData, path);
+  if (value && !Array.isArray(value)) {
+    return value as string;
   }
 
   const dataArray = (testData as TestDataArray)[env];
@@ -709,6 +712,7 @@ export {
   Params,
   _getServerUrl,
   _convertToRegexQuery,
+  extractStepExampleParameters,
   _getDataFile,
-  extractStepExampleParameters
+  getTestDataValue,
 };
