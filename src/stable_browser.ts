@@ -2778,7 +2778,7 @@ class StableBrowser {
                 textToVerify,
                 "*:not(script, style, head)",
                 false,
-                false,
+                true,
                 true,
                 {}
               );
