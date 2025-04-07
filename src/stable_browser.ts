@@ -3558,6 +3558,14 @@ class StableBrowser {
         await this.context.browserObject.context.tracing.stopChunk({
           path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
         });
+        await world.attach(
+          JSON.stringify({
+            type: "trace",
+            traceFilePath: `trace-${this.stepIndex}.zip`,
+          }),
+          "application/json+trace"
+        );
+        // console.log("trace file created", `trace-${this.stepIndex}.zip`);
       }
     }
     if (this.context) {
