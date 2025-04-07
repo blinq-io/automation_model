@@ -240,12 +240,12 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = replaceTestDataValue(env, key, testData);
+        let newValue = await replaceTestDataValue(env, key, testData);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
         } else {
-          newValue = replaceTestDataValue("*", key, testData);
+          newValue = await replaceTestDataValue("*", key, testData);
 
           if (newValue !== null) {
             value = value.replace(match, newValue);
