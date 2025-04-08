@@ -714,5 +714,4 @@ export {
   _convertToRegexQuery,
   extractStepExampleParameters,
   _getDataFile,
-  getTestDataValue,
 };
