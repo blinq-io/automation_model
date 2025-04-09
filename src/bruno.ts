@@ -138,6 +138,11 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     if (summary.totalTests > 0) {
       console.log(`tests:        ${summary.passedTests}/${summary.totalTests}`);
     }
+    if (options.testDataScope) {
+      const data: Record<string, any> = {};
+      data[options.testDataScope] = result[0].results.response;
+      context.web.setTestData(data, world);
+    }
     return result;
   } catch (error) {
     await _commandError(state, error, context.web);
