@@ -3,7 +3,10 @@ import fs from "fs";
 import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
+<<<<<<< HEAD
 import exp from "constants";
+=======
+>>>>>>> 744459f (add a executeBrunoRequest function)
 
 export async function executeBrunoRequest(requestName: string, options: any, context: any, world: any) {
   if (!options) {
@@ -42,6 +45,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     const brunoConfigFile = path.join(brunoFolder, "bruno.json");
     // check if the bruno config file exists and copy it to the runtime folder
     if (fs.existsSync(brunoConfigFile)) {
+<<<<<<< HEAD
       // read the bruno config file
       const brunoConfig = JSON.parse(fs.readFileSync(brunoConfigFile, "utf-8"));
       if (!brunoConfig.scripts) {
@@ -54,10 +58,16 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       fs.writeFileSync(path.join(runtimeFolder, "bruno.json"), JSON.stringify(brunoConfig, null, 2));
     }
     let expectRuntime = false;
+=======
+      fs.copyFileSync(brunoConfigFile, path.join(runtimeFolder, "bruno.json"));
+    }
+
+>>>>>>> 744459f (add a executeBrunoRequest function)
     // read the bruno file
     let brunoFileContent = fs.readFileSync(brunoFile, "utf-8");
     // populate runtime variables
     brunoFileContent = await context.web._replaceWithLocalData(brunoFileContent, world);
+<<<<<<< HEAD
     // inject code to extract runtime variables
     // first find the script:post-response
     const scriptPostResponse = brunoFileContent.indexOf("script:post-response {");
@@ -101,6 +111,8 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       }
     }
 
+=======
+>>>>>>> 744459f (add a executeBrunoRequest function)
     // write the bruno file to the runtime folder
     fs.writeFileSync(path.join(runtimeFolder, `${requestName}.bru`), brunoFileContent);
     const outputFile = path.join(runtimeFolder, `bruno_${context.web.stepIndex ? context.web.stepIndex : 0}.json`);
@@ -108,12 +120,15 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       // remove the file if it exists
       fs.unlinkSync(outputFile);
     }
+<<<<<<< HEAD
     // if the runtime.json file exists, remove it
     const runtimeFile = path.join(runtimeFolder, "runtime.json");
     if (fs.existsSync(runtimeFile)) {
       // remove the file if it exists
       fs.unlinkSync(runtimeFile);
     }
+=======
+>>>>>>> 744459f (add a executeBrunoRequest function)
     const commandOptions = {
       cwd: runtimeFolder,
       env: {
@@ -197,6 +212,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     if (summary.totalTests > 0) {
       console.log(`tests:        ${summary.passedTests}/${summary.totalTests}`);
     }
+<<<<<<< HEAD
     if (!options.brunoScope) {
       options.brunoScope = "bruno";
     }
@@ -213,6 +229,8 @@ export async function executeBrunoRequest(requestName: string, options: any, con
         context.web.setTestData(runtimeData, world);
       }
     }
+=======
+>>>>>>> 744459f (add a executeBrunoRequest function)
     return result;
   } catch (error) {
     await _commandError(state, error, context.web);
