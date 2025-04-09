@@ -648,12 +648,25 @@ class StableBrowser {
         element.evaluate((el, randomToken) => {
           el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
-        if (element._frame) {
-          return element;
+        // if (element._frame) {
+        //   return element;
+        // }
+        const scope = element._frame ?? element.page();
+        let newElementSelector = "[data-blinq-id-" + randomToken + "]";
+        let prefixSelector = "";
+        const frameControlSelector = " >> internal:control=enter-frame";
+        const frameSelectorIndex = element._selector.lastIndexOf(frameControlSelector);
+        if (frameSelectorIndex !== -1) {
+          // remove everything after the >> internal:control=enter-frame
+          const frameSelector = element._selector.substring(0, frameSelectorIndex);
+          prefixSelector = frameSelector + " >> internal:control=enter-frame";
         }
-        const scope = element.page();
-        const newSelector = scope.locator("[data-blinq-id-" + randomToken + "]");
-        return newSelector;
+        // if (element?._frame?._selector) {
+        //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
+        // }
+        const newSelector = prefixSelector + newElementSelector;
+
+        return scope.locator(newSelector);
       }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
@@ -1413,6 +1426,9 @@ class StableBrowser {
       operation: "clickType",
       log: "***** clickType on " + selectors.element_name + " with value " + maskValue(_value) + "*****\n",
     };
+    if (!options) {
+      options = {};
+    }
 
     if (newValue !== _value) {
       //this.logger.info(_value + "=" + newValue);
@@ -1421,7 +1437,7 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       state.info.value = _value;
-      if (options === null || options === undefined || !options.press) {
+      if (!options.press) {
         try {
           let currentValue = await state.element.inputValue();
           if (currentValue) {
@@ -1431,10 +1447,7 @@ class StableBrowser {
           this.logger.info("unable to clear input value");
         }
       }
-      if (options === null || options === undefined || options.press) {
-        if (!options) {
-          options = {};
-        }
+      if (options.press) {
         options.timeout = 5000;
         await performAction("click", state.element, options, this, state, _params);
       } else {
@@ -1750,6 +1763,15 @@ class StableBrowser {
     Object.assign(data, testData);
     // save the data to the file
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
+  }
+  overwriteTestData(testData, world = null) {
+    if (!testData) {
+      return;
+    }
+    // if data file exists, load it
+    const dataFile = _getDataFile(world, this.context, this);
+    // save the data to the file
+    fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
   }
   _getDataFilePath(fileName) {
     let dataFile = path.join(this.project_path, "data", fileName);
@@ -2400,6 +2422,72 @@ class StableBrowser {
       });
     }
   }
+  async verifyPageTitle(title, options = {}, world = null) {
+    const startTime = Date.now();
+    let error = null;
+    let screenshotId = null;
+    let screenshotPath = null;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const info = {};
+    info.log = "***** verify page title " + title + " *****\n";
+    info.operation = "verifyPageTitle";
+
+    const newValue = await this._replaceWithLocalData(title, world);
+    if (newValue !== title) {
+      this.logger.info(title + "=" + newValue);
+      title = newValue;
+    }
+    info.title = title;
+    try {
+      for (let i = 0; i < 30; i++) {
+        const foundTitle = await this.page.title();
+        if (!foundTitle.includes(title)) {
+          if (i === 29) {
+            throw new Error(`url ${foundTitle} doesn't contain ${title}`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+        return info;
+      }
+    } catch (e) {
+      //await this.closeUnexpectedPopups();
+      this.logger.error("verify page title failed " + info.log);
+      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      info.screenshotPath = screenshotPath;
+      Object.assign(e, { info: info });
+      error = e;
+      // throw e;
+      await _commandError(
+        { text: "verifyPageTitle", operation: "verifyPageTitle", title, info, throwError: true },
+        e,
+        this
+      );
+    } finally {
+      const endTime = Date.now();
+      _reportToWorld(world, {
+        type: Types.VERIFY_PAGE_PATH,
+        text: "Verify page title",
+        _text: "Verify the page title contains " + title,
+        screenshotId,
+        result: error
+          ? {
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
+          : {
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
+        info: info,
+      });
+    }
+  }
+
   async findTextInAllFrames(dateAlternatives, numberAlternatives, text, state, partial = true, ignoreCase = false) {
     const frames = this.page.frames();
     let results = [];
@@ -2461,7 +2549,7 @@ class StableBrowser {
       scroll: false,
       highlight: false,
       type: Types.VERIFY_PAGE_CONTAINS_TEXT,
-      text: `Verify text exists in page`,
+      text: `Verify the text '${text}' exists in page`,
       _text: `Verify the text '${text}' exists in page`,
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
@@ -2556,7 +2644,7 @@ class StableBrowser {
       scroll: false,
       highlight: false,
       type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
-      text: `Verify text does not exist in page`,
+      text: `Verify the text '${text}' does not exist in page`,
       _text: `Verify the text '${text}' does not exist in page`,
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
@@ -2690,7 +2778,7 @@ class StableBrowser {
                 textToVerify,
                 "*:not(script, style, head)",
                 false,
-                false,
+                true,
                 true,
                 {}
               );
@@ -3472,6 +3560,14 @@ class StableBrowser {
         await this.context.browserObject.context.tracing.stopChunk({
           path: path.join(this.context.browserObject.traceFolder, `trace-${this.stepIndex}.zip`),
         });
+        await world.attach(
+          JSON.stringify({
+            type: "trace",
+            traceFilePath: `trace-${this.stepIndex}.zip`,
+          }),
+          "application/json+trace"
+        );
+        // console.log("trace file created", `trace-${this.stepIndex}.zip`);
       }
     }
     if (this.context) {

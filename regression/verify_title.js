@@ -6,7 +6,7 @@ import { expect } from "chai";
 let context = null;
 
 //{"status":true,"result":{"elementNumber":2,"reason":"The element with elementNumber 2 is a button with the name 'Login', which matches the task requirement to click on 'Login button'.","name":"locate_element"}}
-describe("script injection", function () {
+describe("verifyPageTitle", function () {
   before(async function () {
     // check if temp directory exists
     if (!fs.existsSync("temp")) {
@@ -14,24 +14,31 @@ describe("script injection", function () {
     }
   });
   beforeEach(async function () {
-    const initScript = {
-      recorderCjs: null,
-      scripts: ["document.test = 'test';"],
-    };
-    context = await getContext(null, false, null, null, null, true, null, -1, null, initScript);
+    context = await getContext(null, false, null, null, null, true, null, -1, null);
     await context.web.goto("https://shop-blinq.io");
   });
   afterEach(async function () {
     await closeContext();
   });
 
-  it("verify injection works", async function () {
+  it("verifyPageTitle basic", async function () {
     let info = {};
     info.log = "";
-    // check that the document.test variable is set
-    const testValue = await context.web.page.evaluate(() => {
-      return document.test;
-    });
-    expect(testValue).to.equal("test");
+
+    await context.web.verifyPageTitle("Shop BlinqIO", {}, this);
+  });
+  it("verifyPageTitle fail", async function () {
+    let info = {};
+    info.log = "";
+    let ex = null;
+    try {
+      await context.web.verifyPageTitle("Shop BlinqIO1", {}, this);
+    } catch (error) {
+      ex = error;
+      //{textNotFound: true, lastError: 'failed to locate unique element', locatorNotFound: true, error: Error: failed to locate first element no eleme…d, ***** click on undefined *****attempt 0: …, fail: true}
+
+      console.log("error: " + error);
+    }
+    expect(ex).to.not.be.null;
   });
 });

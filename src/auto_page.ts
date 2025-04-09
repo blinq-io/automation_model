@@ -18,9 +18,9 @@ const navigate = async (path = "") => {
   } else {
     url = new URL(path, context!.environment!.baseUrl).href;
   }
-  await context!.stable!.goto(url);
+  await context!.web!.goto(url);
   context!.navigate = true;
-  await context!.stable!.waitForPageLoad();
+  await context!.web!.waitForPageLoad();
 };
 const _findEmptyFolder = (folder?: string) => {
   if (!folder) {
@@ -101,7 +101,7 @@ const initContext = async (
   }
   if (context) {
     const env = getEnv(envName);
-    if (env) {
+    if (env && !process.env.CDP_CONNECT_URL) {
       await getTestData(env, world);
     }
   }
@@ -162,7 +162,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
-            useValue = await decrypt("secret:" + item.value);
+            useValue = decrypt("secret:" + item.value);
           } else if (item.DataType === "totp") {
             testData[item.key] = "totp:" + item.value;
             useValue = "totp:" + item.value;
@@ -193,7 +193,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
         fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
       }
 
-      if (!dataFile) dataFile = _getDataFile(world, context, context?.stable);
+      if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {

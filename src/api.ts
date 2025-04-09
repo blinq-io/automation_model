@@ -5,6 +5,7 @@ import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
 import { _commandFinally, _reportToWorld } from "./command_common.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
+import { tryParseJson, replaceWithLocalTestData } from "./utils.js";
 
 interface Config {
   url: string;
@@ -150,38 +151,53 @@ class Api {
     state.info = info;
 
     let error: any = null;
-    const fixedUrl = repStrWParamTData(config.url, params, testData);
-    const fixedQueryParams = config.queryParams.map((param) => {
+    const fixedUrl = await repStrWParamTData(config.url, params, testData, world);
+    const fixedQueryParams = config.queryParams.map(async (param) => {
       return {
-        key: repStrWParamTData(param.key, params, testData),
-        value: repStrWParamTData(param.value, params, testData),
+        key: await repStrWParamTData(param.key, params, testData, world),
+        value: await repStrWParamTData(param.value, params, testData, world),
       };
     });
-    const fixedReqHeaders = config.headers.map((header) => {
+    const fixedReqHeaders = config.headers.map(async (header) => {
       return {
-        key: repStrWParamTData(header.key, params, testData),
-        value: repStrWParamTData(header.value, params, testData),
+        key: await repStrWParamTData(header.key, params, testData, world),
+        value: await repStrWParamTData(header.value, params, testData, world),
         enabled: header.enabled,
       };
     });
     if (config.authType === "Bearer") {
       //@ts-ignore
-      config.tokens.token = repStrWParamTData(config.tokens.token, params, testData);
+      config.tokens.token = await repStrWParamTData(config.tokens.token, params, testData, world);
     } else if (config.authType === "Basic") {
       //@ts-ignore
-      config.tokens.username = repStrWParamTData(config.tokens.username, params, testData);
+      config.tokens.username = await repStrWParamTData(config.tokens.username, params, testData, world);
       //@ts-ignore
-      config.tokens.password = repStrWParamTData(config.tokens.password, params, testData);
+      config.tokens.password = await repStrWParamTData(config.tokens.password, params, testData, world);
     }
-    const formattedUrl =
-      fixedQueryParams.filter((data) => !!data.key).length > 0
-        ? `${fixedUrl}?${fixedQueryParams.map((data) => `${data.key}=${data.value}`).join("&")}`
-        : fixedUrl;
+
+    if (config.bodyType === "raw") {
+      config.body = tryParseJson(await repStrWParamTData(config.body, params, testData, world));
+    }
+
+    let formattedUrl;
+    const urlObj = new URL(fixedUrl);
+    const existingParams = new URLSearchParams(urlObj.search);
+    if (existingParams.size > 0) {
+      formattedUrl =
+        (await Promise.all(fixedQueryParams)).filter(async (data) => !!data.key).length > 0
+          ? `${fixedUrl}&${(await Promise.all(fixedQueryParams)).map((param) => `${encodeURIComponent(param.key)}=${encodeURIComponent(param.value)}`).join("&")}`
+          : fixedUrl;
+    } else {
+      formattedUrl =
+        (await Promise.all(fixedQueryParams)).filter(async (data) => !!data.key).length > 0
+          ? `${fixedUrl}?${(await Promise.all(fixedQueryParams)).map((param) => `${encodeURIComponent(param.key)}=${encodeURIComponent(param.value)}`).join("&")}`
+          : fixedUrl;
+    }
 
     const axiosConfig = {
       method: config.method,
       url: formattedUrl,
-      headers: fixedReqHeaders.reduce((acc: { [key: string]: string }, header) => {
+      headers: (await Promise.all(fixedReqHeaders)).reduce((acc: { [key: string]: string }, header) => {
         if (header.enabled && header.key.length > 0) acc[header.key] = header.value;
         return acc;
       }, {}),
@@ -363,14 +379,12 @@ class Api {
   }
 }
 
-const repStrWParamTData = (str: string, params: Param, testData: any) => {
+const repStrWParamTData = async (str: string, params: Param, testData: any, world: any) => {
   let newStr = str;
   Object.keys(params).forEach((key) => {
-    newStr = newStr.replaceAll(`"<${key.slice(1)}>"`, params[key]);
+    newStr = newStr.replaceAll(`<${key.slice(1)}>`, params[key]);
   });
-  Object.keys(testData).forEach((key) => {
-    newStr = newStr.replaceAll(`{{${key}}}`, testData[key]);
-  });
+  newStr = await replaceWithLocalTestData(newStr, world, true, true, world.context);
   return newStr;
 };
 

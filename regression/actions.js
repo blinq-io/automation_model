@@ -19,7 +19,7 @@ describe("Actions Tests", function () {
     context = await initContext("/", true, false);
     //let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
     // let url = "http://[::]:8000/site/automation_model_regression/name_locators/"
-    //await context.stable.goto(url);
+    //await context.web.goto(url);
   });
   afterEach(async function () {
     await closeContext();
@@ -69,12 +69,7 @@ describe("Actions Tests", function () {
     let info = null;
     let key = "button_login";
     console.log(`click "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.click(
-      locElements[key],
-      null,
-      { screenshotPath: "./temp/1.png", screenshot: true },
-      null
-    );
+    info = await context.web.click(locElements[key], null, { screenshotPath: "./temp/1.png", screenshot: true }, null);
     const locatorLog = info.locatorLog.toString();
     //console.log("locatorLog: " + locatorLog);
     // verify that the locatorLog contain ***** click on login button *****
@@ -87,19 +82,14 @@ describe("Actions Tests", function () {
     let info = null;
     let key = "button_login";
     //console.log(`hover "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.hover(
-      locElements[key],
-      null,
-      { screenshotPath: "./temp/2.png", screenshot: true },
-      null
-    );
+    info = await context.web.hover(locElements[key], null, { screenshotPath: "./temp/2.png", screenshot: true }, null);
     //console.log("info object: " + JSON.stringify(info, null, 2));
   });
   it("clickType", async function () {
     let info = null;
     let key = "textbox_username";
     //console.log(`clickType "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.clickType(
+    info = await context.web.clickType(
       locElements[key],
       "hi",
       false,
@@ -113,7 +103,7 @@ describe("Actions Tests", function () {
     let info = null;
     let key = "textbox_username";
     //console.log(`fill "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.fill(
+    info = await context.web.fill(
       locElements[key],
       "hi",
       false,
@@ -127,7 +117,7 @@ describe("Actions Tests", function () {
     let info = null;
     let key = "section2";
     //console.log(`containsPattern "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.containsPattern(
+    info = await context.web.containsPattern(
       locElements[key],
       "{text}",
       "Accepted usernames are:",
@@ -141,7 +131,7 @@ describe("Actions Tests", function () {
     let info = null;
     //let key = "section2";
     //console.log(`verifyTextExistInPage let_me_in"`);
-    info = await context.stable.verifyTextExistInPage(
+    info = await context.web.verifyTextExistInPage(
       "let_me_in",
       { screenshotPath: "./temp/6.png", screenshot: true },
       null
@@ -151,7 +141,7 @@ describe("Actions Tests", function () {
   it("verifyTextRelatedToText", async function () {
     let info = null;
     //console.log(`verifyTextRelatedToText"`);
-    info = await context.stable.verifyTextRelatedToText(
+    info = await context.web.verifyTextRelatedToText(
       "blinq_user",
       2,
       "blinq_admin",
@@ -164,7 +154,7 @@ describe("Actions Tests", function () {
     let info = null;
     let key = "button_login";
     //console.log(`extract "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.extractAttribute(
+    info = await context.web.extractAttribute(
       locElements[key],
       "inner_text",
       "login_name",
@@ -180,21 +170,16 @@ describe("Actions Tests", function () {
   it("closePage", async function () {
     let info = null;
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/form/";
-    await context.stable.goto(url);
+    await context.web.goto(url);
     let key = "button_google";
     //console.log(`click "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.click(
-      locElements[key],
-      null,
-      { screenshotPath: "./temp/8.png", screenshot: true },
-      null
-    );
+    info = await context.web.click(locElements[key], null, { screenshotPath: "./temp/8.png", screenshot: true }, null);
     //console.log("info object: " + JSON.stringify(info, null, 2));
     //console.log("closePage");
-    info = await context.stable.closePage({ screenshotPath: "./temp/9.png", screenshot: true }, null);
+    info = await context.web.closePage({ screenshotPath: "./temp/9.png", screenshot: true }, null);
     //console.log("info object: " + JSON.stringify(info, null, 2));
     //console.log(`verifyTextExistInPage Hi you"`);
-    info = await context.stable.verifyTextExistInPage(
+    info = await context.web.verifyTextExistInPage(
       "Hi you",
       { screenshotPath: "./temp/10.png", screenshot: true },
       null
@@ -204,9 +189,9 @@ describe("Actions Tests", function () {
   it("setDateTime", async function () {
     let info = null;
     let url = "https://main.dldrg2rtamdtd.amplifyapp.com/site/automation_model_regression/name_locators/index.html";
-    await context.stable.goto(url);
+    await context.web.goto(url);
     let key = "date";
-    info = await context.stable.setDateTime(
+    info = await context.web.setDateTime(
       locElements[key],
       "2024-11-08",
       null,
@@ -217,7 +202,7 @@ describe("Actions Tests", function () {
     );
     //console.log("info object: " + JSON.stringify(info, null, 2));
     key = "time";
-    info = await context.stable.setDateTime(
+    info = await context.web.setDateTime(
       locElements[key],
       "2024-11-08T12:30:00",
       null,
@@ -232,7 +217,7 @@ describe("Actions Tests", function () {
     let info = null;
     let key = "button_login";
     console.log(`verifyAttribute "${key}" element using locator "${locElements[key].locators[0].css}"`);
-    info = await context.stable.verifyAttribute(
+    info = await context.web.verifyAttribute(
       locElements[key],
       "innerText",
       "LOGIN",
@@ -245,7 +230,7 @@ describe("Actions Tests", function () {
     let info = null;
     //let key = "section2";
     console.log(`verifyTextExistInPage let_me_in"`);
-    info = await context.stable.verifyTextExistInPage(
+    info = await context.web.verifyTextExistInPage(
       "/blinq_user\\s*blinq_.*/",
       { screenshotPath: "./temp/14.png", screenshot: true },
       null

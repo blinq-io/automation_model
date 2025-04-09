@@ -1,10 +1,10 @@
 import CryptoJS from "crypto-js";
-import objectPath from "object-path";
 
 import path from "path";
 import { TOTP } from "totp-generator";
 import fs from "fs";
 import axios from "axios";
+import objectPath from "object-path";
 // Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
@@ -13,8 +13,25 @@ function encrypt(text: string, key: string | null = null) {
   return CryptoJS.AES.encrypt(text, key).toString();
 }
 
+function getTestDataValue(key: string, environment = "*") {
+  const blinqEnvPath = "data/data.json";
+  const envPath = path.resolve(process.cwd(), blinqEnvPath);
+  const envJson = JSON.parse(fs.readFileSync(envPath, "utf-8"));
+  const dataArray = envJson[environment];
+  const item = dataArray.find((item: any) => item.key === key);
+  if (!item) {
+    throw new Error(`Key ${key} not found in data.json`);
+  }
+  if (item.DataType === "string") {
+    return item.value;
+  } else if (item.DataType === "secret" || item.DataType === "totp") {
+    return decrypt(item.value, null, false);
+  }
+  throw new Error(`Unsupported data type for key ${key}`);
+}
+
 // Function to decrypt a string
-async function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
+function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
   if (!key) {
     key = _findKey();
   }
@@ -26,13 +43,13 @@ async function decrypt(encryptedText: string, key: string | null = null, totpWai
     const bytes = CryptoJS.AES.decrypt(encryptedText, key);
     encryptedText = bytes.toString(CryptoJS.enc.Utf8);
     let { otp, expires } = TOTP.generate(encryptedText);
-    if (totpWait) {
-      // expires is in unix time, check if we have at least 10 seconds left, if it's less than wait for the expires time
-      if (expires - Date.now() < 10000) {
-        await new Promise((resolve) => setTimeout(resolve, (expires - Date.now() + 1000) % 30000));
-        ({ otp, expires } = TOTP.generate(encryptedText));
-      }
-    }
+    // if (totpWait) {
+    //   // expires is in unix time, check if we have at least 10 seconds left, if it's less than wait for the expires time
+    //   if (expires - Date.now() < 10000) {
+    //     await new Promise((resolve) => setTimeout(resolve, (expires - Date.now() + 1000) % 30000));
+    //     ({ otp, expires } = TOTP.generate(encryptedText));
+    //   }
+    // }
     return otp;
   }
 
@@ -93,6 +110,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
   }
   return query + pattern + queryEnd;
 }
+
 function escapeRegex(str: string) {
   // Special regex characters that need to be escaped
   const specialChars = [
@@ -135,12 +153,12 @@ function _findKey() {
   // extract the base folder name
   return path.basename(folder);
 }
-function _getDataFile(world: any = null, context: any = null, stable: any = null) {
+function _getDataFile(world: any = null, context: any = null, web: any = null) {
   let dataFile = null;
   if (world && world.reportFolder) {
     dataFile = path.join(world.reportFolder, "data.json");
-  } else if (stable && stable.reportFolder) {
-    dataFile = path.join(stable.reportFolder, "data.json");
+  } else if (web && web.reportFolder) {
+    dataFile = path.join(web.reportFolder, "data.json");
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
   } else {
@@ -148,8 +166,25 @@ function _getDataFile(world: any = null, context: any = null, stable: any = null
   }
   return dataFile;
 }
-function _getTestData(world = null, context = null, stable = null) {
-  const dataFile = _getDataFile(world, context, stable);
+
+function _getTestDataFile(world: any = null, context: any = null, web: any = null) {
+  let dataFile = null;
+  if (world && world.reportFolder) {
+    dataFile = path.join(world.reportFolder, "data.json");
+  } else if (web && web.reportFolder) {
+    dataFile = path.join(web.reportFolder, "data.json");
+  } else if (context && context.reportFolder) {
+    dataFile = path.join(context.reportFolder, "data.json");
+  } else if (fs.existsSync(path.join("data", "data.json"))) {
+    dataFile = path.join("data", "data.json");
+  } else {
+    dataFile = "data.json";
+  }
+  return dataFile;
+}
+
+function _getTestData(world = null, context = null, web = null) {
+  const dataFile = _getTestDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -162,17 +197,21 @@ async function replaceWithLocalTestData(
   _decrypt = true,
   totpWait = true,
   context: any = null,
-  stable: any = null
+  web: any = null
 ) {
   if (!value) {
     return value;
+  }
+  let env = "";
+
+  if (context && context.environment) {
+    env = context.environment.name;
   }
   // find all the accurance of {{(.*?)}} and replace with the value
   let regex = /{{(.*?)}}/g;
   let matches = value.match(regex);
   if (matches) {
-    const testData = _getTestData(world, context, stable);
-
+    const testData = _getTestData(world, context, web);
     for (let i = 0; i < matches.length; i++) {
       let match = matches[i];
       let key = match.substring(2, match.length - 2);
@@ -203,16 +242,22 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = objectPath.get(testData, key, null);
+        let newValue = replaceTestDataValue(env, key, testData);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
+        } else {
+          newValue = replaceTestDataValue("*", key, testData);
+
+          if (newValue !== null) {
+            value = value.replace(match, newValue);
+          }
         }
       }
     }
   }
   if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
-    return await decrypt(value, null, totpWait);
+    return decrypt(value, null, totpWait);
   }
   // check if the value is ${}
   if (value.startsWith("${") && value.endsWith("}")) {
@@ -221,6 +266,49 @@ async function replaceWithLocalTestData(
 
   return value;
 }
+
+interface TestDataArray {
+  [key: string]: {
+    DataType: string;
+    key: string;
+    value: string;
+  }[];
+}
+
+interface TestDataValue {
+  [key: string]: string;
+}
+
+type TestData = TestDataArray | TestDataValue;
+
+function replaceTestDataValue(env: string, key: string, testData: TestData) {
+  const path = key.split(".");
+  const value = objectPath.get(testData, path);
+  if (value && !Array.isArray(value)) {
+    return value as string;
+  }
+
+  const dataArray = (testData as TestDataArray)[env];
+
+  if (!dataArray) {
+    return null;
+  }
+
+  for (const obj of dataArray) {
+    if (obj.key !== key) {
+      continue;
+    }
+
+    if (obj.DataType === "secret") {
+      return decrypt(`secret:${obj.value}`, null);
+    }
+
+    return obj.value;
+  }
+
+  return null;
+}
+
 function evaluateString(template: string, parameters: any) {
   if (!parameters) {
     parameters = {};
@@ -614,8 +702,26 @@ function _getServerUrl() {
     serviceUrl = "https://dev.api.blinq.io";
   } else if (process.env.NODE_ENV_BLINQ === "stage") {
     serviceUrl = "https://stage.api.blinq.io";
+  } else if (process.env.NODE_ENV_BLINQ === "prod") {
+    serviceUrl = "https://api.blinq.io";
+  } else if (!process.env.NODE_ENV_BLINQ) {
+    serviceUrl = "https://api.blinq.io";
+  } else {
+    serviceUrl = process.env.NODE_ENV_BLINQ;
   }
   return serviceUrl;
+}
+
+function tryParseJson(input: any): any {
+  if (typeof input === "string") {
+    try {
+      return JSON.parse(input);
+    } catch {
+      // If parsing fails, return the original input (assumed to be plain text or another format)
+      return input;
+    }
+  }
+  return input;
 }
 
 export {
@@ -635,6 +741,8 @@ export {
   Params,
   _getServerUrl,
   _convertToRegexQuery,
+  extractStepExampleParameters,
   _getDataFile,
-  extractStepExampleParameters
+  tryParseJson,
+  getTestDataValue,
 };

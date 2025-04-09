@@ -120,15 +120,15 @@ const login = async function (username, password) {
   let options = {};
   options.screenshot = true;
   options.screenshotPath = getScreenShotPath();
-  await context.stable.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
+  await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
   // Fill password field with "password"
-  await context.stable.clickType(elements["textbox_password"], password, false, _params, options, null);
+  await context.web.clickType(elements["textbox_password"], password, false, _params, options, null);
   // Click on login button
   options.screenshotPath = getScreenShotPath();
-  await context.stable.click(elements["button_login"], _params, options, null);
-  await context.stable.saveStoreState(null, this);
-  await context.stable.restoreSaveState(null, this);
-  await context.stable.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard");
+  await context.web.click(elements["button_login"], _params, options, null);
+  await context.web.saveStoreState(null, this);
+  await context.web.restoreSaveState(null, this);
+  await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard");
 };
 await login("blinq_user", "let_me_in");
 
