@@ -5,7 +5,7 @@ import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
 import { _commandFinally, _reportToWorld } from "./command_common.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
-import { replaceWithLocalTestData } from "./utils.js";
+import { tryParseJson, replaceWithLocalTestData } from "./utils.js";
 
 interface Config {
   url: string;
@@ -173,6 +173,10 @@ class Api {
       config.tokens.username = await repStrWParamTData(config.tokens.username, params, testData, world);
       //@ts-ignore
       config.tokens.password = await repStrWParamTData(config.tokens.password, params, testData, world);
+    }
+
+    if (config.bodyType === "raw") {
+      config.body = tryParseJson(await repStrWParamTData(config.body, params, testData, world));
     }
 
     let formattedUrl;

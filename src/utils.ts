@@ -695,6 +695,18 @@ function _getServerUrl() {
   return serviceUrl;
 }
 
+function tryParseJson(input: any): any {
+  if (typeof input === "string") {
+    try {
+      return JSON.parse(input);
+    } catch {
+      // If parsing fails, return the original input (assumed to be plain text or another format)
+      return input;
+    }
+  }
+  return input;
+}
+
 export {
   encrypt,
   decrypt,
@@ -714,4 +726,5 @@ export {
   _convertToRegexQuery,
   extractStepExampleParameters,
   _getDataFile,
+  tryParseJson,
 };
