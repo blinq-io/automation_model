@@ -12,6 +12,7 @@ function encrypt(text: string, key: string | null = null) {
   }
   return CryptoJS.AES.encrypt(text, key).toString();
 }
+
 function getTestDataValue(key: string, environment = "*") {
   const blinqEnvPath = "data/data.json";
   const envPath = path.resolve(process.cwd(), blinqEnvPath);
@@ -28,6 +29,7 @@ function getTestDataValue(key: string, environment = "*") {
   }
   throw new Error(`Unsupported data type for key ${key}`);
 }
+
 // Function to decrypt a string
 function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
   if (!key) {
@@ -240,12 +242,12 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = await replaceTestDataValue(env, key, testData);
+        let newValue = replaceTestDataValue(env, key, testData);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
         } else {
-          newValue = await replaceTestDataValue("*", key, testData);
+          newValue = replaceTestDataValue("*", key, testData);
 
           if (newValue !== null) {
             value = value.replace(match, newValue);
@@ -279,7 +281,7 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-async function replaceTestDataValue(env: string, key: string, testData: TestData) {
+function replaceTestDataValue(env: string, key: string, testData: TestData) {
   const path = key.split(".");
   const value = objectPath.get(testData, path);
   if (value && !Array.isArray(value)) {
