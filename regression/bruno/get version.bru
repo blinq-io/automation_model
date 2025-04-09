@@ -1,0 +1,17 @@
+meta {
+  name: get version
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.github.com/repos/blinq-io/recorder-app-releases/releases/latest
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("should be able to login", function() {
+      expect(res.status).to.equal(200);
+    });
+}
