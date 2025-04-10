@@ -109,5 +109,22 @@ export async function findElementsInArea(cssSelector: string, area: any, web: an
       foundElements.push(element);
     }
   }
+  if (foundElements.length === 0) {
+    // find elements that intersect with the area
+    for (const element of elements) {
+      const rect = await element.boundingBox();
+      if (!rect) {
+        continue;
+      }
+      if (
+        rect.x + rect.width >= area.x &&
+        rect.x <= area.x + area.width &&
+        rect.y + rect.height >= area.y &&
+        rect.y <= area.y + area.height
+      ) {
+        foundElements.push(element);
+      }
+    }
+  }
   return foundElements;
 }
