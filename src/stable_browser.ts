@@ -659,7 +659,7 @@ class StableBrowser {
         if (frameSelectorIndex !== -1) {
           // remove everything after the >> internal:control=enter-frame
           const frameSelector = element._selector.substring(0, frameSelectorIndex);
-          prefixSelector = frameSelector + " >> internal:control=enter-frame";
+          prefixSelector = frameSelector + " >> internal:control=enter-frame >>";
         }
         // if (element?._frame?._selector) {
         //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
