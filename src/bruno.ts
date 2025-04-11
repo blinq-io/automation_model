@@ -3,6 +3,7 @@ import fs from "fs";
 import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
+import exp from "constants";
 
 export async function executeBrunoRequest(requestName: string, options: any, context: any, world: any) {
   if (!options) {
@@ -41,19 +42,77 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     const brunoConfigFile = path.join(brunoFolder, "bruno.json");
     // check if the bruno config file exists and copy it to the runtime folder
     if (fs.existsSync(brunoConfigFile)) {
-      fs.copyFileSync(brunoConfigFile, path.join(runtimeFolder, "bruno.json"));
+      // read the bruno config file
+      const brunoConfig = JSON.parse(fs.readFileSync(brunoConfigFile, "utf-8"));
+      if (!brunoConfig.scripts) {
+        brunoConfig.scripts = {
+          filesystemAccess: {
+            allow: true,
+          },
+        };
+      }
+      fs.writeFileSync(path.join(runtimeFolder, "bruno.json"), JSON.stringify(brunoConfig, null, 2));
     }
-
+    let expectRuntime = false;
     // read the bruno file
     let brunoFileContent = fs.readFileSync(brunoFile, "utf-8");
     // populate runtime variables
     brunoFileContent = await context.web._replaceWithLocalData(brunoFileContent, world);
+    // inject code to extract runtime variables
+    // first find the script:post-response
+    const scriptPostResponse = brunoFileContent.indexOf("script:post-response {");
+    if (scriptPostResponse !== -1) {
+      // need to search a new line follow by }
+      // find the end of the script
+      const scriptEnd = brunoFileContent.indexOf("\n}", scriptPostResponse);
+      // extract the script
+      const script = brunoFileContent.substring(scriptPostResponse, scriptEnd + 2);
+      // extract all the variables key names: bru.setVar("key", value)
+      const regex = /bru\.setVar\("([^"]+)",/g;
+      const variables: string[] = [];
+      let match;
+      while ((match = regex.exec(script)) !== null) {
+        // check if the variable is already in the list
+        if (!variables.includes(match[1])) {
+          variables.push(match[1]);
+        }
+      }
+      // check if the variables are not empty
+      if (variables.length > 0) {
+        expectRuntime = true;
+        let scriptVariables = "const runtimeVariables = {};\n";
+        // iterate over the variables and create a script to extract them
+        for (const variable of variables) {
+          scriptVariables += `  runtimeVariables["${variable}"] = bru.getVar("${variable}");\n`;
+        }
+        // check if the variable is not empty
+        // replace the script with the modified one
+        brunoFileContent = brunoFileContent.replace(
+          script,
+          `script:post-response {
+  const fs = require('fs');
+  // inject code to extract runtime variables
+  ${script.substring(script.indexOf("{") + 1, script.lastIndexOf("}"))}
+  // write the runtime variables to a file
+  ${scriptVariables}
+  fs.writeFileSync("${path.join(runtimeFolder, "runtime.json")}", JSON.stringify(runtimeVariables, null, 2));
+}`
+        );
+      }
+    }
+
     // write the bruno file to the runtime folder
     fs.writeFileSync(path.join(runtimeFolder, `${requestName}.bru`), brunoFileContent);
     const outputFile = path.join(runtimeFolder, `bruno_${context.web.stepIndex ? context.web.stepIndex : 0}.json`);
     if (fs.existsSync(outputFile)) {
       // remove the file if it exists
       fs.unlinkSync(outputFile);
+    }
+    // if the runtime.json file exists, remove it
+    const runtimeFile = path.join(runtimeFolder, "runtime.json");
+    if (fs.existsSync(runtimeFile)) {
+      // remove the file if it exists
+      fs.unlinkSync(runtimeFile);
     }
     const commandOptions = {
       cwd: runtimeFolder,
@@ -142,6 +201,16 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       const data: Record<string, any> = {};
       data[options.testDataScope] = result[0].results.response;
       context.web.setTestData(data, world);
+    }
+    // if the expectRuntime is true, read the runtime.json file
+    if (expectRuntime) {
+      // check if the runtime.json file exists
+      if (fs.existsSync(runtimeFile)) {
+        // read the runtime.json file
+        const runtimeData = JSON.parse(fs.readFileSync(runtimeFile, "utf-8"));
+        // set test data
+        context.web.setTestData(runtimeData, world);
+      }
     }
     return result;
   } catch (error) {
