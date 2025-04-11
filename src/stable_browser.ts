@@ -2063,6 +2063,9 @@ class StableBrowser {
         case "value":
           state.value = await state.element.inputValue();
           break;
+        case "text":
+          state.value = await state.element.textContent();
+          break;
         default:
           state.value = await state.element.getAttribute(attribute);
           break;
@@ -2101,11 +2104,14 @@ class StableBrowser {
     let expectedValue;
     try {
       await _preCommand(state, this);
-      expectedValue = state.value;
+      expectedValue = await replaceWithLocalTestData(state.value, world);
       state.info.expectedValue = expectedValue;
       switch (attribute) {
         case "innerText":
           val = String(await state.element.innerText());
+          break;
+        case "text":
+          val = String(await state.element.textContent());
           break;
         case "value":
           val = String(await state.element.inputValue());
