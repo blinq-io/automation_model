@@ -3,6 +3,7 @@ import { getContext } from "../build/lib/init_browser.js";
 import { executeBrunoRequest } from "../build/lib/bruno.js";
 import fs from "fs";
 import { expect } from "chai";
+import { getTestDataValue } from "../build/lib/utils.js";
 
 let context = null;
 
@@ -32,5 +33,6 @@ describe("bruno", function () {
       this
     );
     expect(result[0].summary.passedRequests).to.equal(1);
+    expect(context.web.getTestData(this).id).to.not.be.null;
   });
 });

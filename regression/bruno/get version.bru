@@ -10,6 +10,10 @@ get {
   auth: inherit
 }
 
+script:post-response {
+  bru.setVar("id",res.body.id)
+}
+
 tests {
   test("should be able to login", function() {
       expect(res.status).to.equal(200);
