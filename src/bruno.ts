@@ -25,7 +25,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
   await _preCommand(state, context.web);
   try {
     let brunoFolder = options.brunoFolder || path.join(process.cwd(), "bruno");
-    if (!options.brunoFolder) {
+    if (!brunoFolder) {
       throw new Error("brunoFolder is not defined, place your bruno folder in the current working directory.");
     }
     // generate a temporary folder .tmp under the project root
