@@ -36,7 +36,7 @@ class BrowserManager {
       this.browsers = [];
     }
 
-    if (browser) {
+    if (browser && !process.env.IGNORE_BROWSER_CLOSE) {
       await browser.close();
       for (let i = 0; i < this.browsers.length; i++) {
         if (this.browsers[i].browser === browser || this.browsers[i] === browser) {
