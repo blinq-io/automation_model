@@ -107,6 +107,7 @@ export async function _commandError(state: any, error: any, web: any) {
   const errorClassification = getHumanReadableErrorMessage(error, state.info);
   state.info.errorType = errorClassification.errorType;
   state.info.errorMessage = errorClassification.errorMessage;
+  state.info.errorStack = error.stack;
 
   Object.assign(error, { info: state.info });
   state.error = error;
