@@ -126,6 +126,9 @@ const getEnv = (envName: string | null) => {
   return null;
 };
 const closeContext = async () => {
+  if (process.env.TEMP_RUN) {
+    return;
+  }
   try {
     if (context && context.browser) {
       await browserManager.closeBrowser(context.browser);
