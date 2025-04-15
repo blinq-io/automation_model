@@ -302,6 +302,9 @@ function replaceTestDataValue(env: string, key: string, testData: TestData) {
     if (obj.DataType === "secret") {
       return decrypt(`secret:${obj.value}`, null);
     }
+    if (obj.DataType === "totp") {
+        return `totp:${obj.value}`;
+    }
 
     return obj.value;
   }
