@@ -242,12 +242,12 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = replaceTestDataValue(env, key, testData);
+        let newValue = replaceTestDataValue(env, key, testData, true);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
         } else {
-          newValue = replaceTestDataValue("*", key, testData);
+          newValue = replaceTestDataValue("*", key, testData, true);
 
           if (newValue !== null) {
             value = value.replace(match, newValue);
@@ -281,7 +281,7 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-function replaceTestDataValue(env: string, key: string, testData: TestData) {
+function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true) {
   const path = key.split(".");
   const value = objectPath.get(testData, path);
   if (value && !Array.isArray(value)) {
@@ -300,9 +300,12 @@ function replaceTestDataValue(env: string, key: string, testData: TestData) {
     }
 
     if (obj.DataType === "secret") {
-      return decrypt(`secret:${obj.value}`, null);
+      if (decryptValue === true) {
+        return decrypt(`secret:${obj.value}`, null);
+      } else {
+        return `secret:${obj.value}`;
+      }
     }
-
     return obj.value;
   }
 
@@ -745,4 +748,5 @@ export {
   _getDataFile,
   getTestDataValue,
   tryParseJson,
+  replaceTestDataValue,
 };
