@@ -2,7 +2,7 @@ import { stat } from "fs";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { JsonCommandReport } from "./stable_browser.js";
-import { _fixUsingParams, maskValue } from "./utils.js";
+import { _fixUsingParams, maskValue, replaceTestDataValue } from "./utils.js";
 
 export async function _preCommand(state: any, web: any) {
   if (!state) {
@@ -141,12 +141,32 @@ export function _commandFinally(state: any, web: any) {
     state.info.failCause = {};
   }
   state.endTime = Date.now();
+
+  const testData = web.getTestData(state.world);
+  const environment = process.env.BLINQ_ENV?.split("environments/")[1].split(".json")[0] ?? "*";
+
+  let _value: string = "";
+
+  if (state.originalValue) {
+    try {
+      if (state.originalValue.startsWith("{{") && state.originalValue.endsWith("}}")) {
+        const key = state.originalValue.slice(2, -2);
+        _value = replaceTestDataValue(environment, key, testData, false) as string;
+      } else {
+        _value = replaceTestDataValue(environment, state.originalValue, testData, false) as string;
+      }
+    } catch (e) {
+      console.error("Error replacing test data value", e);
+      _value = state.originalValue;
+    }
+  }
+
   const reportObject = {
     element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
     text: state.text,
     _text: state._text,
-    value: state.originalValue ? maskValue(state.originalValue) : state.value,
+    value: state.originalValue ? maskValue(_value) : state.value,
     screenshotId: state.screenshotId,
     result: state.error
       ? {
