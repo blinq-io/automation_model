@@ -219,6 +219,30 @@ class StableBrowser {
       await this.waitForPageLoad();
     }
   }
+  async switchTab(tabTitleOrIndex: number | string) {
+    // first check if the tabNameOrIndex is a number
+    let index = parseInt(tabTitleOrIndex);
+    if (!isNaN(index)) {
+      if (index >= 0 && index < this.context.pages.length) {
+        this.page = this.context.pages[index];
+        this.context.page = this.page;
+        await this.page.bringToFront();
+        return;
+      }
+    }
+    // if the tabNameOrIndex is a string, find the tab by name
+    for (let i = 0; i < this.context.pages.length; i++) {
+      let page = this.context.pages[i];
+      let title = await page.title();
+      if (title.includes(tabTitleOrIndex)) {
+        this.page = page;
+        this.context.page = this.page;
+        await this.page.bringToFront();
+        return;
+      }
+    }
+    throw new Error("Tab not found: " + tabTitleOrIndex);
+  }
 
   registerConsoleLogListener(page: Page, context: any) {
     if (!this.context.webLogger) {
