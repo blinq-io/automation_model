@@ -38,7 +38,7 @@ describe("bruno", function () {
   it("create object", async function () {
     try {
       const result = await executeBrunoRequest(
-        "Create object",
+        "Create Object",
         {
           brunoFolder: "./regression/bruno",
         },
