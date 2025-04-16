@@ -84,6 +84,7 @@ export const Types = {
   WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
   VERIFY_ATTRIBUTE: "verify_element_attribute",
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
+  BRUNO: "bruno",
 };
 export const apps = {};
 
