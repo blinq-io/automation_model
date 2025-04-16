@@ -4,7 +4,17 @@ import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
 import exp from "constants";
-
+interface BrunoConfig {
+  version: string;
+  name: string;
+  type: string;
+  ignore: string[];
+  scripts?: {
+    filesystemAccess: {
+      allow: boolean;
+    };
+  };
+}
 export async function executeBrunoRequest(requestName: string, options: any, context: any, world: any) {
   if (!options) {
     options = {};
@@ -40,10 +50,16 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       throw new Error(`Bruno file not found: ${brunoFile}`);
     }
     const brunoConfigFile = path.join(brunoFolder, "bruno.json");
+    let brunoConfig: BrunoConfig = {
+      version: "1",
+      name: "blinq",
+      type: "collection",
+      ignore: ["node_modules", ".git"],
+    };
     // check if the bruno config file exists and copy it to the runtime folder
     if (fs.existsSync(brunoConfigFile)) {
       // read the bruno config file
-      const brunoConfig = JSON.parse(fs.readFileSync(brunoConfigFile, "utf-8"));
+      brunoConfig = JSON.parse(fs.readFileSync(brunoConfigFile, "utf-8"));
       if (!brunoConfig.scripts) {
         brunoConfig.scripts = {
           filesystemAccess: {
@@ -51,8 +67,8 @@ export async function executeBrunoRequest(requestName: string, options: any, con
           },
         };
       }
-      fs.writeFileSync(path.join(runtimeFolder, "bruno.json"), JSON.stringify(brunoConfig, null, 2));
     }
+    fs.writeFileSync(path.join(runtimeFolder, "bruno.json"), JSON.stringify(brunoConfig, null, 2));
     let expectRuntime = false;
     // read the bruno file
     let brunoFileContent = fs.readFileSync(brunoFile, "utf-8");
@@ -176,6 +192,17 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       "failedTests": 0
     },
     */
+    if (
+      result &&
+      result.length > 0 &&
+      result[0] &&
+      result[0].results &&
+      result[0].results.length > 0 &&
+      result[0].results[0].error
+    ) {
+      console.error(`Error executing Bruno request: ${result[0].results[0].error}`);
+      throw new Error(`Bruno request failed: ${result[0].results[0].error}`);
+    }
     if (!result || !Array.isArray(result) || result.length === 0) {
       throw new Error(`Bruno request failed: ${stderr}`);
     }
@@ -243,11 +270,11 @@ const runCommand = async (args: string[], options: any) => {
     });
 
     child.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(`Process exited with code ${code}: ${stderr}`));
-      } else {
-        resolve({ stdout, stderr });
-      }
+      // if (code !== 0) {
+      //   reject(new Error(`Process exited with code ${code}: ${stderr}`));
+      // } else {
+      resolve({ stdout, stderr });
+      //}
     });
   });
 };
