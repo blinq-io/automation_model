@@ -131,6 +131,8 @@ class Browser {
     if (process.env.VIEWPORT) {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
+    } else {
+      viewport = { width: 1280, height: 800 };
     }
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
     if (process.env.CDP_LISTEN_PORT) {
