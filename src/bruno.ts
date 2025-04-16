@@ -232,8 +232,17 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       }
       throw new Error(`Bruno request failed: ${assertionError}`);
     }
+    let testsError = "";
     if (summary.totalTests !== summary.passedTests) {
-      throw new Error(`Bruno request failed: ${stderr}`);
+      testsError = "";
+      if (result[0].results && result[0].results.length > 0 && result[0].results[0].testResults) {
+        for (const testResult of result[0].results[0].testResults) {
+          if (testResult.error) {
+            testsError += testResult.error + "\n";
+          }
+        }
+      }
+      throw new Error(`Bruno tests failed: ${testsError}`);
     }
     console.log(requestName + " - request executed successfully");
     console.log(`requests:     ${summary.passedRequests}/${summary.totalRequests}`);
