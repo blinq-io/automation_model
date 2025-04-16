@@ -242,12 +242,12 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = replaceTestDataValue(env, key, testData, true);
+        let newValue = replaceTestDataValue(env, key, testData, _decrypt);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
         } else {
-          newValue = replaceTestDataValue("*", key, testData, true);
+          newValue = replaceTestDataValue("*", key, testData, _decrypt);
 
           if (newValue !== null) {
             value = value.replace(match, newValue);

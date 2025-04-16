@@ -282,7 +282,7 @@ class Api {
     } finally {
       const statusText = res.statusText ? res.statusText : error ? error.code : null;
       state.info.statusText = statusText;
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async requestWithAuth(methodName: string, world: any, token: string, params: any) {
@@ -373,7 +373,7 @@ class Api {
       } finally {
         const statusText = res.statusText ? res.statusText : error ? error.code : null;
         state.info.statusText = statusText;
-        _commandFinally(state, this);
+        await _commandFinally(state, this);
       }
     }
   }
