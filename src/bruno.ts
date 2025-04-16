@@ -43,6 +43,17 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     if (!fs.existsSync(runtimeFolder)) {
       fs.mkdirSync(runtimeFolder);
     }
+    // link node_modules to the runtime folder
+    const nodeModulesFolder = path.join(process.cwd(), "node_modules");
+    if (fs.existsSync(nodeModulesFolder)) {
+      // check if the node_modules folder exists
+      const runtimeNodeModulesFolder = path.join(runtimeFolder, "node_modules");
+      if (!fs.existsSync(runtimeNodeModulesFolder)) {
+        // create a symbolic link to the node_modules folder
+        fs.symlinkSync(nodeModulesFolder, runtimeNodeModulesFolder, "dir");
+      }
+    }
+
     // identify the bruno file
     const brunoFile = path.join(brunoFolder, `${requestName}.bru`);
     // check if the bruno file exists
@@ -211,7 +222,15 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       throw new Error(`Bruno request failed: ${stderr}`);
     }
     if (summary.totalAssertions !== summary.passedAssertions) {
-      throw new Error(`Bruno request failed: ${stderr}`);
+      let assertionError = "";
+      if (result[0].results && result[0].results.length > 0 && result[0].results[0].assertionResults) {
+        for (const assertion of result[0].results[0].assertionResults) {
+          if (assertion.error) {
+            assertionError += assertion.error + "\n";
+          }
+        }
+      }
+      throw new Error(`Bruno request failed: ${assertionError}`);
     }
     if (summary.totalTests !== summary.passedTests) {
       throw new Error(`Bruno request failed: ${stderr}`);
