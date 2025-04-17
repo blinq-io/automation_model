@@ -154,13 +154,45 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
       const testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
+      
+      // Process currentEnvData first to give it precedence
+      if (currentEnvData) {
+        for (let i = 0; i < currentEnvData.length; i++) {
+          const item = currentEnvData[i];
+          let useValue = item.value;
+          
+          if (item.DataType === "secret") {
+            testData[item.key] = "secret:" + item.value;
+            // decrypt the secret
+            useValue = decrypt("secret:" + item.value);
+          } else if (item.DataType === "totp") {
+            testData[item.key] = "totp:" + item.value;
+            useValue = "totp:" + item.value;
+          } else {
+            testData[item.key] = item.value;
+          }
+          
+          // Add current env data to process.env
+          process.env[item.key] = useValue;
+        }
+      }
+      
+      // Then process allEnvData
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
+          
+          // Skip if already set by currentEnvData
+          if (testData.hasOwnProperty(item.key)) {
+            continue;
+          }
+          
+          // Use process.env value if available
           if (process.env[item.key]) {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
+          
           let useValue = item.value;
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
@@ -172,28 +204,16 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           } else {
             testData[item.key] = item.value;
           }
-          // if the key is not part of process.env, add it so any test dava value can be access via process.env
-          process.env[item.key] = useValue;
-        }
-      }
-      if (currentEnvData) {
-        for (let i = 0; i < currentEnvData.length; i++) {
-          const item = currentEnvData[i];
-          if (process.env[item.key] && item.key.toLowerCase() !== "username") {
-            testData[item.key] = process.env[item.key]!;
-            continue;
-          }
-          if (item.DataType === "secret") {
-            testData[item.key] = "secret:" + item.value;
-          } else if (item.DataType === "totp") {
-            testData[item.key] = "totp:" + item.value;
-          } else {
-            testData[item.key] = item.value;
+          
+          // Add to process.env if not already set
+          if (!process.env[item.key]) {
+            process.env[item.key] = useValue;
           }
         }
       }
-      if (dataFile && !existsSync(path.dirname(dataFile!))) {
-        fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
+      
+      if (dataFile && !existsSync(path.dirname(dataFile))) {
+        fs.mkdirSync(path.dirname(dataFile), { recursive: true });
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
