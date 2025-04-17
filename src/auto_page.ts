@@ -154,13 +154,45 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
       const testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
+
+      // Process currentEnvData first to give it precedence
+      if (currentEnvData) {
+        for (let i = 0; i < currentEnvData.length; i++) {
+          const item = currentEnvData[i];
+          let useValue = item.value;
+
+          if (item.DataType === "secret") {
+            testData[item.key] = "secret:" + item.value;
+            // decrypt the secret
+            useValue = decrypt("secret:" + item.value);
+          } else if (item.DataType === "totp") {
+            testData[item.key] = "totp:" + item.value;
+            useValue = "totp:" + item.value;
+          } else {
+            testData[item.key] = item.value;
+          }
+
+          // Add current env data to process.env
+          process.env[item.key] = useValue;
+        }
+      }
+
+      // Then process allEnvData
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+
+          // Skip if already set by currentEnvData
+          if (testData.hasOwnProperty(item.key)) {
+            continue;
+          }
+
+          // Use process.env value if available
+          if (process.env[item.key]) {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
+
           let useValue = item.value;
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
@@ -192,8 +224,9 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           }
         }
       }
-      if (dataFile && !existsSync(path.dirname(dataFile!))) {
-        fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
+
+      if (dataFile && !existsSync(path.dirname(dataFile))) {
+        fs.mkdirSync(path.dirname(dataFile), { recursive: true });
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
