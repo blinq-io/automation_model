@@ -340,7 +340,7 @@ class StableBrowser {
       console.error("Error on goto", error);
       _commandError(state, error, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1072,7 +1072,7 @@ class StableBrowser {
           try {
             await _commandError(state, "timeout looking for " + elementDescription, this);
           } finally {
-            _commandFinally(state, this);
+            await _commandFinally(state, this);
           }
         }
       }
@@ -1121,7 +1121,7 @@ class StableBrowser {
           try {
             await _commandError(state, "timeout looking for " + elementDescription, this);
           } finally {
-            _commandFinally(state, this);
+            await _commandFinally(state, this);
           }
         }
       }
@@ -1149,7 +1149,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
@@ -1178,7 +1178,7 @@ class StableBrowser {
       console.error("Error on waitForElement", e);
       // await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
     return found;
   }
@@ -1227,7 +1227,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1253,7 +1253,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1288,7 +1288,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1332,7 +1332,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async setInputValue(selectors, value, _params = null, options = {}, world = null) {
@@ -1367,7 +1367,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
@@ -1431,7 +1431,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1524,7 +1524,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
@@ -1552,7 +1552,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
@@ -1667,7 +1667,7 @@ class StableBrowser {
       this.logger.error("found text " + foundObj?.text + " pattern " + pattern);
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1752,7 +1752,7 @@ class StableBrowser {
       await _commandError(state, e, this);
       throw e;
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async waitForUserInput(message, world = null) {
@@ -2057,7 +2057,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
@@ -2104,7 +2104,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
@@ -2174,7 +2174,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async extractEmailData(emailAddress, options, world) {
@@ -2661,7 +2661,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -2721,7 +2721,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async verifyTextRelatedToText(
@@ -2850,7 +2850,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async findRelatedTextInAllFrames(
@@ -3329,7 +3329,7 @@ class StableBrowser {
       console.log(".");
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async tableCellOperation(headerText: string, rowText: string, options: any, _params: Params, world = null) {
@@ -3416,7 +3416,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
