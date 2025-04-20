@@ -12,23 +12,6 @@ const elements = {
     ],
     element_name: "username field",
   },
-
-  textbox_password: {
-    locators: [
-      { role: ["textbox", { name: "Password" }] },
-      { priority: 1, css: "#password" },
-      { priority: 1, css: "[name='password']" },
-    ],
-    element_name: "password field",
-  },
-  button_login: {
-    locators: [
-      { text: "LOGIN", tag: "button" },
-      { role: ["button", { name: "LOGIN" }] },
-      { tagOnly: true, priority: 3, css: "button" },
-    ],
-    element_name: "login button",
-  },
 };
 let context = null;
 describe("scenario test data", function () {
