@@ -34,7 +34,7 @@ import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
 import { getContext, refreshBrowser } from "./init_browser.js";
-import { navigate } from "./auto_page.js";
+import { getTestData, navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
 import { randomUUID } from "crypto";
 import {
@@ -3533,6 +3533,12 @@ class StableBrowser {
     } else {
       this.stepName = "step " + this.stepIndex;
     }
+    if (step && step.gherkinDocument && step.gherkinDocument.feature && step.gherkinDocument.feature.name) {
+      this.featureName = step.gherkinDocument.feature.name;
+    }
+    if (step && step.pickle && step.pickle.name) {
+      this.scenarioName = step.pickle.name;
+    }
     if (this.context) {
       this.context.examplesRow = extractStepExampleParameters(step);
     }
@@ -3557,6 +3563,12 @@ class StableBrowser {
         }
       }
     }
+    // update test data based on feature/scenario
+    let envName = null;
+    if (this.context && this.context.environment) {
+      envName = this.context.environment.name;
+    }
+    await await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
   }
   async getAriaSnapshot() {
     try {
