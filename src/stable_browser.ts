@@ -3518,7 +3518,31 @@ class StableBrowser {
       console.log("#-#");
     }
   }
-
+  async beforeScenario(world, scenario) {
+    if (scenario && scenario.pickle && scenario.pickle.name) {
+      this.scenarioName = scenario.pickle.name;
+    }
+    if (scenario && scenario.gherkinDocument && scenario.gherkinDocument.feature) {
+      this.featureName = scenario.gherkinDocument.feature.name;
+    }
+    if (this.context) {
+      this.context.examplesRow = extractStepExampleParameters(scenario);
+    }
+    if (this.tags === null && scenario && scenario.pickle && scenario.pickle.tags) {
+      this.tags = scenario.pickle.tags.map((tag) => tag.name);
+      // check if @global_test_data tag is present
+      if (this.tags.includes("@global_test_data")) {
+        this.saveTestDataAsGlobal({}, world);
+      }
+    }
+    // update test data based on feature/scenario
+    let envName = null;
+    if (this.context && this.context.environment) {
+      envName = this.context.environment.name;
+    }
+    await await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
+  }
+  async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
@@ -3533,27 +3557,12 @@ class StableBrowser {
     } else {
       this.stepName = "step " + this.stepIndex;
     }
-    if (step && step.gherkinDocument && step.gherkinDocument.feature && step.gherkinDocument.feature.name) {
-      this.featureName = step.gherkinDocument.feature.name;
-    }
-    if (step && step.pickle && step.pickle.name) {
-      this.scenarioName = step.pickle.name;
-    }
-    if (this.context) {
-      this.context.examplesRow = extractStepExampleParameters(step);
-    }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
       }
     }
-    if (this.tags === null && step && step.pickle && step.pickle.tags) {
-      this.tags = step.pickle.tags.map((tag) => tag.name);
-      // check if @global_test_data tag is present
-      if (this.tags.includes("@global_test_data")) {
-        this.saveTestDataAsGlobal({}, world);
-      }
-    }
+
     if (this.initSnapshotTaken === false) {
       this.initSnapshotTaken = true;
       if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
@@ -3563,12 +3572,6 @@ class StableBrowser {
         }
       }
     }
-    // update test data based on feature/scenario
-    let envName = null;
-    if (this.context && this.context.environment) {
-      envName = this.context.environment.name;
-    }
-    await await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
   }
   async getAriaSnapshot() {
     try {
