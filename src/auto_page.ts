@@ -208,22 +208,6 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           process.env[item.key] = useValue;
         }
       }
-      if (currentEnvData) {
-        for (let i = 0; i < currentEnvData.length; i++) {
-          const item = currentEnvData[i];
-          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
-            testData[item.key] = process.env[item.key]!;
-            continue;
-          }
-          if (item.DataType === "secret") {
-            testData[item.key] = "secret:" + item.value;
-          } else if (item.DataType === "totp") {
-            testData[item.key] = "totp:" + item.value;
-          } else {
-            testData[item.key] = item.value;
-          }
-        }
-      }
 
       if (dataFile && !existsSync(path.dirname(dataFile))) {
         fs.mkdirSync(path.dirname(dataFile), { recursive: true });
