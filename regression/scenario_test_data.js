@@ -35,7 +35,7 @@ describe("scenario test data", function () {
   });
 
   it("scenario test data no replace", async function () {
-    await context.web.beforeStep(this, {
+    await context.web.beforeScenario(this, {
       pickleStep: { text: "I am on the login page", keyword: "Given" },
       gherkinDocument: { feature: { name: "Login" } },
       pickle: {
@@ -51,7 +51,7 @@ describe("scenario test data", function () {
     expect(info.value).to.be.equals("{{user1}}");
   });
   it("scenario test data replace", async function () {
-    await context.web.beforeStep(this, {
+    await context.web.beforeScenario(this, {
       pickleStep: { text: "I am on the login page", keyword: "Given" },
       gherkinDocument: { feature: { name: "Login" } },
       pickle: {
