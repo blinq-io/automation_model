@@ -3519,6 +3519,7 @@ class StableBrowser {
     }
   }
   async beforeScenario(world, scenario) {
+    this.beforeScenarioCalled = true;
     if (scenario && scenario.pickle && scenario.pickle.name) {
       this.scenarioName = scenario.pickle.name;
     }
@@ -3544,6 +3545,9 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
+    if (!this.beforeScenarioCalled) {
+      this.beforeScenario(world, step);
+    }
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
     } else {
