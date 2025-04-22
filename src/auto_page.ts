@@ -145,10 +145,14 @@ type testData = {
   value: string;
   DataType: "string" | "secret" | "totp";
   environment: string;
+  feature?: string;
+  scenario?: string;
 };
-const getTestData = async (currentEnv: string, world: any, dataFile?: string) => {
+const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string) => {
+  // copy the global test data located in data/data.json to the report folder
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
+      const filterFeatureScenario = feature || scenario;
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
       const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
       const testData: Record<string, string> = {};
@@ -159,8 +163,22 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
+          if (filterFeatureScenario) {
+            if (feature && item.feature && item.feature !== feature) {
+              // if the item is feature specific, skip it
+              continue;
+            }
+            if (scenario && item.scenario && item.scenario !== scenario) {
+              // if the item is scenario specific, skip it
+              continue;
+            }
+          } else if (item.feature || item.scenario) {
+            // if the item is feature/scenario specific, skip it
+
+            continue;
+          }
           let useValue = item.value;
-          
+
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
@@ -171,7 +189,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           } else {
             testData[item.key] = item.value;
           }
-          
+
           // Set process.env with the value
           process.env[item.key] = useValue;
         }
@@ -181,6 +199,20 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
+          if (filterFeatureScenario) {
+            if (feature && item.feature && item.feature !== feature) {
+              // if the item is feature specific, skip it
+              continue;
+            }
+            if (scenario && item.scenario && item.scenario !== scenario) {
+              // if the item is scenario specific, skip it
+              continue;
+            }
+          } else if (item.feature || item.scenario) {
+            // if the item is feature/scenario specific, skip it
+
+            continue;
+          }
           let useValue = item.value;
 
           if (item.DataType === "secret") {

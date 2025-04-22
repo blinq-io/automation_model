@@ -39,5 +39,7 @@ describe("tabs", function () {
     await context.web.verifyTextExistInPage("Page 1");
     await context.web.switchTab("Page 2");
     await context.web.verifyTextExistInPage("Page 2");
+    await context.web.switchTab("0");
+    await context.web.verifyTextExistInPage("Page 1");
   });
 });

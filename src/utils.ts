@@ -19,6 +19,10 @@ function getTestDataValue(key: string, environment = "*") {
   const envJson = JSON.parse(fs.readFileSync(envPath, "utf-8"));
   const dataArray = envJson[environment];
   const item = dataArray.find((item: any) => item.key === key);
+  // if the item is not found in the specific env, check if it exists in the default environment
+  if (!item && environment !== "*") {
+    return getTestDataValue(key, "*");
+  }
   if (!item) {
     throw new Error(`Key ${key} not found in data.json`);
   }
@@ -184,7 +188,7 @@ function _getTestDataFile(world: any = null, context: any = null, web: any = nul
 }
 
 function _getTestData(world = null, context = null, web = null) {
-  const dataFile = _getTestDataFile(world, context, web);
+  const dataFile = _getDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
