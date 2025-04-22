@@ -102,7 +102,7 @@ const initContext = async (
   if (context) {
     const env = getEnv(envName);
     if (env && !process.env.CDP_CONNECT_URL) {
-      await getTestData(env, world, true);
+      await getTestData(env, world, undefined, undefined, undefined, true);
     }
   }
 
@@ -148,7 +148,7 @@ type testData = {
   feature?: string;
   scenario?: string;
 };
-const getTestData = async (currentEnv: string, world: any, readProcessEnv: boolean = false, dataFile?: string, feature?: string, scenario?: string) => {
+const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string, readProcessEnv: boolean = false) => {
   // copy the global test data located in data/data.json to the report folder
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
