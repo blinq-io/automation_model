@@ -102,7 +102,7 @@ const initContext = async (
   if (context) {
     const env = getEnv(envName);
     if (env && !process.env.CDP_CONNECT_URL) {
-      await getTestData(env, world, undefined, undefined, undefined, true);
+      await getTestData(env, world);
     }
   }
 
@@ -148,7 +148,7 @@ type testData = {
   feature?: string;
   scenario?: string;
 };
-const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string, readProcessEnv: boolean = false) => {
+const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string) => {
   // copy the global test data located in data/data.json to the report folder
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
@@ -159,26 +159,26 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
 
-      // Process currentEnvData first to give it precedence
-      if (currentEnvData) {
-        for (let i = 0; i < currentEnvData.length; i++) {
-          const item = currentEnvData[i];
+      // Process all environment data first as a baseline
+      if (allEnvData) {
+        for (let i = 0; i < allEnvData.length; i++) {
+          const item = allEnvData[i];
+          
+          // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
-              // if the item is feature specific, skip it
               continue;
             }
             if (scenario && item.scenario && item.scenario !== scenario) {
-              // if the item is scenario specific, skip it
               continue;
             }
           } else if (item.feature || item.scenario) {
-            // if the item is feature/scenario specific, skip it
-
+            // Skip feature/scenario specific items when not filtering
             continue;
           }
-          let useValue = item.value;
 
+          let useValue = item.value;
+          
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
@@ -189,43 +189,32 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           } else {
             testData[item.key] = item.value;
           }
-
-          // Add current env data to process.env
+          
+          // Set process.env with the baseline value
           process.env[item.key] = useValue;
         }
       }
 
-      // Then process allEnvData
-      if (allEnvData) {
-        for (let i = 0; i < allEnvData.length; i++) {
-          const item = allEnvData[i];
+      // Then process currentEnvData to override the base values
+      if (currentEnvData) {
+        for (let i = 0; i < currentEnvData.length; i++) {
+          const item = currentEnvData[i];
+          
+          // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
-              // if the item is feature specific, skip it
               continue;
             }
             if (scenario && item.scenario && item.scenario !== scenario) {
-              // if the item is scenario specific, skip it
               continue;
             }
           } else if (item.feature || item.scenario) {
-            // if the item is feature/scenario specific, skip it
-
-            continue;
-          }
-
-          // Skip if already set by currentEnvData
-          if (testData.hasOwnProperty(item.key)) {
-            continue;
-          }
-
-          // Use process.env value if available
-          if (readProcessEnv && process.env[item.key]) {
-            testData[item.key] = process.env[item.key]!;
+            // Skip feature/scenario specific items when not filtering
             continue;
           }
 
           let useValue = item.value;
+
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
@@ -237,10 +226,8 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
             testData[item.key] = item.value;
           }
 
-          // Add to process.env if not already set
-          if (!process.env[item.key]) {
-            process.env[item.key] = useValue;
-          }
+          // Override with current env data
+          process.env[item.key] = useValue;
         }
       }
 
@@ -249,7 +236,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
-      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2)); 
     }
   } catch (e) {
     console.log("Error reading data.json file: " + e);
