@@ -255,6 +255,8 @@ async function replaceWithLocalTestData(
 
           if (newValue !== null) {
             value = value.replace(match, newValue);
+          } else {
+            throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
           }
         }
       }
