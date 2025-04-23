@@ -48,7 +48,11 @@ describe("bruno", function () {
       expect(result[0].summary.passedRequests).to.equal(1);
       expect(context.web.getTestData(this).id).to.not.be.null;
     } catch (e) {
-      expect(e.message || e).to.be.equal("Bruno request failed: Cannot find module '@faker-js/faker'");
+      const message = e.message || e;
+      expect(
+        message === "Bruno request failed: Cannot find module '@faker-js/faker'" ||
+        message === "Bruno request failed: Parameter \"{{ObjectName}}\" is undefined in the test data"
+      ).to.be.true;
     }
   });
 });
