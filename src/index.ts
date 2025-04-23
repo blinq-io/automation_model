@@ -9,3 +9,4 @@ export * from "./find_function.js";
 export * from "./utils.js";
 export * from "./table.js";
 export * from "./bruno.js";
+export * from "./file_checker.js";

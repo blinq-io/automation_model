@@ -272,7 +272,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
   } catch (error) {
     await _commandError(state, error, context.web);
   } finally {
-    _commandFinally(state, context.web);
+    await _commandFinally(state, context.web);
   }
 }
 
