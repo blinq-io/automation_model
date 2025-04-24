@@ -3,7 +3,6 @@ import fs from "fs";
 import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
-import exp from "constants";
 interface BrunoConfig {
   version: string;
   name: string;
@@ -33,26 +32,29 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     world: world,
   };
   await _preCommand(state, context.web);
+  const filesToDelete = [];
   try {
     let brunoFolder = options.brunoFolder || path.join(process.cwd(), "bruno");
     if (!brunoFolder) {
       throw new Error("brunoFolder is not defined, place your bruno folder in the current working directory.");
     }
     // generate a temporary folder .tmp under the project root
-    const runtimeFolder = path.join(process.cwd(), ".tmp");
-    if (!fs.existsSync(runtimeFolder)) {
-      fs.mkdirSync(runtimeFolder);
+    const resultFolder = path.join(process.cwd(), ".tmp");
+    if (!fs.existsSync(resultFolder)) {
+      fs.mkdirSync(resultFolder);
     }
+
+    const runtimeFolder = process.cwd();
     // link node_modules to the runtime folder
-    const nodeModulesFolder = path.join(process.cwd(), "node_modules");
-    if (fs.existsSync(nodeModulesFolder)) {
-      // check if the node_modules folder exists
-      const runtimeNodeModulesFolder = path.join(runtimeFolder, "node_modules");
-      if (!fs.existsSync(runtimeNodeModulesFolder)) {
-        // create a symbolic link to the node_modules folder
-        fs.symlinkSync(nodeModulesFolder, runtimeNodeModulesFolder, "dir");
-      }
-    }
+    //const nodeModulesFolder = path.join(process.cwd(), "node_modules");
+    // if (fs.existsSync(nodeModulesFolder)) {
+    //   // check if the node_modules folder exists
+    //   const runtimeNodeModulesFolder = path.join(runtimeFolder, "node_modules");
+    //   if (!fs.existsSync(runtimeNodeModulesFolder)) {
+    //     // create a symbolic link to the node_modules folder
+    //     fs.symlinkSync(nodeModulesFolder, runtimeNodeModulesFolder, "dir");
+    //   }
+    // }
 
     // identify the bruno file
     const brunoFile = path.join(brunoFolder, `${requestName}.bru`);
@@ -79,7 +81,12 @@ export async function executeBrunoRequest(requestName: string, options: any, con
         };
       }
     }
-    fs.writeFileSync(path.join(runtimeFolder, "bruno.json"), JSON.stringify(brunoConfig, null, 2));
+    const brunoConfigFileName = path.join(runtimeFolder, "bruno.json");
+    const brunoConfigFileBackup = path.join(resultFolder, "bruno.json");
+    filesToDelete.push(brunoConfigFileName);
+    fs.writeFileSync(brunoConfigFileName, JSON.stringify(brunoConfig, null, 2));
+    fs.writeFileSync(brunoConfigFileBackup, JSON.stringify(brunoConfig, null, 2));
+
     let expectRuntime = false;
     // read the bruno file
     let brunoFileContent = fs.readFileSync(brunoFile, "utf-8");
@@ -129,14 +136,19 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     }
 
     // write the bruno file to the runtime folder
-    fs.writeFileSync(path.join(runtimeFolder, `${requestName}.bru`), brunoFileContent);
-    const outputFile = path.join(runtimeFolder, `bruno_${context.web.stepIndex ? context.web.stepIndex : 0}.json`);
+    const executeBruFile = path.join(runtimeFolder, `${requestName}.bru`);
+    const executeBruFileBackup = path.join(resultFolder, `${requestName}.bru`);
+    filesToDelete.push(executeBruFile);
+    fs.writeFileSync(executeBruFile, brunoFileContent);
+    fs.writeFileSync(executeBruFileBackup, brunoFileContent);
+    const outputFile = path.join(resultFolder, `bruno_${context.web.stepIndex ? context.web.stepIndex : 0}.json`);
     if (fs.existsSync(outputFile)) {
       // remove the file if it exists
       fs.unlinkSync(outputFile);
     }
     // if the runtime.json file exists, remove it
     const runtimeFile = path.join(runtimeFolder, "runtime.json");
+    filesToDelete.push(runtimeFile);
     if (fs.existsSync(runtimeFile)) {
       // remove the file if it exists
       fs.unlinkSync(runtimeFile);
@@ -160,6 +172,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       }
     }
     args.push(brunoFilePath);
+
     const { stdout, stderr } = await runCommand(args, commandOptions);
     // check if the command was successful
     if (!fs.existsSync(outputFile)) {
@@ -272,6 +285,13 @@ export async function executeBrunoRequest(requestName: string, options: any, con
   } catch (error) {
     await _commandError(state, error, context.web);
   } finally {
+    // delete the files to delete
+    for (const file of filesToDelete) {
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
+    }
+
     await _commandFinally(state, context.web);
   }
 }
