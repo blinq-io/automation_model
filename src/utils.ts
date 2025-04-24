@@ -19,6 +19,10 @@ function getTestDataValue(key: string, environment = "*") {
   const envJson = JSON.parse(fs.readFileSync(envPath, "utf-8"));
   const dataArray = envJson[environment];
   const item = dataArray.find((item: any) => item.key === key);
+  // if the item is not found in the specific env, check if it exists in the default environment
+  if (!item && environment !== "*") {
+    return getTestDataValue(key, "*");
+  }
   if (!item) {
     throw new Error(`Key ${key} not found in data.json`);
   }
@@ -184,7 +188,7 @@ function _getTestDataFile(world: any = null, context: any = null, web: any = nul
 }
 
 function _getTestData(world = null, context = null, web = null) {
-  const dataFile = _getTestDataFile(world, context, web);
+  const dataFile = _getDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
     data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
@@ -242,15 +246,17 @@ async function replaceWithLocalTestData(
         }
         value = formatDate(result.data.result, returnTemplate);
       } else {
-        let newValue = replaceTestDataValue(env, key, testData);
+        let newValue = replaceTestDataValue(env, key, testData, _decrypt);
 
         if (newValue !== null) {
           value = value.replace(match, newValue);
         } else {
-          newValue = replaceTestDataValue("*", key, testData);
+          newValue = replaceTestDataValue("*", key, testData, _decrypt);
 
           if (newValue !== null) {
             value = value.replace(match, newValue);
+          } else {
+            throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
           }
         }
       }
@@ -281,7 +287,7 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-function replaceTestDataValue(env: string, key: string, testData: TestData) {
+function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true) {
   const path = key.split(".");
   const value = objectPath.get(testData, path);
   if (value && !Array.isArray(value)) {
@@ -300,7 +306,11 @@ function replaceTestDataValue(env: string, key: string, testData: TestData) {
     }
 
     if (obj.DataType === "secret") {
-      return decrypt(`secret:${obj.value}`, null);
+      if (decryptValue === true) {
+        return decrypt(`secret:${obj.value}`, null);
+      } else {
+        return `secret:${obj.value}`;
+      }
     }
     if (obj.DataType === "totp") {
         return `totp:${obj.value}`;
