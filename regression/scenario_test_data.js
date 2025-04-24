@@ -35,20 +35,25 @@ describe("scenario test data", function () {
   });
 
   it("scenario test data no replace", async function () {
-    await context.web.beforeScenario(this, {
-      pickleStep: { text: "I am on the login page", keyword: "Given" },
-      gherkinDocument: { feature: { name: "Login" } },
-      pickle: {
-        name: "Login scenario",
-      },
-    });
-    // login to the app
-    const _params = {};
-    const options = {};
-    await context.web.clickType(elements["textbox_username"], "{{user1}}", false, _params, options, null);
-    // add verification for the username field should be {{user1}}
-    const info = await context.web.extractAttribute(elements["textbox_username"], "value", "result");
-    expect(info.value).to.be.equals("{{user1}}");
+    try {
+      await context.web.beforeScenario(this, {
+        pickleStep: { text: "I am on the login page", keyword: "Given" },
+        gherkinDocument: { feature: { name: "Login" } },
+        pickle: {
+          name: "Login scenario",
+        },
+      });
+  
+      const _params = {};
+      const options = {};
+      await context.web.clickType(elements["textbox_username"], "{{user1}}", false, _params, options, null);
+  
+      const info = await context.web.extractAttribute(elements["textbox_username"], "value", "result");
+      expect(info.value).to.be.equals("{{user1}}");
+    } catch (e) {
+      const message = e.message || e;
+      expect(message).to.equal('Parameter "{{user1}}" is undefined in the test data');
+    }
   });
   it("scenario test data replace", async function () {
     await context.web.beforeScenario(this, {

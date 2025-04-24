@@ -87,6 +87,7 @@ export const Types = {
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
   BRUNO: "bruno",
   SNAPSHOT_VALIDATION: "snapshot_validation",
+  VERIFY_FILE_EXISTS: "verify_file_exists",
 };
 export const apps = {};
 
@@ -2923,6 +2924,7 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+
   async findRelatedTextInAllFrames(
     textAnchor: string,
     climb: number,
