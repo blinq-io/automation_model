@@ -278,7 +278,9 @@ export async function executeBrunoRequest(requestName: string, options: any, con
 
 const runCommand = async (args: string[], options: any) => {
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    const child = spawn("npx", args, options);
+    const _cmd = process.platform === "win32" ? "npx.cmd" : "npx";
+    const _options = process.platform === "win32" ? { ...options, shell: true } : options;
+    const child = spawn(_cmd, args, _options);
 
     let stdout = "";
     let stderr = "";
