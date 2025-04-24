@@ -312,6 +312,9 @@ function replaceTestDataValue(env: string, key: string, testData: TestData, decr
         return `secret:${obj.value}`;
       }
     }
+    if (obj.DataType === "totp") {
+        return `totp:${obj.value}`;
+    }
 
     return obj.value;
   }
