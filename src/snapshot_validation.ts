@@ -189,8 +189,15 @@ function lineMatches(full: SnapshotLine, sub: SnapshotLine): boolean {
 export interface MatchResult {
   matchingLines: number[];
   errorLine: number;
+  errorLineText: string | null;
 }
-
+export function snapshotValidation(snapshot: string, referanceSnapshot: string): MatchResult {
+  const lines = snapshot.split("\n");
+  const nodes = fromLinesToSnapshotLines(lines);
+  const subLines = referanceSnapshot.split("\n");
+  const subNodes = fromLinesToSnapshotLines(subLines);
+  return matchSnapshot(nodes, subNodes);
+}
 export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[]): MatchResult {
   /* nearest ancestor of every sub-line (–1 for roots) */
   const parentIdx = sub.map((_, i) => {
@@ -238,6 +245,7 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[]): MatchR
   return {
     matchingLines: found ? mapping : mapping.slice(0, failureAt),
     errorLine: found ? -1 : failureAt,
+    errorLineText: found ? null : sub[failureAt].key + " " + sub[failureAt].value,
   };
 }
 // let ttt = `- banner:
