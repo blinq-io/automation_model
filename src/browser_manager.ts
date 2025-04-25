@@ -109,6 +109,7 @@ class Browser {
     if (!aiConfig) {
       aiConfig = {};
     }
+    const noViewport = aiConfig.noViewport === true;
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
     // }
@@ -215,6 +216,9 @@ class Browser {
         if (!this.headless) {
           contextOptions.viewport = null;
         }
+      }
+      if (noViewport) {
+        delete contextOptions.viewport;
       }
 
       if (userAgent) {
