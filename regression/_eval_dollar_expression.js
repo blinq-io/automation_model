@@ -1,5 +1,4 @@
 import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
-import { getContext } from "../build/lib/init_browser.js";
 import fs from "fs";
 import { expect } from "chai";
 let context = null;
@@ -25,7 +24,7 @@ describe("use dollar expression", function () {
     }
   });
   beforeEach(async function () {
-    context = await getContext(null, false, null);
+    context = await initContext(null, false, false, this);
     await context.web.goto("https://shop-blinq.io");
     await context.web.waitForPageLoad();
   });

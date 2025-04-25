@@ -1,7 +1,7 @@
-import { Params } from "./utils";
+import { _highlightElements, Params } from "./utils.js";
 
 export async function findHighestWithSameInnerText(cssSelector: string, scope: any, web: any) {
-  await web._highlightElements(scope, cssSelector);
+  await _highlightElements(scope, cssSelector);
 
   const element = await scope.locator(cssSelector).first();
   if (!element) {

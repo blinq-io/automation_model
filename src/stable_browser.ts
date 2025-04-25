@@ -29,6 +29,8 @@ import {
   _getDataFile,
   testForRegex,
   performAction,
+  _highlightElements,
+  _highlightMultipleLocators,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -1207,7 +1209,7 @@ class StableBrowser {
       try {
         // if (world && world.screenshot && !world.screenshotPath) {
         // console.log(`Highlighting while running from recorder`);
-        await this._highlightElements(state.element);
+        await _highlightElements(state.element);
         await state.element.setChecked(checked);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         // await this._unHighlightElements(element);
@@ -1589,10 +1591,10 @@ class StableBrowser {
     }
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
-      await this._highlightElements(element);
+      await _highlightElements(element);
       // if (world && world.screenshot && !world.screenshotPath) {
       //   // console.log(`Highlighting for get text while running from recorder`);
-      //   this._highlightElements(element)
+      //   _highlightElements(element)
       //     .then(async () => {
       //       await new Promise((resolve) => setTimeout(resolve, 1000));
       //       this._unhighlightElements(element).then(
@@ -1811,6 +1813,8 @@ class StableBrowser {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
           // highlight and screenshot
+          await _highlightMultipleLocators(scope, matchResult.subLocators);
+          await new Promise((resolve) => setTimeout(resolve, 300)); // Wait 1 second before retrying
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
@@ -2066,7 +2070,7 @@ class StableBrowser {
     // }
 
     // if (focusedElement) {
-    //   await this._highlightElements(focusedElement);
+    //   await _highlightElements(focusedElement);
     // }
 
     if (this.context.browserName === "chromium") {
@@ -2339,80 +2343,6 @@ class StableBrowser {
       }
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
-    }
-  }
-
-  async _highlightElements(scope, css) {
-    try {
-      if (!scope) {
-        // console.log(`Scope is not defined`);
-        return;
-      }
-      if (!css) {
-        scope
-          .evaluate((node) => {
-            if (node && node.style) {
-              let originalOutline = node.style.outline;
-              // console.log(`Original outline was: ${originalOutline}`);
-              // node.__previousOutline = originalOutline;
-              node.style.outline = "2px solid red";
-              // console.log(`New outline is: ${node.style.outline}`);
-
-              if (window) {
-                window.addEventListener("beforeunload", function (e) {
-                  node.style.outline = originalOutline;
-                });
-              }
-              setTimeout(function () {
-                node.style.outline = originalOutline;
-              }, 2000);
-            }
-          })
-          .then(() => {})
-          .catch((e) => {
-            // ignore
-            // console.error(`Could not highlight node : ${e}`);
-          });
-      } else {
-        scope
-          .evaluate(
-            ([css]) => {
-              if (!css) {
-                return;
-              }
-              let elements = Array.from(document.querySelectorAll(css));
-              //console.log("found: " + elements.length);
-              for (let i = 0; i < elements.length; i++) {
-                let element = elements[i];
-                if (!element.style) {
-                  return;
-                }
-                let originalOutline = element.style.outline;
-                element.__previousOutline = originalOutline;
-                // Set the new border to be red and 2px solid
-                element.style.outline = "2px solid red";
-                if (window) {
-                  window.addEventListener("beforeunload", function (e) {
-                    element.style.outline = originalOutline;
-                  });
-                }
-                // Set a timeout to revert to the original border after 2 seconds
-                setTimeout(function () {
-                  element.style.outline = originalOutline;
-                }, 2000);
-              }
-              return;
-            },
-            [css]
-          )
-          .then(() => {})
-          .catch((e) => {
-            // ignore
-            // console.error(`Could not highlight css: ${e}`);
-          });
-      }
-    } catch (error) {
-      console.debug(error);
     }
   }
 
@@ -2698,10 +2628,10 @@ class StableBrowser {
             const frame = resultWithElementsFound[0].frame;
             const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
 
-            await this._highlightElements(frame, dataAttribute);
+            await _highlightElements(frame, dataAttribute);
             // if (world && world.screenshot && !world.screenshotPath) {
             // console.log(`Highlighting for verify text is found while running from recorder`);
-            // this._highlightElements(frame, dataAttribute).then(async () => {
+            // _highlightElements(frame, dataAttribute).then(async () => {
             // await new Promise((resolve) => setTimeout(resolve, 1000));
             // this._unhighlightElements(frame, dataAttribute)
             // .then(async () => {
@@ -2886,11 +2816,11 @@ class StableBrowser {
               );
               if (result.elementCount > 0) {
                 const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
-                await this._highlightElements(frame, dataAttribute);
+                await _highlightElements(frame, dataAttribute);
                 //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
                 // if (world && world.screenshot && !world.screenshotPath) {
                 // console.log(`Highlighting for vtrt while running from recorder`);
-                // this._highlightElements(frame, dataAttribute)
+                // _highlightElements(frame, dataAttribute)
                 // .then(async () => {
                 // await new Promise((resolve) => setTimeout(resolve, 1000));
                 // this._unhighlightElements(frame, dataAttribute).then(
@@ -2900,7 +2830,7 @@ class StableBrowser {
                 // })
                 // .catch(e);
                 // }
-                //await this._highlightElements(frame, cssAnchor);
+                //await _highlightElements(frame, cssAnchor);
                 const element = await frame.locator(dataAttribute).first();
                 // await new Promise((resolve) => setTimeout(resolve, 100));
                 // await this._unhighlightElements(frame, dataAttribute);

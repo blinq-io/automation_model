@@ -17,58 +17,7 @@ export async function highlightSnapshot(snapshot: any, scope: any) {}
 - paragraph: "Password for all users:"
 - paragraph: let_me_in
 */
-class SnapshotNode {
-  public role: string;
-  public name: string | null;
-  public children: SnapshotNode[] = [];
-  public parent: SnapshotNode | null = null;
-  constructor(
-    public key: string,
-    public value: string
-  ) {
-    if (!key) {
-      throw new Error("Key cannot be null or undefined");
-    }
-    this.role = key.split(" ")[0];
-    if (this.value) {
-      this.name = this.value;
-    } else {
-      // the value will be from the first " to the last "
-      const start = key.indexOf('"') + 1;
-      const end = key.lastIndexOf('"');
-      if (start > -1 && end > -1 && start < end) {
-        this.name = key.substring(start, end);
-      } else {
-        this.name = null;
-      }
-    }
-  }
-  generateNodeLocator(): string {
-    let locator = `internal:role=${this.role}`;
-    switch (this.role) {
-      case "paragraph":
-        // internal:role=paragraph >> internal:text='blinq_user'"
-        return `internal:role=${this.role} >> internal:text='${this.name}'`;
-      default:
-        // "internal:role=textbox[name=\"Password\"]"
-        if (this.name) {
-          locator += `[name="${this.name}"]`;
-        }
-        return locator;
-    }
-  }
-  getFullLocator(): string {
-    // create an array of all the parents and current node locators
-    const locators: string[] = [];
-    let currentNode: SnapshotNode | null = this;
-    while (currentNode) {
-      locators.unshift(currentNode.generateNodeLocator());
-      currentNode = currentNode.parent;
-    }
-    // join the locators with " >> "
-    return locators.join(" >> ");
-  }
-}
+
 /**
  * One flattened line of an ARIA snapshot
  */
@@ -85,6 +34,55 @@ interface SnapshotLine {
   error: string | null;
   /** interpret `value` as a RegExp instead of literal text */
   regex: boolean;
+}
+function generateNodeLocator(node: SnapshotLine): string {
+  let locator = `internal:role=${node.key}`;
+  switch (node.key) {
+    case "paragraph":
+      // internal:role=paragraph >> internal:text='blinq_user'"
+      return `internal:role=${node.key} >> internal:text=${JSON.stringify(node.value)}`;
+    default:
+      // "internal:role=textbox[name=\"Password\"]"
+      if (node.value) {
+        locator += `[name=${JSON.stringify(node.value)}]`;
+      }
+      return locator;
+  }
+}
+/**
+ * Return the full Playwright locator for the node at `index`.
+ *
+ * Example
+ * ───────
+ * const nodes = fromLinesToSnapshotLines(snapshot.split("\n"));
+ * const full = buildLocatorPath(nodes, 10);
+ * // ➜ internal:role=list … >> internal:role=listitem … >> internal:role=paragraph >> internal:text='blinq_user'
+ */
+export function buildLocatorPath(nodes: SnapshotLine[], index: number): string {
+  if (index < 0 || index >= nodes.length) {
+    throw new Error(`index ${index} out of range (0-${nodes.length - 1})`);
+  }
+
+  /* walk upwards in the flat list until we reach the root */
+  const path: SnapshotLine[] = [];
+  let i = index;
+  let curLevel = nodes[i].level;
+
+  while (true) {
+    path.unshift(nodes[i]); // prepend – root ends up first
+    if (curLevel === 0) break; // reached the top of the tree
+
+    // parent = closest previous line whose level is exactly one less
+    let j = i - 1;
+    while (j >= 0 && nodes[j].level >= curLevel) j--;
+    if (j < 0) break; // malformed input: no parent found
+
+    i = j;
+    curLevel = nodes[i].level;
+  }
+
+  /* convert every node on the path to its individual locator and join them */
+  return path.map(generateNodeLocator).join(" >> ");
 }
 export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
   // the input is yaml text split into lines, 2 spaces is 1 level
@@ -190,6 +188,7 @@ export interface MatchResult {
   matchingLines: number[];
   errorLine: number;
   errorLineText: string | null;
+  subLocators: string[];
 }
 export function snapshotValidation(snapshot: string, referanceSnapshot: string): MatchResult {
   const lines = snapshot.split("\n");
@@ -241,11 +240,12 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[]): MatchR
 
   /* kick off the search */
   const found = dfs(0, 0);
-
+  const subLocators = sub.map((node) => generateNodeLocator(node));
   return {
     matchingLines: found ? mapping : mapping.slice(0, failureAt),
     errorLine: found ? -1 : failureAt,
     errorLineText: found ? null : sub[failureAt].key + " " + sub[failureAt].value,
+    subLocators,
   };
 }
 // let ttt = `- banner:

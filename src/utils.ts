@@ -556,6 +556,126 @@ export async function performAction(action: string, element: any, options: any, 
       throw new Error(`Action ${action} not supported`);
   }
 }
+export async function _highlightMultipleLocators(scope: any, locatorsStrings: string[]) {
+  const locators = locatorsStrings.map((locator) => {
+    return scope.locator(locator);
+  });
+  if (!locators || locators.length === 0) {
+    return;
+  }
+  try {
+    for (let i = 0; i < locators.length; i++) {
+      const locator = locators[i];
+      const count = await locator.count();
+      const localList = [];
+      if (count > 0) {
+        for (let j = 0; j < count; j++) {
+          localList.push(locator.nth(j));
+        }
+        for (let j = 0; j < localList.length; j++) {
+          const element = localList[j];
+          // @ts-ignore
+          await element.evaluate((node) => {
+            //console.log("highlighting node");
+            if (node && node.style) {
+              //console.log("node found");
+              let originalOutline = node.style.outline;
+              node.__previousOutline = originalOutline;
+              node.style.outline = "2px solid red";
+              if (window) {
+                window.addEventListener("beforeunload", function (e) {
+                  node.style.outline = originalOutline;
+                });
+              }
+              setTimeout(function () {
+                node.style.outline = originalOutline;
+              }, 2000);
+            }
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+export async function _highlightElements(scope: any, css: string | null) {
+  try {
+    if (!scope) {
+      // console.log(`Scope is not defined`);
+      return;
+    }
+    if (!css) {
+      scope
+        //@ts-ignore
+        .evaluate((node) => {
+          if (node && node.style) {
+            let originalOutline = node.style.outline;
+            // console.log(`Original outline was: ${originalOutline}`);
+            // node.__previousOutline = originalOutline;
+            node.style.outline = "2px solid red";
+            // console.log(`New outline is: ${node.style.outline}`);
+
+            if (window) {
+              window.addEventListener("beforeunload", function (e) {
+                node.style.outline = originalOutline;
+              });
+            }
+            setTimeout(function () {
+              node.style.outline = originalOutline;
+            }, 2000);
+          }
+        })
+        .then(() => {})
+        //@ts-ignore
+        .catch((e) => {
+          // ignore
+          // console.error(`Could not highlight node : ${e}`);
+        });
+    } else {
+      scope
+        .evaluate(
+          //@ts-ignore
+          ([css]) => {
+            if (!css) {
+              return;
+            }
+            let elements = Array.from(document.querySelectorAll(css));
+            //console.log("found: " + elements.length);
+            for (let i = 0; i < elements.length; i++) {
+              let element = elements[i];
+              if (!element.style) {
+                return;
+              }
+              let originalOutline = element.style.outline;
+              element.__previousOutline = originalOutline;
+              // Set the new border to be red and 2px solid
+              element.style.outline = "2px solid red";
+              if (window) {
+                window.addEventListener("beforeunload", function (e) {
+                  element.style.outline = originalOutline;
+                });
+              }
+              // Set a timeout to revert to the original border after 2 seconds
+              setTimeout(function () {
+                element.style.outline = originalOutline;
+              }, 2000);
+            }
+            return;
+          },
+          [css]
+        )
+        .then(() => {})
+        //@ts-ignore
+        .catch((e) => {
+          // ignore
+          // console.error(`Could not highlight css: ${e}`);
+        });
+    }
+  } catch (error) {
+    console.debug(error);
+  }
+}
 
 const KEYBOARD_EVENTS = [
   "ALT",

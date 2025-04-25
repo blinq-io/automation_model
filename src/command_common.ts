@@ -2,7 +2,7 @@ import { stat } from "fs";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { JsonCommandReport } from "./stable_browser.js";
-import { _fixUsingParams, maskValue, replaceWithLocalTestData } from "./utils.js";
+import { _fixUsingParams, _highlightElements, maskValue, replaceWithLocalTestData } from "./utils.js";
 export async function _preCommand(state: any, web: any) {
   if (!state) {
     return;
@@ -72,7 +72,7 @@ export async function _preCommand(state: any, web: any) {
   }
   if (state.highlight === true) {
     try {
-      await web._highlightElements(state.element);
+      await _highlightElements(state.element, null);
     } catch (e) {
       // ignore
     }

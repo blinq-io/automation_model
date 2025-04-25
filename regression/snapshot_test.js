@@ -48,10 +48,8 @@ describe("matchSnapshot – happy-path matches", () => {
     const sub = fromLinesToSnapshotLines(subTxt.split("\n"));
     const res = matchSnapshot(full, sub);
 
-    expect(res).to.deep.equal({
-      matchingLines: [2, 3, 4, 5, 6], // indices in the *parsed* full snapshot
-      errorLine: -1, // everything matched
-    });
+    expect(res.matchingLines).to.deep.equal([2, 3, 4, 5, 6]);
+    expect(res.errorLine).to.equal(-1); // no errors
   });
 
   it("matches nested list → listitem → paragraph structure", () => {
@@ -64,11 +62,8 @@ describe("matchSnapshot – happy-path matches", () => {
     const sub = fromLinesToSnapshotLines(subTxt.split("\n"));
     const res = matchSnapshot(full, sub);
 
-    expect(res).to.deep.equal({
-      // list ► 8, listitem (second) ► 11, paragraph ► 12
-      matchingLines: [8, 11, 12],
-      errorLine: -1,
-    });
+    expect(res.matchingLines).to.deep.equal([8, 11, 12]);
+    expect(res.errorLine).to.equal(-1); // no errors
   });
 
   it("handles RegExp value matching", () => {
@@ -81,10 +76,8 @@ describe("matchSnapshot – happy-path matches", () => {
 
     const res = matchSnapshot(full, sub);
 
-    expect(res).to.deep.equal({
-      matchingLines: [13],
-      errorLine: -1,
-    });
+    expect(res.matchingLines).to.deep.equal([13]);
+    expect(res.errorLine).to.equal(-1); // no errors
   });
 });
 
