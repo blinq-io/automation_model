@@ -126,6 +126,9 @@ const getEnv = (envName: string | null) => {
   return null;
 };
 const closeContext = async () => {
+  if (process.env.TEMP_RUN) {
+    return;
+  }
   try {
     if (context && context.browser) {
       await browserManager.closeBrowser(context.browser);
@@ -142,15 +145,21 @@ type testData = {
   value: string;
   DataType: "string" | "secret" | "totp";
   environment: string;
+  feature?: string;
+  scenario?: string;
 };
-const getTestData = async (currentEnv: string, world: any, dataFile?: string) => {
+const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string) => {
+  // copy the global test data located in data/data.json to the report folder
   try {
     if (fs.existsSync(path.join("data", "data.json"))) {
+      const filterFeatureScenario = feature || scenario;
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
       const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
       const testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
+
+      // Process all environment data first as a baseline
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
@@ -158,7 +167,21 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
             testData[item.key] = process.env[item.key]!;
             continue;
           }
+          // Filter by feature/scenario if specified
+          if (filterFeatureScenario) {
+            if (feature && item.feature && item.feature !== feature) {
+              continue;
+            }
+            if (scenario && item.scenario && item.scenario !== scenario) {
+              continue;
+            }
+          } else if (item.feature || item.scenario) {
+            // Skip feature/scenario specific items when not filtering
+            continue;
+          }
+
           let useValue = item.value;
+
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
@@ -169,10 +192,10 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
           } else {
             testData[item.key] = item.value;
           }
-          // if the key is not part of process.env, add it so any test dava value can be access via process.env
-          process.env[item.key] = useValue;
         }
       }
+
+      // Then process currentEnvData to override the base values
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
@@ -180,17 +203,36 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string) =>
             testData[item.key] = process.env[item.key]!;
             continue;
           }
+          // Filter by feature/scenario if specified
+          if (filterFeatureScenario) {
+            if (feature && item.feature && item.feature !== feature) {
+              continue;
+            }
+            if (scenario && item.scenario && item.scenario !== scenario) {
+              continue;
+            }
+          } else if (item.feature || item.scenario) {
+            // Skip feature/scenario specific items when not filtering
+            continue;
+          }
+
+          let useValue = item.value;
+
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
+            // decrypt the secret
+            useValue = decrypt("secret:" + item.value);
           } else if (item.DataType === "totp") {
             testData[item.key] = "totp:" + item.value;
+            useValue = "totp:" + item.value;
           } else {
             testData[item.key] = item.value;
           }
         }
       }
-      if (dataFile && !existsSync(path.dirname(dataFile!))) {
-        fs.mkdirSync(path.dirname(dataFile!), { recursive: true });
+
+      if (dataFile && !existsSync(path.dirname(dataFile))) {
+        fs.mkdirSync(path.dirname(dataFile), { recursive: true });
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
