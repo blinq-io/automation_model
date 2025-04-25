@@ -101,7 +101,7 @@ const initContext = async (
   }
   if (context) {
     const env = getEnv(envName);
-    if (env && !process.env.CDP_CONNECT_URL) {
+    if (env && !process.env.TEMP_RUN) {
       await getTestData(env, world);
     }
   }
@@ -163,7 +163,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          
+
           // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
@@ -178,7 +178,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           }
 
           let useValue = item.value;
-          
+
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
@@ -189,7 +189,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           } else {
             testData[item.key] = item.value;
           }
-          
+
           // Set process.env with the baseline value
           process.env[item.key] = useValue;
         }
@@ -199,7 +199,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
-          
+
           // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
@@ -236,7 +236,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
-      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2)); 
+      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
     console.log("Error reading data.json file: " + e);
