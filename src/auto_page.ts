@@ -163,7 +163,10 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          
+          if(process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+            testData[item.key] = process.env[item.key]!;
+            continue;
+          }
           // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
@@ -189,9 +192,6 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           } else {
             testData[item.key] = item.value;
           }
-          
-          // Set process.env with the baseline value
-          process.env[item.key] = useValue;
         }
       }
 
@@ -199,7 +199,10 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       if (currentEnvData) {
         for (let i = 0; i < currentEnvData.length; i++) {
           const item = currentEnvData[i];
-          
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+            testData[item.key] = process.env[item.key]!;
+            continue;
+          }
           // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
@@ -225,9 +228,6 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           } else {
             testData[item.key] = item.value;
           }
-
-          // Override with current env data
-          process.env[item.key] = useValue;
         }
       }
 
