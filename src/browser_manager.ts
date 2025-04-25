@@ -36,7 +36,7 @@ class BrowserManager {
       this.browsers = [];
     }
 
-    if (browser) {
+    if (browser && !process.env.IGNORE_BROWSER_CLOSE) {
       await browser.close();
       for (let i = 0; i < this.browsers.length; i++) {
         if (this.browsers[i].browser === browser || this.browsers[i] === browser) {
@@ -109,6 +109,7 @@ class Browser {
     if (!aiConfig) {
       aiConfig = {};
     }
+    const noViewport = aiConfig.noViewport === true;
     // if (!downloadsPath) {
     //   downloadsPath = "downloads";
     // }
@@ -131,6 +132,8 @@ class Browser {
     if (process.env.VIEWPORT) {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
+    } else {
+      viewport = { width: 1280, height: 800 };
     }
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
     if (process.env.CDP_LISTEN_PORT) {
@@ -213,6 +216,9 @@ class Browser {
         if (!this.headless) {
           contextOptions.viewport = null;
         }
+      }
+      if (noViewport) {
+        delete contextOptions.viewport;
       }
 
       if (userAgent) {

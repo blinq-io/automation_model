@@ -34,7 +34,7 @@ import csv from "csv-parser";
 import { Readable } from "node:stream";
 import readline from "readline";
 import { getContext, refreshBrowser } from "./init_browser.js";
-import { navigate } from "./auto_page.js";
+import { getTestData, navigate } from "./auto_page.js";
 import { locate_element } from "./locate_element.js";
 import { randomUUID } from "crypto";
 import {
@@ -84,6 +84,7 @@ export const Types = {
   WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
   VERIFY_ATTRIBUTE: "verify_element_attribute",
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
+  BRUNO: "bruno",
 };
 export const apps = {};
 
@@ -219,6 +220,30 @@ class StableBrowser {
       await this.waitForPageLoad();
     }
   }
+  async switchTab(tabTitleOrIndex: number | string) {
+    // first check if the tabNameOrIndex is a number
+    let index = parseInt(tabTitleOrIndex);
+    if (!isNaN(index)) {
+      if (index >= 0 && index < this.context.pages.length) {
+        this.page = this.context.pages[index];
+        this.context.page = this.page;
+        await this.page.bringToFront();
+        return;
+      }
+    }
+    // if the tabNameOrIndex is a string, find the tab by name
+    for (let i = 0; i < this.context.pages.length; i++) {
+      let page = this.context.pages[i];
+      let title = await page.title();
+      if (title.includes(tabTitleOrIndex)) {
+        this.page = page;
+        this.context.page = this.page;
+        await this.page.bringToFront();
+        return;
+      }
+    }
+    throw new Error("Tab not found: " + tabTitleOrIndex);
+  }
 
   registerConsoleLogListener(page: Page, context: any) {
     if (!this.context.webLogger) {
@@ -315,7 +340,7 @@ class StableBrowser {
       console.error("Error on goto", error);
       _commandError(state, error, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -659,7 +684,7 @@ class StableBrowser {
         if (frameSelectorIndex !== -1) {
           // remove everything after the >> internal:control=enter-frame
           const frameSelector = element._selector.substring(0, frameSelectorIndex);
-          prefixSelector = frameSelector + " >> internal:control=enter-frame";
+          prefixSelector = frameSelector + " >> internal:control=enter-frame >>";
         }
         // if (element?._frame?._selector) {
         //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
@@ -1047,7 +1072,7 @@ class StableBrowser {
           try {
             await _commandError(state, "timeout looking for " + elementDescription, this);
           } finally {
-            _commandFinally(state, this);
+            await _commandFinally(state, this);
           }
         }
       }
@@ -1096,7 +1121,7 @@ class StableBrowser {
           try {
             await _commandError(state, "timeout looking for " + elementDescription, this);
           } finally {
-            _commandFinally(state, this);
+            await _commandFinally(state, this);
           }
         }
       }
@@ -1124,7 +1149,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
@@ -1153,7 +1178,7 @@ class StableBrowser {
       console.error("Error on waitForElement", e);
       // await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
     return found;
   }
@@ -1202,7 +1227,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1228,7 +1253,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1263,7 +1288,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1307,7 +1332,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async setInputValue(selectors, value, _params = null, options = {}, world = null) {
@@ -1342,7 +1367,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
@@ -1406,7 +1431,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1499,7 +1524,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
@@ -1527,7 +1552,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
@@ -1642,7 +1667,7 @@ class StableBrowser {
       this.logger.error("found text " + foundObj?.text + " pattern " + pattern);
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -1727,7 +1752,7 @@ class StableBrowser {
       await _commandError(state, e, this);
       throw e;
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async waitForUserInput(message, world = null) {
@@ -2032,7 +2057,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
@@ -2063,6 +2088,9 @@ class StableBrowser {
         case "value":
           state.value = await state.element.inputValue();
           break;
+        case "text":
+          state.value = await state.element.textContent();
+          break;
         default:
           state.value = await state.element.getAttribute(attribute);
           break;
@@ -2076,7 +2104,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
@@ -2101,11 +2129,14 @@ class StableBrowser {
     let expectedValue;
     try {
       await _preCommand(state, this);
-      expectedValue = state.value;
+      expectedValue = await replaceWithLocalTestData(state.value, world);
       state.info.expectedValue = expectedValue;
       switch (attribute) {
         case "innerText":
           val = String(await state.element.innerText());
+          break;
+        case "text":
+          val = String(await state.element.textContent());
           break;
         case "value":
           val = String(await state.element.inputValue());
@@ -2143,7 +2174,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async extractEmailData(emailAddress, options, world) {
@@ -2630,7 +2661,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -2690,7 +2721,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async verifyTextRelatedToText(
@@ -2819,7 +2850,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async findRelatedTextInAllFrames(
@@ -3298,7 +3329,7 @@ class StableBrowser {
       console.log(".");
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
   async tableCellOperation(headerText: string, rowText: string, options: any, _params: Params, world = null) {
@@ -3385,7 +3416,7 @@ class StableBrowser {
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      _commandFinally(state, this);
+      await _commandFinally(state, this);
     }
   }
 
@@ -3487,8 +3518,36 @@ class StableBrowser {
       console.log("#-#");
     }
   }
-
+  async beforeScenario(world, scenario) {
+    this.beforeScenarioCalled = true;
+    if (scenario && scenario.pickle && scenario.pickle.name) {
+      this.scenarioName = scenario.pickle.name;
+    }
+    if (scenario && scenario.gherkinDocument && scenario.gherkinDocument.feature) {
+      this.featureName = scenario.gherkinDocument.feature.name;
+    }
+    if (this.context) {
+      this.context.examplesRow = extractStepExampleParameters(scenario);
+    }
+    if (this.tags === null && scenario && scenario.pickle && scenario.pickle.tags) {
+      this.tags = scenario.pickle.tags.map((tag) => tag.name);
+      // check if @global_test_data tag is present
+      if (this.tags.includes("@global_test_data")) {
+        this.saveTestDataAsGlobal({}, world);
+      }
+    }
+    // update test data based on feature/scenario
+    let envName = null;
+    if (this.context && this.context.environment) {
+      envName = this.context.environment.name;
+    }
+    await await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
+  }
+  async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
+    if (!this.beforeScenarioCalled) {
+      this.beforeScenario(world, step);
+    }
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
     } else {
@@ -3502,21 +3561,12 @@ class StableBrowser {
     } else {
       this.stepName = "step " + this.stepIndex;
     }
-    if (this.context) {
-      this.context.examplesRow = extractStepExampleParameters(step);
-    }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
       }
     }
-    if (this.tags === null && step && step.pickle && step.pickle.tags) {
-      this.tags = step.pickle.tags.map((tag) => tag.name);
-      // check if @global_test_data tag is present
-      if (this.tags.includes("@global_test_data")) {
-        this.saveTestDataAsGlobal({}, world);
-      }
-    }
+
     if (this.initSnapshotTaken === false) {
       this.initSnapshotTaken = true;
       if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {

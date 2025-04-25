@@ -1,0 +1,15 @@
+{
+    "*": [
+        {
+            "key": "user",
+            "value": "guy",
+            "DataType": "string"
+        },
+        {
+            "key": "user1",
+            "value": "guy1",
+            "DataType": "string",
+            "scenario": "basic scenario"
+        }
+    ]
+}
