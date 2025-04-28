@@ -3,6 +3,7 @@ import fs from "fs";
 import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
+import objectPath from "object-path";
 //@ts-ignore
 import { bruToEnvJsonV2 } from "@usebruno/lang";
 // import { decrypt } from "./utils.js";
@@ -314,7 +315,40 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       options.brunoScope = "bruno";
     }
     const data: Record<string, any> = {};
-    data[options.testDataScope] = result[0].results.response;
+    let scope = options.brunoScope;
+    data[scope] = result[0].results[0];
+    // check for vars:post-response {
+    const varsPostResponse = brunoFileContent.indexOf("vars:post-response {");
+    if (varsPostResponse !== -1) {
+      // need to search a new line follow by }
+      const varsEnd = brunoFileContent.indexOf("\n}", varsPostResponse);
+      // extract the script remove the open { and the close }
+      const script = brunoFileContent.substring(varsPostResponse + 20, varsEnd);
+      // the result loolks like this:
+      // aaaa: res.body.data.guid
+      // bbbb: res.body.data.guid2
+      const lines = script.split("\n");
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.length === 0) {
+          continue;
+        }
+        // split the line by :
+        const parts = trimmedLine.split(":");
+        if (parts.length !== 2) {
+          continue;
+        }
+        const key = parts[0].trim();
+        let opath = parts[1].trim();
+        // check if the value is a variable
+        let path = opath.replace(/res\.body\./g, "response.").split(".");
+        const value = objectPath.get(result[0].results[0], path);
+        if (value) {
+          data[key] = value;
+        }
+      }
+    }
+
     context.web.setTestData(data, world);
     // if the expectRuntime is true, read the runtime.json file
     if (expectRuntime) {
