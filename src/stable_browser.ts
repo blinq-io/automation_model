@@ -50,6 +50,7 @@ import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
+import { snapshotValidation } from "./snapshot_validation.js";
 
 export const Types = {
   CLICK: "click_element",
@@ -85,6 +86,7 @@ export const Types = {
   VERIFY_ATTRIBUTE: "verify_element_attribute",
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
   BRUNO: "bruno",
+  SNAPSHOT_VALIDATION: "snapshot_validation",
 };
 export const apps = {};
 
@@ -1755,6 +1757,76 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+  async snapshotValidation(frameSelectors, referanceSnapshot, _params = null, options = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
+    const startTime = Date.now();
+
+    const state = {
+      _params,
+      value: referanceSnapshot,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: true,
+      highlight: false,
+      type: Types.SNAPSHOT_VALIDATION,
+      text: `verify snapshot: ${referanceSnapshot}`,
+      operation: "snapshotValidation",
+      log: "***** verify snapshot *****\n",
+    };
+    if (!referanceSnapshot) {
+      throw new Error("referanceSnapshot is null");
+    }
+    let text = null;
+    if (fs.existsSync(path.join(this.project_path, "snapshots", referanceSnapshot + ".yml"))) {
+      text = fs.readFileSync(path.join(this.project_path, "snapshots", referanceSnapshot + ".yml"), "utf8");
+    } else if (referanceSnapshot.startsWith("yaml:")) {
+      text = referanceSnapshot.substring(5);
+    } else {
+      throw new Error("referanceSnapshot file not found: " + referanceSnapshot);
+    }
+    state.text = text;
+
+    const newValue = await this._replaceWithLocalData(text, world);
+
+    await _preCommand(state, this);
+
+    let foundObj = null;
+    try {
+      let matchResult = null;
+      while (Date.now() - startTime < timeout) {
+        try {
+          let scope = null;
+          if (!frameSelectors) {
+            scope = this.page;
+          } else {
+            scope = await this._findFrameScope(frameSelectors, timeout, state.info);
+          }
+          const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
+
+          matchResult = snapshotValidation(snapshot, newValue);
+          if (matchResult.errorLine !== -1) {
+            throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
+          }
+          // highlight and screenshot
+          return state.info;
+        } catch (e) {
+          // Log error but continue retrying until timeout is reached
+          this.logger.warn("Retrying containsText due to: " + e.message);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+      }
+
+      throw new Error("No snapshot match " + matchResult?.errorLineText);
+    } catch (e) {
+      await _commandError(state, e, this);
+      throw e;
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
   async waitForUserInput(message, world = null) {
     if (!message) {
       message = "# Wait for user input. Press any key to continue";
