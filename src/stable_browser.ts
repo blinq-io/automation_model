@@ -3541,7 +3541,9 @@ class StableBrowser {
     if (this.context && this.context.environment) {
       envName = this.context.environment.name;
     }
-    await await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
+    if (!process.env.TEMP_RUN) {
+      await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
+    }
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
