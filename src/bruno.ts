@@ -4,6 +4,10 @@ import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
 import objectPath from "object-path";
+//@ts-ignore
+import { bruToEnvJsonV2 } from "@usebruno/lang";
+// import { decrypt } from "./utils.js";
+
 interface BrunoConfig {
   version: string;
   name: string;
@@ -15,6 +19,48 @@ interface BrunoConfig {
     };
   };
 }
+
+export async function loadBrunoParams(context: any, environmentName: any) {
+  // check if bruno/environment folder exists
+  // if exists find an environment that matches the current environment
+  const brunoEnvironmentsFolder = path.join(process.cwd(), "bruno", "environments");
+  if (!fs.existsSync(brunoEnvironmentsFolder)) {
+    return;
+  }
+
+  const envFiles = fs.readdirSync(brunoEnvironmentsFolder);
+  for (const envFile of envFiles) {
+    if (envFile.endsWith(".bru")) {
+      //rename it to end with .bruEnv
+      fs.renameSync(
+        path.join(brunoEnvironmentsFolder, envFile),
+        path.join(brunoEnvironmentsFolder, envFile.replace(".bru", ".bruEnv"))
+      );
+    }
+  }
+
+  const envFile = path.join(brunoEnvironmentsFolder, `${environmentName}.bruEnv`);
+  if (!fs.existsSync(envFile)) {
+    return;
+  }
+
+  const envFileContent = fs.readFileSync(envFile, "utf-8");
+  try {
+    const envJson = bruToEnvJsonV2(envFileContent);
+    if (!envJson) {
+      return;
+    }
+    const variables = envJson.variables;
+    for (const variable of variables) {
+      if (variable.enabled && variable.value) {
+        context.web.setTestData({ [variable.name]: variable.value }, context.web);
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing Bruno environment file", e);
+  }
+}
+
 export async function executeBrunoRequest(requestName: string, options: any, context: any, world: any) {
   if (!options) {
     options = {};
