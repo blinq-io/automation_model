@@ -51,7 +51,7 @@ import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { snapshotValidation } from "./snapshot_validation.js";
-
+import { loadBrunoParams } from "./bruno.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -3616,6 +3616,8 @@ class StableBrowser {
     if (!process.env.TEMP_RUN) {
       await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
     }
+
+    await loadBrunoParams(this.context, this.context.environment.name);
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
