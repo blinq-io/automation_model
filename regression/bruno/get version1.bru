@@ -10,10 +10,6 @@ get {
   auth: inherit
 }
 
-vars:post-response {
-  ddd: res.body.author.login
-}
-
 script:post-response {
   bru.setVar("id",res.body.id)
 }
