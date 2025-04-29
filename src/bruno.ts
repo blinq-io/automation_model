@@ -6,6 +6,7 @@ import { Types } from "./stable_browser.js";
 //@ts-ignore
 import { bruToEnvJsonV2 } from "@usebruno/lang";
 import objectPath from "object-path";
+import { replaceWithLocalTestData } from "./utils.js";
 // import { decrypt } from "./utils.js";
 interface BrunoConfig {
   version: string;
@@ -137,7 +138,9 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     // read the bruno file
     let brunoFileContent = fs.readFileSync(brunoFile, "utf-8");
     // populate runtime variables
-    brunoFileContent = await context.web._replaceWithLocalData(brunoFileContent, world);
+    //brunoFileContent = await context.web._replaceWithLocalData(brunoFileContent, world);
+    brunoFileContent = await replaceWithLocalTestData(brunoFileContent, world, true, true, context, context.web, false);
+
     // inject code to extract runtime variables
     // first find the script:post-response
     const scriptPostResponse = brunoFileContent.indexOf("script:post-response {");
@@ -165,12 +168,13 @@ export async function executeBrunoRequest(requestName: string, options: any, con
         for (const variable of variables) {
           scriptVariables += `  runtimeVariables["${variable}"] = bru.getVar("${variable}");\n`;
         }
+        const fsRqureExists = script.indexOf("fs = require('fs');") !== -1;
         // check if the variable is not empty
         // replace the script with the modified one
         brunoFileContent = brunoFileContent.replace(
           script,
           `script:post-response {
-  const fs = require('fs');
+  ${fsRqureExists ? "" : "const fs = require('fs')"};
   // inject code to extract runtime variables
   ${script.substring(script.indexOf("{") + 1, script.lastIndexOf("}"))}
   // write the runtime variables to a file
@@ -341,7 +345,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
         const key = parts[0].trim();
         let opath = parts[1].trim();
         // check if the value is a variable
-        let path = opath.replace(/res\.body\./g, "response.").split(".");
+        let path = opath.replace(/res\.body\./g, "response.data.").split(".");
         const value = objectPath.get(result[0].results[0], path);
         if (value) {
           data[key] = value;
