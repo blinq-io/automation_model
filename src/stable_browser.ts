@@ -3601,7 +3601,8 @@ class StableBrowser {
       }
       return content.join("\n");
     } catch (e) {
-      console.error(e);
+      console.log("Error in getAriaSnapshot");
+      console.debug(e);
     }
     return null;
   }
