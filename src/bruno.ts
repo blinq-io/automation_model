@@ -152,9 +152,16 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       // extract the script
       const script = brunoFileContent.substring(scriptPostResponse, scriptEnd + 2);
       // extract all the variables key names: bru.setVar("key", value)
-      const regex = /bru\.setVar\("([^"]+)",/g;
       const variables: string[] = [];
+      const regex = /bru\.setVar\("([^"]+)",/g;
       let match;
+      while ((match = regex.exec(script)) !== null) {
+        // check if the variable is already in the list
+        if (!variables.includes(match[1])) {
+          variables.push(match[1]);
+        }
+      }
+      const regex1 = /bru\.setEnvVar\("([^"]+)",/g;
       while ((match = regex.exec(script)) !== null) {
         // check if the variable is already in the list
         if (!variables.includes(match[1])) {
