@@ -88,6 +88,7 @@ export const Types = {
   BRUNO: "bruno",
   SNAPSHOT_VALIDATION: "snapshot_validation",
   VERIFY_FILE_EXISTS: "verify_file_exists",
+  SET_INPUT_FILES: "set_input_files",
 };
 export const apps = {};
 
@@ -1551,6 +1552,40 @@ class StableBrowser {
         await this.page.keyboard.press("Enter");
       }
       await this.waitForPageLoad();
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
+  async setInputFiles(selectors, files, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      files,
+      options,
+      world,
+      type: Types.SET_INPUT_FILES,
+      text: `Set input files`,
+      _text: `Set input files on ${selectors.element_name}`,
+      operation: "setInputFiles",
+      log: "***** set input files " + selectors.element_name + " *****\n",
+    };
+    const uploadsFolder = this.configuration.uploadsFolder ?? "data/uploads";
+
+    try {
+      await _preCommand(state, this);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filePath = path.join(uploadsFolder, file);
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`File not found: ${filePath}`);
+        }
+        state.files[i] = filePath;
+      }
+      await state.element.setInputFiles(files);
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
