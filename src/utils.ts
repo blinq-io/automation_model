@@ -201,7 +201,8 @@ async function replaceWithLocalTestData(
   _decrypt = true,
   totpWait = true,
   context: any = null,
-  web: any = null
+  web: any = null,
+  throwError = true
 ) {
   if (!value) {
     return value;
@@ -256,7 +257,11 @@ async function replaceWithLocalTestData(
           if (newValue !== null) {
             value = value.replace(match, newValue);
           } else {
-            throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
+            if (throwError) {
+              throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
+            } else {
+              console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
+            }
           }
         }
       }

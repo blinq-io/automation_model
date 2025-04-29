@@ -34,6 +34,7 @@ describe("bruno", function () {
     );
     expect(result[0].summary.passedRequests).to.equal(1);
     expect(context.web.getTestData(this).id).to.not.be.null;
+    expect(context.web.getTestData(this).ddd).to.equal("madhav-blinq");
   });
   it("create object", async function () {
     try {
