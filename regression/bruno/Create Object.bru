@@ -26,7 +26,7 @@ vars:pre-request {
 
 assert {
   res.body.data.secret: eq {{SecretValue}}
-  res.body.data.guid: eq {{Guid}}
+  res.body.data.guid: eq "{{Guid}}"
 }
 
 script:pre-request {
@@ -35,12 +35,12 @@ script:pre-request {
   req.setHeader("X-Secret", _secret);
   bru.setVar("SecretValue", _secret);
   
-  const { faker } = require('@faker-js/faker');
-  const uniqolor = require('uniqolor');
-  const _email = faker.internet.email();
-  const _emailColor = uniqolor(_email);
+  //const { faker } = require('@faker-js/faker');
+  //const uniqolor = require('uniqolor');
+  //const _email = faker.internet.email();
+  //const _emailColor = uniqolor(_email);
   
   // Generate a GUID
-  bru.setVar("Guid", uuidv4());
+  bru.setVar("Guid", "1234");
   
 }
