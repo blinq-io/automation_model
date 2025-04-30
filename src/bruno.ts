@@ -3,7 +3,12 @@ import fs from "fs";
 import { spawn } from "child_process";
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
-import exp from "constants";
+//@ts-ignore
+import { bruToEnvJsonV2 } from "@usebruno/lang";
+import objectPath from "object-path";
+import { replaceWithLocalTestData } from "./utils.js";
+// import { decrypt } from "./utils.js";
+
 interface BrunoConfig {
   version: string;
   name: string;
@@ -15,6 +20,48 @@ interface BrunoConfig {
     };
   };
 }
+
+export async function loadBrunoParams(context: any, environmentName: any) {
+  // check if bruno/environment folder exists
+  // if exists find an environment that matches the current environment
+  const brunoEnvironmentsFolder = path.join(process.cwd(), "bruno", "environments");
+  if (!fs.existsSync(brunoEnvironmentsFolder)) {
+    return;
+  }
+
+  const envFiles = fs.readdirSync(brunoEnvironmentsFolder);
+  for (const envFile of envFiles) {
+    if (envFile.endsWith(".bru")) {
+      //rename it to end with .bruEnv
+      fs.renameSync(
+        path.join(brunoEnvironmentsFolder, envFile),
+        path.join(brunoEnvironmentsFolder, envFile.replace(".bru", ".bruEnv"))
+      );
+    }
+  }
+
+  const envFile = path.join(brunoEnvironmentsFolder, `${environmentName}.bruEnv`);
+  if (!fs.existsSync(envFile)) {
+    return;
+  }
+
+  const envFileContent = fs.readFileSync(envFile, "utf-8");
+  try {
+    const envJson = bruToEnvJsonV2(envFileContent);
+    if (!envJson) {
+      return;
+    }
+    const variables = envJson.variables;
+    for (const variable of variables) {
+      if (variable.enabled && variable.value) {
+        context.web.setTestData({ [variable.name]: variable.value }, context.web);
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing Bruno environment file", e);
+  }
+}
+
 export async function executeBrunoRequest(requestName: string, options: any, context: any, world: any) {
   if (!options) {
     options = {};
@@ -33,26 +80,29 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     world: world,
   };
   await _preCommand(state, context.web);
+  const filesToDelete = [];
   try {
     let brunoFolder = options.brunoFolder || path.join(process.cwd(), "bruno");
     if (!brunoFolder) {
       throw new Error("brunoFolder is not defined, place your bruno folder in the current working directory.");
     }
     // generate a temporary folder .tmp under the project root
-    const runtimeFolder = path.join(process.cwd(), ".tmp");
-    if (!fs.existsSync(runtimeFolder)) {
-      fs.mkdirSync(runtimeFolder);
+    const resultFolder = path.join(process.cwd(), ".tmp");
+    if (!fs.existsSync(resultFolder)) {
+      fs.mkdirSync(resultFolder);
     }
+
+    const runtimeFolder = process.cwd();
     // link node_modules to the runtime folder
-    const nodeModulesFolder = path.join(process.cwd(), "node_modules");
-    if (fs.existsSync(nodeModulesFolder)) {
-      // check if the node_modules folder exists
-      const runtimeNodeModulesFolder = path.join(runtimeFolder, "node_modules");
-      if (!fs.existsSync(runtimeNodeModulesFolder)) {
-        // create a symbolic link to the node_modules folder
-        fs.symlinkSync(nodeModulesFolder, runtimeNodeModulesFolder, "dir");
-      }
-    }
+    //const nodeModulesFolder = path.join(process.cwd(), "node_modules");
+    // if (fs.existsSync(nodeModulesFolder)) {
+    //   // check if the node_modules folder exists
+    //   const runtimeNodeModulesFolder = path.join(runtimeFolder, "node_modules");
+    //   if (!fs.existsSync(runtimeNodeModulesFolder)) {
+    //     // create a symbolic link to the node_modules folder
+    //     fs.symlinkSync(nodeModulesFolder, runtimeNodeModulesFolder, "dir");
+    //   }
+    // }
 
     // identify the bruno file
     const brunoFile = path.join(brunoFolder, `${requestName}.bru`);
@@ -79,12 +129,19 @@ export async function executeBrunoRequest(requestName: string, options: any, con
         };
       }
     }
-    fs.writeFileSync(path.join(runtimeFolder, "bruno.json"), JSON.stringify(brunoConfig, null, 2));
+    const brunoConfigFileName = path.join(runtimeFolder, "bruno.json");
+    const brunoConfigFileBackup = path.join(resultFolder, "bruno.json");
+    filesToDelete.push(brunoConfigFileName);
+    fs.writeFileSync(brunoConfigFileName, JSON.stringify(brunoConfig, null, 2));
+    fs.writeFileSync(brunoConfigFileBackup, JSON.stringify(brunoConfig, null, 2));
+
     let expectRuntime = false;
     // read the bruno file
     let brunoFileContent = fs.readFileSync(brunoFile, "utf-8");
     // populate runtime variables
-    brunoFileContent = await context.web._replaceWithLocalData(brunoFileContent, world);
+    //brunoFileContent = await context.web._replaceWithLocalData(brunoFileContent, world);
+    brunoFileContent = await replaceWithLocalTestData(brunoFileContent, world, true, true, context, context.web, false);
+
     // inject code to extract runtime variables
     // first find the script:post-response
     const scriptPostResponse = brunoFileContent.indexOf("script:post-response {");
@@ -95,9 +152,16 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       // extract the script
       const script = brunoFileContent.substring(scriptPostResponse, scriptEnd + 2);
       // extract all the variables key names: bru.setVar("key", value)
-      const regex = /bru\.setVar\("([^"]+)",/g;
       const variables: string[] = [];
+      const regex = /bru\.setVar\("([^"]+)",/g;
       let match;
+      while ((match = regex.exec(script)) !== null) {
+        // check if the variable is already in the list
+        if (!variables.includes(match[1])) {
+          variables.push(match[1]);
+        }
+      }
+      const regex1 = /bru\.setEnvVar\("([^"]+)",/g;
       while ((match = regex.exec(script)) !== null) {
         // check if the variable is already in the list
         if (!variables.includes(match[1])) {
@@ -112,12 +176,13 @@ export async function executeBrunoRequest(requestName: string, options: any, con
         for (const variable of variables) {
           scriptVariables += `  runtimeVariables["${variable}"] = bru.getVar("${variable}");\n`;
         }
+        const fsRqureExists = script.indexOf("fs = require('fs');") !== -1;
         // check if the variable is not empty
         // replace the script with the modified one
         brunoFileContent = brunoFileContent.replace(
           script,
           `script:post-response {
-  const fs = require('fs');
+  ${fsRqureExists ? "" : "const fs = require('fs')"};
   // inject code to extract runtime variables
   ${script.substring(script.indexOf("{") + 1, script.lastIndexOf("}"))}
   // write the runtime variables to a file
@@ -129,14 +194,19 @@ export async function executeBrunoRequest(requestName: string, options: any, con
     }
 
     // write the bruno file to the runtime folder
-    fs.writeFileSync(path.join(runtimeFolder, `${requestName}.bru`), brunoFileContent);
-    const outputFile = path.join(runtimeFolder, `bruno_${context.web.stepIndex ? context.web.stepIndex : 0}.json`);
+    const executeBruFile = path.join(runtimeFolder, `${requestName}.bru`);
+    const executeBruFileBackup = path.join(resultFolder, `${requestName}.bru`);
+    filesToDelete.push(executeBruFile);
+    fs.writeFileSync(executeBruFile, brunoFileContent);
+    fs.writeFileSync(executeBruFileBackup, brunoFileContent);
+    const outputFile = path.join(resultFolder, `bruno_${context.web.stepIndex ? context.web.stepIndex : 0}.json`);
     if (fs.existsSync(outputFile)) {
       // remove the file if it exists
       fs.unlinkSync(outputFile);
     }
     // if the runtime.json file exists, remove it
     const runtimeFile = path.join(runtimeFolder, "runtime.json");
+    filesToDelete.push(runtimeFile);
     if (fs.existsSync(runtimeFile)) {
       // remove the file if it exists
       fs.unlinkSync(runtimeFile);
@@ -160,6 +230,7 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       }
     }
     args.push(brunoFilePath);
+
     const { stdout, stderr } = await runCommand(args, commandOptions);
     // check if the command was successful
     if (!fs.existsSync(outputFile)) {
@@ -256,7 +327,40 @@ export async function executeBrunoRequest(requestName: string, options: any, con
       options.brunoScope = "bruno";
     }
     const data: Record<string, any> = {};
-    data[options.testDataScope] = result[0].results.response;
+    let scope = options.brunoScope;
+    data[scope] = result[0].results[0];
+    // check for vars:post-response {
+    const varsPostResponse = brunoFileContent.indexOf("vars:post-response {");
+    if (varsPostResponse !== -1) {
+      // need to search a new line follow by }
+      const varsEnd = brunoFileContent.indexOf("\n}", varsPostResponse);
+      // extract the script remove the open { and the close }
+      const script = brunoFileContent.substring(varsPostResponse + 20, varsEnd);
+      // the result loolks like this:
+      // aaaa: res.body.data.guid
+      // bbbb: res.body.data.guid2
+      const lines = script.split("\n");
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.length === 0) {
+          continue;
+        }
+        // split the line by :
+        const parts = trimmedLine.split(":");
+        if (parts.length !== 2) {
+          continue;
+        }
+        const key = parts[0].trim();
+        let opath = parts[1].trim();
+        // check if the value is a variable
+        let path = opath.replace(/res\.body\./g, "response.data.").split(".");
+        const value = objectPath.get(result[0].results[0], path);
+        if (value) {
+          data[key] = value;
+        }
+      }
+    }
+
     context.web.setTestData(data, world);
     // if the expectRuntime is true, read the runtime.json file
     if (expectRuntime) {
@@ -272,13 +376,22 @@ export async function executeBrunoRequest(requestName: string, options: any, con
   } catch (error) {
     await _commandError(state, error, context.web);
   } finally {
+
+    // delete the files to delete
+    for (const file of filesToDelete) {
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
+    }
     await _commandFinally(state, context.web);
   }
 }
 
 const runCommand = async (args: string[], options: any) => {
   return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    const child = spawn("npx", args, options);
+    const _cmd = process.platform === "win32" ? "npx.cmd" : "npx";
+    const _options = process.platform === "win32" ? { ...options, shell: true } : options;
+    const child = spawn(_cmd, args, _options);
 
     let stdout = "";
     let stderr = "";

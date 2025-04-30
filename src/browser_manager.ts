@@ -131,7 +131,7 @@ class Browser {
     if (process.env.VIEWPORT) {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
-    } else {
+    } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];

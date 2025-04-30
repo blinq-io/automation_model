@@ -34,6 +34,7 @@ describe("bruno", function () {
     );
     expect(result[0].summary.passedRequests).to.equal(1);
     expect(context.web.getTestData(this).id).to.not.be.null;
+    expect(context.web.getTestData(this).ddd).to.equal("madhav-blinq");
   });
   it("create object", async function () {
     try {
@@ -48,7 +49,7 @@ describe("bruno", function () {
       expect(result[0].summary.passedRequests).to.equal(1);
       expect(context.web.getTestData(this).id).to.not.be.null;
     } catch (e) {
-      expect(e.message || e).to.be.equal("Bruno request failed: Cannot find module '@faker-js/faker'");
+      expect(e.message || e).to.be.equal('Parameter "{{ObjectName}}" is undefined in the test data');
     }
   });
 });
