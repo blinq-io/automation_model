@@ -376,13 +376,13 @@ export async function executeBrunoRequest(requestName: string, options: any, con
   } catch (error) {
     await _commandError(state, error, context.web);
   } finally {
+
     // delete the files to delete
     for (const file of filesToDelete) {
       if (fs.existsSync(file)) {
         fs.unlinkSync(file);
       }
     }
-
     await _commandFinally(state, context.web);
   }
 }
