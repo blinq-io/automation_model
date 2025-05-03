@@ -146,6 +146,9 @@ function escapeRegex(str: string) {
   return str.replace(escapedRegex, "\\$&");
 }
 function _findKey() {
+  if (process.env.PROJECT_KEY) {
+    return process.env.PROJECT_KEY;
+  }
   if (process.env.PROJECT_ID) {
     return process.env.PROJECT_ID;
   }
