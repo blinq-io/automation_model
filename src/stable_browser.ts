@@ -2131,6 +2131,26 @@ class StableBrowser {
           state.value = await state.element.getAttribute(attribute);
           break;
       }
+
+      if (options !== null) {
+        if (options.regex && options.regex !== "") {
+          // Construct a regex pattern from the provided string
+          const regex = options.regex.slice(1, -1);
+          const regexPattern = new RegExp(regex, "g");
+          const matches = state.value.match(regexPattern);
+          if (matches) {
+            let newValue = "";
+            for (const match of matches) {
+              newValue += match;
+            }
+            state.value = newValue;
+          }
+        }
+        if (options.trimSpaces && options.trimSpaces === true) {
+          state.value = state.value.trim();
+        }
+      }
+
       state.info.value = state.value;
 
       this.setTestData({ [variable]: state.value }, world);
