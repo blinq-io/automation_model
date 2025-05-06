@@ -1563,6 +1563,7 @@ class StableBrowser {
       selectors,
       _params,
       files,
+      value: '"' + files.join('", "') + '"',
       options,
       world,
       type: Types.SET_INPUT_FILES,
