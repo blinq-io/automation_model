@@ -181,7 +181,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           }
 
           let useValue = item.value;
-          
+
           if (item.DataType === "secret") {
             testData[item.key] = "secret:" + item.value;
             // decrypt the secret
@@ -203,6 +203,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
             testData[item.key] = process.env[item.key]!;
             continue;
           }
+
           // Filter by feature/scenario if specified
           if (filterFeatureScenario) {
             if (feature && item.feature && item.feature !== feature) {
@@ -236,7 +237,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
-      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2)); 
+      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
     console.log("Error reading data.json file: " + e);
