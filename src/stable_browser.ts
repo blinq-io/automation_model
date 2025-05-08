@@ -85,6 +85,8 @@ export const Types = {
   VERIFY_ATTRIBUTE: "verify_element_attribute",
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
   BRUNO: "bruno",
+  VERIFY_FILE_EXISTS: "verify_file_exists",
+  SET_INPUT_FILES: "set_input_files",
 };
 export const apps = {};
 
@@ -1555,6 +1557,41 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+
+  async setInputFiles(selectors, files, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      files,
+      value: '"' + files.join('", "') + '"',
+      options,
+      world,
+      type: Types.SET_INPUT_FILES,
+      text: `Set input files`,
+      _text: `Set input files on ${selectors.element_name}`,
+      operation: "setInputFiles",
+      log: "***** set input files " + selectors.element_name + " *****\n",
+    };
+    const uploadsFolder = this.configuration.uploadsFolder ?? "data/uploads";
+
+    try {
+      await _preCommand(state, this);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filePath = path.join(uploadsFolder, file);
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`File not found: ${filePath}`);
+        }
+        state.files[i] = filePath;
+      }
+      await state.element.setInputFiles(files);
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
     return await this._getText(selectors, 0, _params, options, info, world);
   }
@@ -2095,6 +2132,26 @@ class StableBrowser {
           state.value = await state.element.getAttribute(attribute);
           break;
       }
+
+      if (options !== null) {
+        if (options.regex && options.regex !== "") {
+          // Construct a regex pattern from the provided string
+          const regex = options.regex.slice(1, -1);
+          const regexPattern = new RegExp(regex, "g");
+          const matches = state.value.match(regexPattern);
+          if (matches) {
+            let newValue = "";
+            for (const match of matches) {
+              newValue += match;
+            }
+            state.value = newValue;
+          }
+        }
+        if (options.trimSpaces && options.trimSpaces === true) {
+          state.value = state.value.trim();
+        }
+      }
+
       state.info.value = state.value;
 
       this.setTestData({ [variable]: state.value }, world);
@@ -2580,7 +2637,7 @@ class StableBrowser {
       scroll: false,
       highlight: false,
       type: Types.VERIFY_PAGE_CONTAINS_TEXT,
-      text: `Verify the text '${text}' exists in page`,
+      text: `Verify the text '${maskValue(text)}' exists in page`,
       _text: `Verify the text '${text}' exists in page`,
       operation: "verifyTextExistInPage",
       log: "***** verify text " + text + " exists in page *****\n",
@@ -2674,7 +2731,7 @@ class StableBrowser {
       scroll: false,
       highlight: false,
       type: Types.WAIT_FOR_TEXT_TO_DISAPPEAR,
-      text: `Verify the text '${text}' does not exist in page`,
+      text: `Verify the text '${maskValue(text)}' does not exist in page`,
       _text: `Verify the text '${text}' does not exist in page`,
       operation: "verifyTextNotExistInPage",
       log: "***** verify text " + text + " does not exist in page *****\n",
@@ -2851,6 +2908,7 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+
   async findRelatedTextInAllFrames(
     textAnchor: string,
     climb: number,
