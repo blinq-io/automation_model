@@ -51,6 +51,11 @@ const initContext = async (
   envName: string | null = null
 ) => {
   if (context && context.playContext && (context.playContext as any).isClosed !== true) {
+    if (process.env.TEMP_RUN) {
+      if (world && !world.context) {
+        world.context = context;
+      }
+    }
     return context;
   }
   if (world && world.context && world.context.playContext && world.context.playContext.isClosed !== true) {
