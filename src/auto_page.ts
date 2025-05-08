@@ -1,6 +1,6 @@
 import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
-import fs, { existsSync } from "fs";
+import fs, { existsSync, write, writeFileSync } from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
@@ -262,6 +262,10 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
 const resetTestData = async (envPath: string, world: any) => {
   const envName = getEnv(envPath);
   if (envName) {
+    const dataFile = _getDataFile(world, context, context?.web);
+    if (dataFile && existsSync(dataFile)) {
+      writeFileSync(dataFile, "{}");
+    }
     getTestData(envName, world);
   }
 };
