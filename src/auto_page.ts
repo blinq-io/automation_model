@@ -1,6 +1,6 @@
 import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
-import fs, { existsSync } from "fs";
+import fs, { existsSync, write, writeFileSync } from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
@@ -51,6 +51,11 @@ const initContext = async (
   envName: string | null = null
 ) => {
   if (context && context.playContext && (context.playContext as any).isClosed !== true) {
+    if (process.env.TEMP_RUN) {
+      if (world && !world.context) {
+        world.context = context;
+      }
+    }
     return context;
   }
   if (world && world.context && world.context.playContext && world.context.playContext.isClosed !== true) {
@@ -155,7 +160,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       const filterFeatureScenario = feature || scenario;
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
       const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
-      const testData: Record<string, string> = {};
+      let testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
 
@@ -163,7 +168,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          if(process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
@@ -237,6 +242,16 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+      if (fs.existsSync(dataFile)) {
+        try {
+          const content = fs.readFileSync(dataFile, "utf8");
+          const data = JSON.parse(content);
+          // merge the global test data with the existing data
+          testData = Object.assign(data, testData);
+        } catch (error) {
+          console.log("Error reading data.json file: " + error);
+        }
+      }
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
@@ -247,6 +262,10 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
 const resetTestData = async (envPath: string, world: any) => {
   const envName = getEnv(envPath);
   if (envName) {
+    const dataFile = _getDataFile(world, context, context?.web);
+    if (dataFile && existsSync(dataFile)) {
+      writeFileSync(dataFile, "{}");
+    }
     getTestData(envName, world);
   }
 };
