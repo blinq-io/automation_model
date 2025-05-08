@@ -51,6 +51,11 @@ const initContext = async (
   envName: string | null = null
 ) => {
   if (context && context.playContext && (context.playContext as any).isClosed !== true) {
+    if (process.env.TEMP_RUN) {
+      if (world && !world.context) {
+        world.context = context;
+      }
+    }
     return context;
   }
   if (world && world.context && world.context.playContext && world.context.playContext.isClosed !== true) {
@@ -163,7 +168,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       if (allEnvData) {
         for (let i = 0; i < allEnvData.length; i++) {
           const item = allEnvData[i];
-          if(process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
             testData[item.key] = process.env[item.key]!;
             continue;
           }
