@@ -160,7 +160,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       const filterFeatureScenario = feature || scenario;
       const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
       const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
-      const testData: Record<string, string> = {};
+      let testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
       const currentEnvData = jsonData[currentEnv];
 
@@ -242,6 +242,16 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+      if (fs.existsSync(dataFile)) {
+        try {
+          const content = fs.readFileSync(dataFile, "utf8");
+          const data = JSON.parse(content);
+          // merge the global test data with the existing data
+          testData = Object.assign(data, testData);
+        } catch (error) {
+          console.log("Error reading data.json file: " + error);
+        }
+      }
       fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
