@@ -3300,6 +3300,9 @@ class StableBrowser {
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
+    if (this.onRestoreSaveState) {
+      this.onRestoreSaveState(path);
+    }
   }
 
   async waitForPageLoad(options = {}, world = null) {
