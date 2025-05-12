@@ -3655,15 +3655,21 @@ class StableBrowser {
       const content = [`- path: ${path}`, `- title: ${title}`];
       const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
       for (let i = 0; i < frames.length; i++) {
-        content.push(`- frame: ${i}`);
         const frame = frames[i];
-        const snapshot = await frame.locator("body").ariaSnapshot({ timeout });
-        content.push(snapshot);
+        try {
+          // Ensure frame is attached and has body
+          const body = frame.locator("body");
+          await body.waitFor({ timeout }); // wait explicitly
+
+          const snapshot = await body.ariaSnapshot({ timeout });
+          content.push(`- frame: ${i}`);
+          content.push(snapshot);
+        } catch (innerErr) {}
       }
       return content.join("\n");
     } catch (e) {
       console.log("Error in getAriaSnapshot");
-      console.debug(e);
+      //console.debug(e);
     }
     return null;
   }
