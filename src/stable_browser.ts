@@ -3264,7 +3264,12 @@ class StableBrowser {
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
-    return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
+    try {
+      return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
+    } catch (error) {
+      this.logger.debug(error);
+      throw error;
+    }
   }
   _getLoadTimeout(options) {
     let timeout = 15000;
