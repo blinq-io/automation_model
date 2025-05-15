@@ -2304,16 +2304,40 @@ class StableBrowser {
       let regex;
       if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
         const patternBody = expectedValue.slice(1, -1);
-        regex = new RegExp(patternBody, "g");
+        const processedPattern = patternBody.replace(/\n/g, ".*");
+        regex = new RegExp(processedPattern, "gs");
+        state.info.regex = true;
       } else {
         const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         regex = new RegExp(escapedPattern, "g");
       }
-      if (!val.match(regex)) {
-        let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
-        state.info.failCause.assertionFailed = true;
-        state.info.failCause.lastError = errorMessage;
-        throw new Error(errorMessage);
+      if (attribute === "innerText") {
+        if (state.info.regex) {
+          if (!regex.test(val)) {
+            let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        } else {
+          const valLines = val.split("\n");
+          const expectedLines = expectedValue.split("\n");
+          const isPart = expectedLines.every((expectedLine) => valLines.some((valLine) => valLine === expectedLine));
+
+          if (!isPart) {
+            let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        }
+      } else {
+        if (!val.match(regex)) {
+          let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+          state.info.failCause.assertionFailed = true;
+          state.info.failCause.lastError = errorMessage;
+          throw new Error(errorMessage);
+        }
       }
       return state.info;
     } catch (e) {
