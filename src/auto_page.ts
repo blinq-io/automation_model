@@ -280,7 +280,6 @@ const _createSnapshotsFolder = (folder: string) => {
     mkdirSync(snapshotsPath, { recursive: true });
   }
   const envName = context?.environment?.name ?? "default";
-  console.log(`Current environment name: ${envName}`);
   const specificPath = path.join(snapshotsPath, envName);
   if (!existsSync(specificPath)) {
     mkdirSync(specificPath, { recursive: true });
