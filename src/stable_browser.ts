@@ -2302,7 +2302,7 @@ class StableBrowser {
       let regex;
       if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
         const patternBody = expectedValue.slice(1, -1);
-        const processedPattern = patternBody.replace(/\n/, ".*");
+        const processedPattern = patternBody.replace(/\n/g, ".*");
         regex = new RegExp(processedPattern, "gs");
         state.info.regex = true;
       } else {
