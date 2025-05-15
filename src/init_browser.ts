@@ -250,7 +250,6 @@ const initEnvironment = function () {
   return environment;
 };
 const checkForEnvArg = function () {
-  console.log("Process args: ", process.argv);
   for (let arg of process.argv.slice(2)) {
     if (arg.startsWith("--")) {
       const [key, value] = arg.split("=");
