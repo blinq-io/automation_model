@@ -12,6 +12,7 @@ class TestContext {
   page: Page | null = null;
   environment: Environment | null = null;
   reportFolder: string | null = null;
+  snapshotFolder: string | null = null;
   api: Api | null = null;
   navigate = false;
   headless = false;
