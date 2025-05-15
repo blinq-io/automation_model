@@ -1816,12 +1816,28 @@ class StableBrowser {
       throw new Error("referanceSnapshot is null");
     }
     let text = null;
-    if (fs.existsSync(path.join(this.project_path, "snapshots", referanceSnapshot + ".yml"))) {
-      text = fs.readFileSync(path.join(this.project_path, "snapshots", referanceSnapshot + ".yml"), "utf8");
+    if (
+      fs.existsSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yml")
+      )
+    ) {
+      text = fs.readFileSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yml"),
+        "utf8"
+      );
+    } else if (
+      fs.existsSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yaml")
+      )
+    ) {
+      text = fs.readFileSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yaml"),
+        "utf8"
+      );
     } else if (referanceSnapshot.startsWith("yaml:")) {
       text = referanceSnapshot.substring(5);
     } else {
-      throw new Error("referanceSnapshot file not found: " + referanceSnapshot);
+      throw new Error("referenceSnapshot file not found: " + referanceSnapshot);
     }
     state.text = text;
 

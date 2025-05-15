@@ -1,6 +1,6 @@
 import { browserManager } from "./browser_manager.js";
 import { getContext } from "./init_browser.js";
-import fs, { existsSync, write, writeFileSync } from "fs";
+import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
@@ -26,8 +26,8 @@ const _findEmptyFolder = (folder?: string) => {
   if (!folder) {
     folder = "./runs";
   }
-  if (!fs.existsSync(folder)) {
-    fs.mkdirSync(folder);
+  if (!existsSync(folder)) {
+    mkdirSync(folder);
   }
   if (process.env.REPORT_FOLDER) {
     return process.env.REPORT_FOLDER;
@@ -36,7 +36,7 @@ const _findEmptyFolder = (folder?: string) => {
     return path.join(folder, process.env.REPORT_ID);
   }
   let nextIndex = 1;
-  while (fs.existsSync(path.join(folder, nextIndex.toString()))) {
+  while (existsSync(path.join(folder, nextIndex.toString()))) {
     nextIndex++;
   }
   return path.join(folder, nextIndex.toString());
@@ -70,20 +70,20 @@ const initContext = async (
   const globalTestDataFile = process.env.GLOBAL_TEST_DATA_FILE;
   if (globalTestDataFile) {
     // check if file exists
-    if (!fs.existsSync(globalTestDataFile)) {
+    if (!existsSync(globalTestDataFile)) {
       console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.GLOBAL_TEST_DATA_FILE);
     } else {
       // if report folder does not exist, create it
-      if (!fs.existsSync(reportFolder)) {
-        fs.mkdirSync(reportFolder, { recursive: true });
+      if (!existsSync(reportFolder)) {
+        mkdirSync(reportFolder, { recursive: true });
       }
       // copy the test data file to the report folder as data.json
-      fs.copyFileSync(globalTestDataFile, reportFolder + "/data.json");
+      copyFileSync(globalTestDataFile, reportFolder + "/data.json");
     }
   }
   const screenshotPath = reportFolder + "/screenshots/";
-  if (!fs.existsSync(screenshotPath)) {
-    fs.mkdirSync(screenshotPath, { recursive: true });
+  if (!existsSync(screenshotPath)) {
+    mkdirSync(screenshotPath, { recursive: true });
   }
   if (world) {
     world.reportFolder = reportFolder;
@@ -111,6 +111,10 @@ const initContext = async (
     }
   }
 
+  if (context && !context.snapshotFolder) {
+    context.snapshotFolder = _createSnapshotsFolder("data");
+  }
+
   return context;
 };
 
@@ -121,7 +125,7 @@ const getEnv = (envName: string | null) => {
   }
   if (env) {
     try {
-      const content = JSON.parse(fs.readFileSync(env, "utf8"));
+      const content = JSON.parse(readFileSync(env, "utf8"));
       return content.name;
     } catch (e) {
       console.log("Error reading env file: " + e);
@@ -156,9 +160,9 @@ type testData = {
 const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string) => {
   // copy the global test data located in data/data.json to the report folder
   try {
-    if (fs.existsSync(path.join("data", "data.json"))) {
+    if (existsSync(path.join("data", "data.json"))) {
       const filterFeatureScenario = feature || scenario;
-      const data = fs.readFileSync(path.join("data", "data.json"), "utf8");
+      const data = readFileSync(path.join("data", "data.json"), "utf8");
       const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
       let testData: Record<string, string> = {};
       const allEnvData = jsonData["*"];
@@ -238,13 +242,13 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
       }
 
       if (dataFile && !existsSync(path.dirname(dataFile))) {
-        fs.mkdirSync(path.dirname(dataFile), { recursive: true });
+        mkdirSync(path.dirname(dataFile), { recursive: true });
       }
 
       if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
-      if (fs.existsSync(dataFile)) {
+      if (existsSync(dataFile)) {
         try {
-          const content = fs.readFileSync(dataFile, "utf8");
+          const content = readFileSync(dataFile, "utf8");
           const data = JSON.parse(content);
           // merge the global test data with the existing data
           testData = Object.assign(data, testData);
@@ -252,7 +256,7 @@ const getTestData = async (currentEnv: string, world: any, dataFile?: string, fe
           console.log("Error reading data.json file: " + error);
         }
       }
-      fs.writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+      writeFileSync(dataFile, JSON.stringify(testData, null, 2));
     }
   } catch (e) {
     console.log("Error reading data.json file: " + e);
@@ -269,4 +273,19 @@ const resetTestData = async (envPath: string, world: any) => {
     getTestData(envName, world);
   }
 };
+
+const _createSnapshotsFolder = (folder: string) => {
+  const snapshotsPath = path.join(folder, "snapshots");
+  if (!existsSync(snapshotsPath)) {
+    mkdirSync(snapshotsPath, { recursive: true });
+  }
+  const envName = context?.environment?.name ?? "default";
+  console.log(`Current environment name: ${envName}`);
+  const specificPath = path.join(snapshotsPath, envName);
+  if (!existsSync(specificPath)) {
+    mkdirSync(specificPath, { recursive: true });
+  }
+  return specificPath;
+};
+
 export { initContext, navigate, closeContext, resetTestData, getTestData };

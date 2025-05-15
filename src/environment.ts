@@ -15,6 +15,7 @@ class Environment {
   cookies: Cookie[] = [];
   origins: { origin: string; localStorage: LocalStorage }[] = [];
   extensionPath?: string;
+  name?: string;
   constructor(public baseUrl?: string) {}
   setBaseUrl(url: string) {
     this.baseUrl = url;
