@@ -85,6 +85,8 @@ interface SnapshotLine {
   error: string | null;
   /** interpret `value` as a RegExp instead of literal text */
   regex: boolean;
+  /** the original line text */
+  line_text: string;
 }
 export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
   // the input is yaml text split into lines, 2 spaces is 1 level
@@ -106,6 +108,7 @@ export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
       // no - found, set it to error
       nodes.push({
         line: i,
+        line_text: line,
         key: line,
         value: null,
         level,
@@ -121,6 +124,7 @@ export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
       // no space or : found, set it to error
       nodes.push({
         line: i,
+        line_text: line,
         key: line,
         value: null,
         level,
@@ -144,6 +148,7 @@ export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
     const regex = value.startsWith("/") && (value.endsWith("/") || value.endsWith("/i") || value.endsWith("/g"));
     nodes.push({
       line: i,
+      line_text: line,
       key,
       value: value.length > 0 ? value : null,
       level,
@@ -191,14 +196,14 @@ export interface MatchResult {
   errorLine: number;
   errorLineText: string | null;
 }
-export function snapshotValidation(snapshot: string, referanceSnapshot: string): MatchResult {
+export function snapshotValidation(snapshot: string, referanceSnapshot: string, snapshotName: string): MatchResult {
   const lines = snapshot.split("\n");
   const nodes = fromLinesToSnapshotLines(lines);
   const subLines = referanceSnapshot.split("\n");
   const subNodes = fromLinesToSnapshotLines(subLines);
-  return matchSnapshot(nodes, subNodes);
+  return matchSnapshot(nodes, subNodes, snapshotName);
 }
-export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[]): MatchResult {
+export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapshotName: string): MatchResult {
   /* nearest ancestor of every sub-line (–1 for roots) */
   const parentIdx = sub.map((_, i) => {
     for (let j = i - 1; j >= 0; j--) if (sub[j].level < sub[i].level) return j;
@@ -241,11 +246,14 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[]): MatchR
 
   /* kick off the search */
   const found = dfs(0, 0);
-
+  let error = null;
+  if (!found) {
+    error = `Error missmatch snapshot\n${snapshotName}: ${sub[failureAt].line}\nLine: ${sub[failureAt].line_text}`;
+  }
   return {
     matchingLines: found ? mapping : mapping.slice(0, failureAt),
     errorLine: found ? -1 : failureAt,
-    errorLineText: found ? null : sub[failureAt].key + " " + sub[failureAt].value,
+    errorLineText: error,
   };
 }
 // let ttt = `- banner:
