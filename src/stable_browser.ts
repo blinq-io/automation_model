@@ -51,6 +51,8 @@ import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { loadBrunoParams } from "./bruno.js";
+import { snapshotValidation } from "./snapshot_validation.js";
+
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -87,6 +89,7 @@ export const Types = {
   BRUNO: "bruno",
   VERIFY_FILE_EXISTS: "verify_file_exists",
   SET_INPUT_FILES: "set_input_files",
+  SNAPSHOT_VALIDATION: "snapshot_validation",
 };
 export const apps = {};
 
