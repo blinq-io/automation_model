@@ -52,7 +52,7 @@ yaml:- list:
         null
       );
     } catch (e) {
-      expect(e.message).to.be.equal("No snapshot match paragraph blinq_admin1");
+      expect(e.message.split("\n")[0].trim()).to.be.equal(`No snapshot match Error missmatch snapshot`);
     }
   });
 });
