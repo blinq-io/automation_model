@@ -57,7 +57,7 @@ describe("verifiy", function () {
     fs.writeFileSync("temp/fullHTML.html", fullHTML);
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
     const browser = await chromium.launch({
-      headless: false,
+      headless: true,
       timeout: 0,
       args,
       //downloadsPath: downloadsPath,
