@@ -2575,7 +2575,11 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
-      await _commandError({ text: "verifyPagePath", operation: "verifyPagePath", pathPart, info }, e, this);
+      await _commandError(
+        { text: "verifyPagePath", operation: "verifyPagePath", pathPart, info, throwError: true },
+        e,
+        this
+      );
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {
