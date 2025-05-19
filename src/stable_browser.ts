@@ -1859,7 +1859,7 @@ class StableBrowser {
           }
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
 
-          matchResult = snapshotValidation(snapshot, newValue);
+          matchResult = snapshotValidation(snapshot, newValue, referanceSnapshot);
           if (matchResult.errorLine !== -1) {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
@@ -1867,9 +1867,9 @@ class StableBrowser {
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
-          this.logger.warn("Retrying containsText due to: " + e.message);
+          this.logger.warn("Retrying snapshot validation due to: " + e.message);
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 1 second before retrying
       }
 
       throw new Error("No snapshot match " + matchResult?.errorLineText);
