@@ -3753,7 +3753,7 @@ class StableBrowser {
         try {
           // Ensure frame is attached and has body
           const body = frame.locator("body");
-          await body.waitFor({ timeout }); // wait explicitly
+          await body.waitFor({ timeout: 200 }); // wait explicitly
 
           const snapshot = await body.ariaSnapshot({ timeout });
           content.push(`- frame: ${i}`);
