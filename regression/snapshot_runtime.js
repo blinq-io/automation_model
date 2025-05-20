@@ -52,7 +52,7 @@ yaml:- list:
         null
       );
     } catch (e) {
-      expect(e.message.split("\n")[0].trim()).to.be.equal(`No snapshot match Error missmatch snapshot`);
+      expect(e.message.split("\n")[0].trim()).to.be.equal(`No snapshot match Snapshot file: yaml:- list:`);
     }
   });
 });
