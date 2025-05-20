@@ -63,6 +63,10 @@ export class LocatorLog {
     // go over all the keys in the events object
     let locatorIndex = 0;
     for (let locatorString in this.events) {
+      if(!locatorString.includes("\"priority\""))
+      {
+        continue
+      }
       const locatorEvents = this.events[locatorString];
       result += `#${locatorIndex + 1} ${locatorString}\n`;
       locatorIndex++;
