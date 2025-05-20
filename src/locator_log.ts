@@ -8,11 +8,13 @@ export const LocatorStatus = {
   FOUND: "FOUND",
   ERROR: "ERROR",
 };
+
 interface Event {
   start: number;
   end: number;
   locatorStatus: string;
 }
+
 export class LocatorLog {
   selectors: any;
   timeout: number = -1;
@@ -29,6 +31,7 @@ export class LocatorLog {
     // }
     this.startTime = Date.now();
   }
+
   setLocatorSearchStatus(locatorString: string, status: string) {
     if (!this.events[locatorString]) {
       this.events[locatorString] = [];
@@ -55,9 +58,7 @@ export class LocatorLog {
     }
   }
   toString() {
-    if(process.env.SUPRESS_ERRORS==="true"){
-      return "";
-    }
+
     let result = this.mission + "\n";
     // go over all the keys in the events object
     let locatorIndex = 0;
