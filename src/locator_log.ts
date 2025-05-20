@@ -55,9 +55,6 @@ export class LocatorLog {
     }
   }
   toString() {
-    if(process.env.SUPRESS_ERRORS==="true"){
-      return "";
-    }
     let result = this.mission + "\n";
     // go over all the keys in the events object
     let locatorIndex = 0;

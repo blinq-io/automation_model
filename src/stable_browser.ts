@@ -666,14 +666,10 @@ class StableBrowser {
       timeout = 30000;
     }
     for (let i = 0; i < 3; i++) {
-      if(process.env.SUPRESS_ERRORS==="true") {
-        info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
-      }
+      info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
       for (let j = 0; j < selectors.locators.length; j++) {
         let selector = selectors.locators[j];
-        if(process.env.SUPRESS_ERRORS==="true") {
-          info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
-        }
+        info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
       let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
 
@@ -703,12 +699,7 @@ class StableBrowser {
         return scope.locator(newSelector);
       }
     }
-    if(process.env.SUPRESS_ERRORS==="true") {
-      throw new Error("unable to locate the element");
-    }
-    else{
-      throw new Error("unable to locate element " + JSON.stringify(selectors));
-    }
+    throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
   async _findFrameScope(selectors, timeout = 30000, info) {
     if (!info) {
@@ -954,12 +945,7 @@ class StableBrowser {
     if (!info?.failCause?.lastError) {
       info.failCause.lastError = `failed to locate ${formatElementName(selectors.element_name)}, ${locatorsCount > 0 ? `${locatorsCount} matching elements found` : "no matching elements found"}`;
     }
-    if(process.env.SUPRESS_ERRORS==="true") {
-      throw new Error("failed to locate first element no elements found" );
-    }
-    else{
-      throw new Error("failed to locate first element no elements found, " + info.log);
-    }
+    throw new Error("failed to locate first element no elements found, " + info.log);
   }
   async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name) {
     let foundElements = [];
