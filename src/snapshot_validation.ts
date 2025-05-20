@@ -248,7 +248,7 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapsho
   const found = dfs(0, 0);
   let error = null;
   if (!found) {
-    error = `Error missmatch snapshot\n${snapshotName}: ${sub[failureAt].line}\nLine: ${sub[failureAt].line_text}`;
+    error = `Snapshot file: ${snapshotName}\nLine no.: ${sub[failureAt].line}\nLine: ${sub[failureAt].line_text}`;
   }
   return {
     matchingLines: found ? mapping : mapping.slice(0, failureAt),
