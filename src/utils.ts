@@ -712,7 +712,7 @@ const KEYBOARD_EVENTS = [
   "TVAudioDescription",
 ];
 function unEscapeString(str: string) {
-  const placeholder = "__NEWLINE__";
+  const placeholder = "\\n";
   str = str.replace(new RegExp(placeholder, "g"), "\n");
   return str;
 }
