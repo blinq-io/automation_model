@@ -167,18 +167,39 @@ function toRegExp(raw: string): RegExp {
   const lastSlash = raw.lastIndexOf("/");
   const pattern = raw.slice(1, lastSlash); // between the //
   const flags = raw.slice(lastSlash + 1); // i, g, …
+  //let unescapedPattern = JSON.parse(`"${pattern}"`); // Unescape \ sequences
   return new RegExp(pattern, flags);
 }
 
 /**
  * Single-line comparison with fixed regex handling.
  */
-function lineMatches(full: SnapshotLine, sub: SnapshotLine): boolean {
-  if (full.key !== sub.key) return false;
-  if (full.level !== sub.level) return false;
-
+function lineMatches(full: SnapshotLine, sub: SnapshotLine, baseLevel: number): any {
+  let status = { status: false, baseLevel: -1 };
+  if (full.key !== sub.key) return status;
+  if (baseLevel !== -1) {
+    if (full.level !== sub.level + baseLevel) return status;
+  }
   if (sub.value === null) return true; // “match anything”
-  return sub.regex ? toRegExp(sub.value).test(full.value ?? "") : full.value === sub.value;
+  if (sub.regex) {
+    status.status = toRegExp(sub.value).test(full.value ?? "");
+  } else {
+    if (full.value?.startsWith("/") && (full.value?.endsWith("/") || full.value?.endsWith("/:"))) {
+      // if the value is a regex, we need to check if the sub value is in the full value
+      let usedValue = full.value;
+      if (usedValue.endsWith(":")) {
+        usedValue = usedValue.substring(0, usedValue.length - 1);
+      }
+      const regex = toRegExp(usedValue);
+      status.status = regex.test(sub.value ?? "");
+    } else {
+      status.status = full.value === sub.value;
+    }
+  }
+  if (baseLevel === -1 && status.status) {
+    status.baseLevel = full.level;
+  }
+  return status;
 }
 
 /* ────────────────────────────────────────────────────────────────── */
@@ -213,7 +234,7 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapsho
   const fullIdx: number[] = new Array(sub.length); // indices in `full`
   const mapping: number[] = new Array(sub.length); // original line #s
   let failureAt = -1; // first unmatched line
-
+  let baseLevel = -1; // level of the first matched line
   /**
    * Depth-first search with back-tracking.
    * @param s     index in `sub`
@@ -223,8 +244,9 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapsho
     if (s === sub.length) return true; // ✅ all lines matched!
 
     for (let f = fFrom; f < full.length; f++) {
-      if (!lineMatches(full[f], sub[s])) continue;
-
+      let status = lineMatches(full[f], sub[s], baseLevel);
+      if (!status.status) continue;
+      if (baseLevel === -1) baseLevel = status.baseLevel; // remember first match
       /* parent relationship must stay intact */
       const pSub = parentIdx[s];
       if (pSub !== -1) {
