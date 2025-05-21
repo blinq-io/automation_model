@@ -216,10 +216,10 @@ const initEnvironment = function () {
   try {
     let envFile = "";
     const envArgVal = checkForEnvArg();
-    if (envArgVal) {
-      envFile = envArgVal;
-    } else if (process.env.BLINQ_ENV) {
+    if (process.env.BLINQ_ENV) {
       envFile = process.env.BLINQ_ENV;
+    } else if (envArgVal) {
+      envFile = envArgVal;
     } else if (fs.existsSync(path.join(process.cwd(), "env.json"))) {
       envFile = path.join(process.cwd(), "env.json");
     } else {

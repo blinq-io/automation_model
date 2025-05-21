@@ -12,7 +12,7 @@ import fs from "fs";
 import path from "path";
 import { InitScripts } from "./generation_scripts.js";
 import { fileURLToPath } from "url";
-
+import crypto from "crypto";
 // Get __filename and __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -239,21 +239,39 @@ class Browser {
       this.traceFolder = traceFolder;
       await this.context.tracing.start({ screenshots: true, snapshots: true });
     }
+
+    function createGuid(): string {
+      return crypto.randomBytes(16).toString("hex");
+    }
+
+    const runtimeGuid = createGuid();
+
+    // Preprocesses any generated script to include the runtime guid.
+    function prepareGeneratedScript(source: string) {
+      return source
+        .replaceAll("$runtime_guid$", runtimeGuid)
+        .replace("kUtilityScriptIsUnderTest = false", `kUtilityScriptIsUnderTest = true`);
+    }
+
+    const options = {
+      sdkLanguage: "javascript",
+      testIdAttributeName: "blinq-test-id",
+      stableRafCount: 0,
+      browserName: this.browser?.browserType().name(),
+      inputFileRoleTextbox: false,
+      customEngines: [],
+    };
+
     if (initScripts && this.context) {
       if (initScripts.recorderCjs) {
         await this.context.addInitScript({
           content: `
             (() => {
             const module = {};
-            ${initScripts.recorderCjs}
+            ${prepareGeneratedScript(initScripts.recorderCjs)}
             const sss = new (module.exports.InjectedScript())(
               window,
-              true,
-              "javascript",
-              [],
-              ${0},
-              "${this.browser?.browserType().name()}",
-              []
+              ${JSON.stringify(options)},
             );
           })();`,
         });

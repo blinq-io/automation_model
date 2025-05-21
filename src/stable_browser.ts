@@ -51,6 +51,8 @@ import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { loadBrunoParams } from "./bruno.js";
+import { snapshotValidation } from "./snapshot_validation.js";
+
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -87,6 +89,7 @@ export const Types = {
   BRUNO: "bruno",
   VERIFY_FILE_EXISTS: "verify_file_exists",
   SET_INPUT_FILES: "set_input_files",
+  SNAPSHOT_VALIDATION: "snapshot_validation",
 };
 export const apps = {};
 
@@ -483,7 +486,8 @@ class StableBrowser {
     info,
     visibleOnly = true,
     allowDisabled? = false,
-    element_name = null
+    element_name = null,
+    logErrors? = false
   ) {
     if (!info) {
       info = {};
@@ -556,6 +560,7 @@ class StableBrowser {
     //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
+
     if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
       foundLocators.push(locator.nth(locatorSearch.index));
       if (info.locatorLog) {
@@ -563,10 +568,10 @@ class StableBrowser {
       }
       return;
     }
-    if (info.locatorLog && count === 0) {
+
+    if (info.locatorLog && count === 0 && logErrors) {
       info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
     }
-
     for (let j = 0; j < count; j++) {
       let visible = await locator.nth(j).isVisible();
       const enabled = await locator.nth(j).isEnabled();
@@ -578,7 +583,7 @@ class StableBrowser {
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
         }
-      } else {
+      } else if (logErrors) {
         info.failCause.visible = visible;
         info.failCause.enabled = enabled;
         if (!info.printMessages) {
@@ -592,10 +597,8 @@ class StableBrowser {
           info.failCause.lastError = `${formatElementName(element_name)} is disabled, searching for ${originalLocatorSearch}`;
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
         }
-
         if (!info.printMessages[j.toString()]) {
           //info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
-
           info.printMessages[j.toString()] = true;
         }
       }
@@ -942,9 +945,19 @@ class StableBrowser {
     if (!info?.failCause?.lastError) {
       info.failCause.lastError = `failed to locate ${formatElementName(selectors.element_name)}, ${locatorsCount > 0 ? `${locatorsCount} matching elements found` : "no matching elements found"}`;
     }
+
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name) {
+  async _scanLocatorsGroup(
+    locatorsGroup,
+    scope,
+    _params,
+    info,
+    visibleOnly,
+    allowDisabled? = false,
+    element_name,
+    logErrors? = false
+  ) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -981,7 +994,9 @@ class StableBrowser {
             element_name
           );
         } catch (e) {
-          this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
+          if (logErrors) {
+            this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
+          }
         }
       }
       if (foundLocators.length === 1) {
@@ -1023,7 +1038,7 @@ class StableBrowser {
             unique: true,
           });
           result.locatorIndex = i;
-        } else {
+        } else if (logErrors) {
           info.failCause.foundMultiple = true;
           if (info.locatorLog) {
             info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
@@ -1792,6 +1807,92 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+  async snapshotValidation(frameSelectors, referanceSnapshot, _params = null, options = {}, world = null) {
+    const timeout = this._getFindElementTimeout(options);
+    const startTime = Date.now();
+
+    const state = {
+      _params,
+      value: referanceSnapshot,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: true,
+      highlight: false,
+      type: Types.SNAPSHOT_VALIDATION,
+      text: `verify snapshot: ${referanceSnapshot}`,
+      operation: "snapshotValidation",
+      log: "***** verify snapshot *****\n",
+    };
+    if (!referanceSnapshot) {
+      throw new Error("referanceSnapshot is null");
+    }
+    let text = null;
+    if (
+      fs.existsSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yml")
+      )
+    ) {
+      text = fs.readFileSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yml"),
+        "utf8"
+      );
+    } else if (
+      fs.existsSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yaml")
+      )
+    ) {
+      text = fs.readFileSync(
+        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yaml"),
+        "utf8"
+      );
+    } else if (referanceSnapshot.startsWith("yaml:")) {
+      text = referanceSnapshot.substring(5);
+    } else {
+      throw new Error("referenceSnapshot file not found: " + referanceSnapshot);
+    }
+    state.text = text;
+
+    const newValue = await this._replaceWithLocalData(text, world);
+
+    await _preCommand(state, this);
+
+    let foundObj = null;
+    try {
+      let matchResult = null;
+      while (Date.now() - startTime < timeout) {
+        try {
+          let scope = null;
+          if (!frameSelectors) {
+            scope = this.page;
+          } else {
+            scope = await this._findFrameScope(frameSelectors, timeout, state.info);
+          }
+          const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
+
+          matchResult = snapshotValidation(snapshot, newValue, referanceSnapshot);
+          if (matchResult.errorLine !== -1) {
+            throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
+          }
+          // highlight and screenshot
+          return state.info;
+        } catch (e) {
+          // Log error but continue retrying until timeout is reached
+          //this.logger.warn("Retrying snapshot validation due to: " + e.message);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 1 second before retrying
+      }
+
+      throw new Error("No snapshot match " + matchResult?.errorLineText);
+    } catch (e) {
+      await _commandError(state, e, this);
+      throw e;
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
   async waitForUserInput(message, world = null) {
     if (!message) {
       message = "# Wait for user input. Press any key to continue";
@@ -2216,16 +2317,40 @@ class StableBrowser {
       let regex;
       if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
         const patternBody = expectedValue.slice(1, -1);
-        regex = new RegExp(patternBody, "g");
+        const processedPattern = patternBody.replace(/\n/g, ".*");
+        regex = new RegExp(processedPattern, "gs");
+        state.info.regex = true;
       } else {
         const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         regex = new RegExp(escapedPattern, "g");
       }
-      if (!val.match(regex)) {
-        let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
-        state.info.failCause.assertionFailed = true;
-        state.info.failCause.lastError = errorMessage;
-        throw new Error(errorMessage);
+      if (attribute === "innerText") {
+        if (state.info.regex) {
+          if (!regex.test(val)) {
+            let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        } else {
+          const valLines = val.split("\n");
+          const expectedLines = expectedValue.split("\n");
+          const isPart = expectedLines.every((expectedLine) => valLines.some((valLine) => valLine === expectedLine));
+
+          if (!isPart) {
+            let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        }
+      } else {
+        if (!val.match(regex)) {
+          let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+          state.info.failCause.assertionFailed = true;
+          state.info.failCause.lastError = errorMessage;
+          throw new Error(errorMessage);
+        }
       }
       return state.info;
     } catch (e) {
@@ -2486,7 +2611,11 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
-      await _commandError({ text: "verifyPagePath", operation: "verifyPagePath", pathPart, info }, e, this);
+      await _commandError(
+        { text: "verifyPagePath", operation: "verifyPagePath", pathPart, info, throwError: true },
+        e,
+        this
+      );
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -3264,7 +3393,12 @@ class StableBrowser {
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
-    return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
+    try {
+      return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
+    } catch (error) {
+      this.logger.debug(error);
+      throw error;
+    }
   }
   _getLoadTimeout(options) {
     let timeout = 15000;
@@ -3655,15 +3789,21 @@ class StableBrowser {
       const content = [`- path: ${path}`, `- title: ${title}`];
       const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
       for (let i = 0; i < frames.length; i++) {
-        content.push(`- frame: ${i}`);
         const frame = frames[i];
-        const snapshot = await frame.locator("body").ariaSnapshot({ timeout });
-        content.push(snapshot);
+        try {
+          // Ensure frame is attached and has body
+          const body = frame.locator("body");
+          await body.waitFor({ timeout: 200 }); // wait explicitly
+
+          const snapshot = await body.ariaSnapshot({ timeout });
+          content.push(`- frame: ${i}`);
+          content.push(snapshot);
+        } catch (innerErr) {}
       }
       return content.join("\n");
     } catch (e) {
       console.log("Error in getAriaSnapshot");
-      console.debug(e);
+      //console.debug(e);
     }
     return null;
   }
