@@ -559,6 +559,49 @@ class StableBrowser {
     //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
+
+    if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
+      foundLocators.push(locator.nth(locatorSearch.index));
+      if (info.locatorLog) {
+        info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+      }
+      return;
+    }
+
+    if (info.locatorLog && count === 0 && logErrors) {
+      info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
+    }
+    for (let j = 0; j < count; j++) {
+      let visible = await locator.nth(j).isVisible();
+      const enabled = await locator.nth(j).isEnabled();
+      if (!visibleOnly) {
+        visible = true;
+      }
+      if (visible && (allowDisabled || enabled)) {
+        foundLocators.push(locator.nth(j));
+        if (info.locatorLog) {
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+        }
+      } else if (logErrors) {
+        info.failCause.visible = visible;
+        info.failCause.enabled = enabled;
+        if (!info.printMessages) {
+          info.printMessages = {};
+        }
+        if (info.locatorLog && !visible) {
+          info.failCause.lastError = `${formatElementName(element_name)} is not visible, searching for ${originalLocatorSearch}`;
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
+        }
+        if (info.locatorLog && !enabled) {
+          info.failCause.lastError = `${formatElementName(element_name)} is disabled, searching for ${originalLocatorSearch}`;
+          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
+        }
+        if (!info.printMessages[j.toString()]) {
+          //info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+          info.printMessages[j.toString()] = true;
+        }
+      }
+    }
     if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
       foundLocators.push(locator.nth(locatorSearch.index));
       if (info.locatorLog) {
@@ -667,8 +710,12 @@ class StableBrowser {
     }
     for (let i = 0; i < 3; i++) {
       info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
+
+      info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
       for (let j = 0; j < selectors.locators.length; j++) {
         let selector = selectors.locators[j];
+
+        info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
       let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
@@ -699,6 +746,7 @@ class StableBrowser {
         return scope.locator(newSelector);
       }
     }
+    throw new Error("unable to locate element " + JSON.stringify(selectors));
     throw new Error("unable to locate element " + JSON.stringify(selectors));
   }
   async _findFrameScope(selectors, timeout = 30000, info) {
@@ -945,8 +993,20 @@ class StableBrowser {
     if (!info?.failCause?.lastError) {
       info.failCause.lastError = `failed to locate ${formatElementName(selectors.element_name)}, ${locatorsCount > 0 ? `${locatorsCount} matching elements found` : "no matching elements found"}`;
     }
+
+    throw new Error("failed to locate first element no elements found, " + info.log);
     throw new Error("failed to locate first element no elements found, " + info.log);
   }
+  async _scanLocatorsGroup(
+    locatorsGroup,
+    scope,
+    _params,
+    info,
+    visibleOnly,
+    allowDisabled? = false,
+    element_name,
+    logErrors? = false
+  ) {
   async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name) {
     let foundElements = [];
     const result = {
@@ -1855,7 +1915,7 @@ class StableBrowser {
           if (!frameSelectors) {
             scope = this.page;
           } else {
-            scope = await this._findFrameScope({ nestFrmLoc: frameSelectors }, timeout, state.info);
+            scope = await this._findFrameScope(frameSelectors, timeout, state.info);
           }
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
 
