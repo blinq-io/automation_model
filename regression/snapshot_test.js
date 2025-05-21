@@ -56,8 +56,7 @@ describe("matchSnapshot – happy-path matches", () => {
   });
 
   it("matches nested list → listitem → paragraph structure", () => {
-    const subTxt = `
-- list:
+    const subTxt = `- list:
   - listitem:
     - paragraph: blinq_admin
     `.trim();
@@ -122,7 +121,7 @@ describe("matchSnapshot – failure cases", () => {
 - link "Long Nose Pliers Long Nose Pliers Out of stock $14.24":
   - heading "Long Nose Pliers" [level=5]`;
   const snapshot = `- paragraph:
-      - img "Banner"
+  - img "Banner"
     - separator
     - heading "Sort" [level=4]
     - separator
