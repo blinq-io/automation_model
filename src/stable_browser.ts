@@ -1867,7 +1867,7 @@ class StableBrowser {
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
-          this.logger.warn("Retrying snapshot validation due to: " + e.message);
+          //this.logger.warn("Retrying snapshot validation due to: " + e.message);
         }
         await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 1 second before retrying
       }
