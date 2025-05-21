@@ -486,7 +486,8 @@ class StableBrowser {
     info,
     visibleOnly = true,
     allowDisabled? = false,
-    element_name = null
+    element_name = null,
+    logErrors? = false
   ) {
     if (!info) {
       info = {};
@@ -559,50 +560,49 @@ class StableBrowser {
     //info.log += "total elements found " + count + "\n";
     //let visibleCount = 0;
     let visibleLocator = null;
-    if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
-      foundLocators.push(locator.nth(locatorSearch.index));
-      if (info.locatorLog) {
-        info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
-      }
-      return;
-    }
-    if (info.locatorLog && count === 0) {
-      info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
-    }
 
-    for (let j = 0; j < count; j++) {
-      let visible = await locator.nth(j).isVisible();
-      const enabled = await locator.nth(j).isEnabled();
-      if (!visibleOnly) {
-        visible = true;
-      }
-      if (visible && (allowDisabled || enabled)) {
-        foundLocators.push(locator.nth(j));
+      if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
+        foundLocators.push(locator.nth(locatorSearch.index));
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
         }
-      } else {
-        info.failCause.visible = visible;
-        info.failCause.enabled = enabled;
-        if (!info.printMessages) {
-          info.printMessages = {};
+        return;
+      }
+ 
+      if (info.locatorLog && count === 0 && logErrors) {
+        info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
+      }
+      for (let j = 0; j < count; j++) {
+        let visible = await locator.nth(j).isVisible();
+        const enabled = await locator.nth(j).isEnabled();
+        if (!visibleOnly) {
+          visible = true;
         }
-        if (info.locatorLog && !visible) {
-          info.failCause.lastError = `${formatElementName(element_name)} is not visible, searching for ${originalLocatorSearch}`;
-          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
-        }
-        if (info.locatorLog && !enabled) {
-          info.failCause.lastError = `${formatElementName(element_name)} is disabled, searching for ${originalLocatorSearch}`;
-          info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
-        }
-
-        if (!info.printMessages[j.toString()]) {
-          //info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
-
-          info.printMessages[j.toString()] = true;
+        if (visible && (allowDisabled || enabled)) {
+          foundLocators.push(locator.nth(j));
+          if (info.locatorLog) {
+            info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
+          }
+        } else if (logErrors) {
+          info.failCause.visible = visible;
+          info.failCause.enabled = enabled;
+          if (!info.printMessages) {
+            info.printMessages = {};
+          }
+          if (info.locatorLog && !visible) {
+            info.failCause.lastError = `${formatElementName(element_name)} is not visible, searching for ${originalLocatorSearch}`;
+            info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_VISIBLE");
+          }
+          if (info.locatorLog && !enabled) {
+            info.failCause.lastError = `${formatElementName(element_name)} is disabled, searching for ${originalLocatorSearch}`;
+            info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND_NOT_ENABLED");
+          }
+          if (!info.printMessages[j.toString()]) {
+            //info.log += "element " + locator + " visible " + visible + " enabled " + enabled + "\n";
+            info.printMessages[j.toString()] = true;
+          }
         }
       }
-    }
   }
   async closeUnexpectedPopups(info, _params) {
     if (!info) {
@@ -699,7 +699,7 @@ class StableBrowser {
         return scope.locator(newSelector);
       }
     }
-    throw new Error("unable to locate element " + JSON.stringify(selectors));
+    throw new Error("unable to locate element "+ JSON.stringify(selectors));
   }
   async _findFrameScope(selectors, timeout = 30000, info) {
     if (!info) {
@@ -945,9 +945,11 @@ class StableBrowser {
     if (!info?.failCause?.lastError) {
       info.failCause.lastError = `failed to locate ${formatElementName(selectors.element_name)}, ${locatorsCount > 0 ? `${locatorsCount} matching elements found` : "no matching elements found"}`;
     }
-    throw new Error("failed to locate first element no elements found, " + info.log);
+
+      throw new Error("failed to locate first element no elements found, "+info.log);
+
   }
-  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name) {
+  async _scanLocatorsGroup(locatorsGroup, scope, _params, info, visibleOnly, allowDisabled? = false, element_name,logErrors?=false) {
     let foundElements = [];
     const result = {
       foundElements: foundElements,
@@ -984,7 +986,9 @@ class StableBrowser {
             element_name
           );
         } catch (e) {
-          this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
+          if (logErrors) {
+            this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
+          }
         }
       }
       if (foundLocators.length === 1) {
@@ -1026,7 +1030,7 @@ class StableBrowser {
             unique: true,
           });
           result.locatorIndex = i;
-        } else {
+        } else if (logErrors) {
           info.failCause.foundMultiple = true;
           if (info.locatorLog) {
             info.locatorLog.setLocatorSearchStatus(JSON.stringify(locatorsGroup[i]), "FOUND_NOT_UNIQUE");
