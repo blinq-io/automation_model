@@ -195,7 +195,6 @@ function toRegExp(raw: string): RegExp {
   const lastSlash = sanitized.lastIndexOf("/");
   const pattern = sanitized.slice(1, lastSlash);
   const flags = sanitized.slice(lastSlash + 1); // i, g, etc.
-
   return new RegExp(pattern, flags);
 }
 
@@ -211,6 +210,7 @@ function lineMatches(full: SnapshotLine, sub: SnapshotLine): any {
     status.status = true;
     return status;
   }
+
 
   if (sub.regex) {
     status.status = toRegExp(sub.value!).test(full.value ?? "");
@@ -269,7 +269,6 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapsho
 
       // For first match, set level offset
       const nextBaseOffset = baseLevelOffset !== null ? baseLevelOffset : full[f].level - sub[s].level;
-
       const pSub = parentIdx[s];
       if (pSub !== -1) {
         let pFull = f - 1;

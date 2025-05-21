@@ -9,7 +9,10 @@
  * The full snapshot used here is the same one in the original example,
  * so the reference line numbers in the assertions line-up with that file.
  */
+import exp from "constants";
 import { fromLinesToSnapshotLines, matchSnapshot } from "../build/lib/snapshot_validation.js";
+import { snapshotValidation } from "../build/lib/snapshot_validation.js";
+
 import { expect } from "chai";
 
 const fullSnapshotTxt = `
