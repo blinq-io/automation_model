@@ -91,6 +91,29 @@ interface SnapshotLine {
 export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
   // the input is yaml text split into lines, 2 spaces is 1 level
   const nodes: SnapshotLine[] = [];
+  // identify the space count for tabulation
+  let previouseLineSpaceCount = -1;
+  let foundTabulationCount = -1;
+  // look for 2 consecutive lines that have different space counts, the absolute difference is the space count for tabulation
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0) {
+      continue;
+    }
+    // count the number of leading spaces
+    const match = line.match(/^ */); // Matches spaces at the beginning
+    const count = match ? match[0].length : 0;
+    if (previouseLineSpaceCount !== -1 && previouseLineSpaceCount !== count) {
+      foundTabulationCount = Math.abs(previouseLineSpaceCount - count);
+      break;
+    }
+    previouseLineSpaceCount = count;
+  }
+  if (foundTabulationCount === -1) {
+    foundTabulationCount = 2;
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmedLine = line.trim();
@@ -101,7 +124,7 @@ export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
     let level = 0;
     const match = line.match(/^ */); // Matches spaces at the beginning
     const count = match ? match[0].length : 0;
-    level = count / 2; // 2 spaces is 1 level
+    level = count / foundTabulationCount; // 2 spaces is 1 level
     // find the start of the line: - and space
     const start = line.indexOf("- ") + 2;
     if (start === -1) {
@@ -138,14 +161,15 @@ export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
     // define value is string or null
     let value = line.substring(endIndex + 1).trim();
     if (value.startsWith('"')) {
-      // find the last " in the value
       const lastQuote = value.lastIndexOf('"');
       if (lastQuote !== -1) {
         value = value.substring(0, lastQuote + 1);
       }
     }
-    // check if the value start with / and end with / or / + regex options
-    const regex = value.startsWith("/") && (value.endsWith("/") || value.endsWith("/i") || value.endsWith("/g"));
+
+    // improved regex detection
+    const rawValue = value.endsWith(":") ? value.slice(0, -1) : value;
+    const regex = rawValue.startsWith("/") && /\/[a-z]*$/.test(rawValue);
     nodes.push({
       line: i,
       line_text: line,
@@ -163,45 +187,41 @@ export function fromLinesToSnapshotLines(lines: string[]): SnapshotLine[] {
  * Turn a “/pattern/flags” string into a real RegExp.
  */
 function toRegExp(raw: string): RegExp {
-  if (!raw.startsWith("/")) return new RegExp(raw); // plain text
-  const lastSlash = raw.lastIndexOf("/");
-  const pattern = raw.slice(1, lastSlash); // between the //
-  const flags = raw.slice(lastSlash + 1); // i, g, …
-  //let unescapedPattern = JSON.parse(`"${pattern}"`); // Unescape \ sequences
+  // Remove trailing colon from YAML-style key: /pattern/: → /pattern/
+  const sanitized = raw.endsWith(":") ? raw.slice(0, -1) : raw;
+
+  if (!sanitized.startsWith("/")) return new RegExp(sanitized);
+
+  const lastSlash = sanitized.lastIndexOf("/");
+  const pattern = sanitized.slice(1, lastSlash);
+  const flags = sanitized.slice(lastSlash + 1); // i, g, etc.
+
   return new RegExp(pattern, flags);
 }
 
 /**
  * Single-line comparison with fixed regex handling.
  */
-function lineMatches(full: SnapshotLine, sub: SnapshotLine, baseLevel: number): any {
-  let status = { status: false, baseLevel: -1 };
+function lineMatches(full: SnapshotLine, sub: SnapshotLine): any {
+  let status = { status: false };
   if (full.key !== sub.key) return status;
-  if (baseLevel !== -1) {
-    if (full.level !== sub.level + baseLevel) return status;
+
+  // We handle level offset outside this function
+  if (sub.value === null) {
+    status.status = true;
+    return status;
   }
-  if (sub.value === null) return true; // “match anything”
+
   if (sub.regex) {
-    status.status = toRegExp(sub.value).test(full.value ?? "");
+    status.status = toRegExp(sub.value!).test(full.value ?? "");
+  } else if (full.regex) {
+    status.status = toRegExp(full.value!).test(sub.value ?? "");
   } else {
-    if (full.value?.startsWith("/") && (full.value?.endsWith("/") || full.value?.endsWith("/:"))) {
-      // if the value is a regex, we need to check if the sub value is in the full value
-      let usedValue = full.value;
-      if (usedValue.endsWith(":")) {
-        usedValue = usedValue.substring(0, usedValue.length - 1);
-      }
-      const regex = toRegExp(usedValue);
-      status.status = regex.test(sub.value ?? "");
-    } else {
-      status.status = full.value === sub.value;
-    }
+    status.status = full.value === sub.value;
   }
-  if (baseLevel === -1 && status.status) {
-    status.baseLevel = full.level;
-  }
+
   return status;
 }
-
 /* ────────────────────────────────────────────────────────────────── */
 
 /**
@@ -225,53 +245,53 @@ export function snapshotValidation(snapshot: string, referanceSnapshot: string, 
   return matchSnapshot(nodes, subNodes, snapshotName);
 }
 export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapshotName: string): MatchResult {
-  /* nearest ancestor of every sub-line (–1 for roots) */
   const parentIdx = sub.map((_, i) => {
     for (let j = i - 1; j >= 0; j--) if (sub[j].level < sub[i].level) return j;
     return -1;
   });
 
-  const fullIdx: number[] = new Array(sub.length); // indices in `full`
-  const mapping: number[] = new Array(sub.length); // original line #s
-  let failureAt = -1; // first unmatched line
-  let baseLevel = -1; // level of the first matched line
-  /**
-   * Depth-first search with back-tracking.
-   * @param s     index in `sub`
-   * @param fFrom first index in `full` we may try for this `sub[s]`
-   */
-  function dfs(s: number, fFrom: number): boolean {
-    if (s === sub.length) return true; // ✅ all lines matched!
+  const fullIdx: number[] = new Array(sub.length);
+  const mapping: number[] = new Array(sub.length);
+  let failureAt = -1;
+
+  function dfs(s: number, fFrom: number, baseLevelOffset: number | null): boolean {
+    if (s === sub.length) return true;
 
     for (let f = fFrom; f < full.length; f++) {
-      let status = lineMatches(full[f], sub[s], baseLevel);
+      let levelMatch = true;
+      if (baseLevelOffset !== null) {
+        // Must match levels relative to initial offset
+        if (full[f].level !== sub[s].level + baseLevelOffset) continue;
+      }
+
+      const status = lineMatches(full[f], sub[s]);
       if (!status.status) continue;
-      if (baseLevel === -1) baseLevel = status.baseLevel; // remember first match
-      /* parent relationship must stay intact */
+
+      // For first match, set level offset
+      const nextBaseOffset = baseLevelOffset !== null ? baseLevelOffset : full[f].level - sub[s].level;
+
       const pSub = parentIdx[s];
       if (pSub !== -1) {
         let pFull = f - 1;
         while (pFull >= 0 && full[pFull].level >= full[f].level) pFull--;
-        if (pFull < 0 || pFull !== fullIdx[pSub]) continue; // wrong parent
+        if (pFull < 0 || pFull !== fullIdx[pSub]) continue;
       }
 
-      /* remember this choice and try deeper */
       fullIdx[s] = f;
       mapping[s] = full[f].line;
-      if (dfs(s + 1, f + 1)) return true;
+      if (dfs(s + 1, f + 1, nextBaseOffset)) return true;
     }
 
-    /* could not satisfy sub[s] → remember where we failed */
     if (failureAt === -1) failureAt = s;
-    return false; // back-track
+    return false;
   }
 
-  /* kick off the search */
-  const found = dfs(0, 0);
+  const found = dfs(0, 0, null);
   let error = null;
   if (!found) {
     error = `Snapshot file: ${snapshotName}\nLine no.: ${sub[failureAt].line}\nLine: ${sub[failureAt].line_text}`;
   }
+
   return {
     matchingLines: found ? mapping : mapping.slice(0, failureAt),
     errorLine: found ? -1 : failureAt,
