@@ -1860,7 +1860,7 @@ class StableBrowser {
           if (!frameSelectors) {
             scope = this.page;
           } else {
-            scope = await this._findFrameScope(frameSelectors, timeout, state.info);
+            scope = await this._findFrameScope({ nestFrmLoc: frameSelectors }, timeout, state.info);
           }
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
 
