@@ -23,7 +23,7 @@ describe("snapshot_runtime", function () {
       locators: [{ css: "a" }],
     },
   };
-  it("snapshot_runtime", async function () {
+  it("snapshot_runtime simple", async function () {
     let info = null;
     info = await context.web.snapshotValidation(
       null,

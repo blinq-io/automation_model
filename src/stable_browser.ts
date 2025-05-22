@@ -50,7 +50,7 @@ import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
-import { snapshotValidation } from "./snapshot_validation.js";
+import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
 export const Types = {
   CLICK: "click_element",
@@ -1876,7 +1876,12 @@ class StableBrowser {
           if (matchResult.errorLine !== -1) {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
-          // highlight and screenshot
+          try {
+            // highlight and screenshot
+            await highlightSnapshot(newValue, scope);
+            // take screenshot
+            await _screenshot(state, this);
+          } catch (e) {}
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
