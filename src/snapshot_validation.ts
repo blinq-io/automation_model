@@ -1,4 +1,80 @@
-export async function highlightSnapshot(snapshot: any, scope: any) {}
+import { all } from "axios";
+
+export async function highlightSnapshot(snapshot: any, scope: any) {
+  const lines = snapshot.split("\n");
+  const nodes = fromLinesToSnapshotLines(lines);
+  // build a SnapshotNode tree
+  const root = new SnapshotNode("root", null);
+  const stack: SnapshotNode[] = [root];
+  const allNodes: SnapshotNode[] = [];
+  for (const node of nodes) {
+    const newNode = new SnapshotNode(node.key, node.value);
+    allNodes.push(newNode);
+    newNode.level = node.level;
+    newNode.regex = node.regex;
+    if (node.level > stack.length - 1) {
+      // add to the last node
+      stack[stack.length - 1].children.push(newNode);
+      newNode.parent = stack[stack.length - 1];
+      stack.push(newNode);
+    } else {
+      // pop the stack until we find the right level
+      while (stack.length > node.level + 1) {
+        stack.pop();
+      }
+      // add to the parent
+      stack[stack.length - 1].children.push(newNode);
+      newNode.parent = stack[stack.length - 1];
+      stack.push(newNode);
+    }
+  }
+  // go over all the nodes in the tree and generate an array of full locators
+  const locators: string[] = [];
+  for (const node of allNodes) {
+    const locator = node.getFullLocator();
+    locators.push(locator);
+  }
+  const elements = [];
+  // go over all the locators and find the elements
+  for (const locator of locators) {
+    const l = scope.locator(locator);
+
+    let count = 0;
+    try {
+      count = await l.count();
+    } catch (e) {
+      //console.log("Error in locator", locator, e);
+      continue;
+    }
+    for (let i = 0; i < count; i++) {
+      const element = l.nth(i);
+      elements.push(element);
+    }
+  }
+  // go over all the elements and highlight them
+  for (const element of elements) {
+    try {
+      await element.evaluate((el: any) => {
+        if (!el?.style) return;
+
+        const originalOutline = el.style.outline;
+        el.__previousOutline = originalOutline;
+
+        el.style.outline = "2px solid red";
+
+        if (window) {
+          window.addEventListener("beforeunload", function () {
+            el.style.outline = originalOutline;
+          });
+        }
+
+        setTimeout(() => {
+          el.style.outline = originalOutline;
+        }, 4000);
+      });
+    } catch (e) {}
+  }
+}
 
 /*
 - banner:
@@ -20,11 +96,13 @@ export async function highlightSnapshot(snapshot: any, scope: any) {}
 class SnapshotNode {
   public role: string;
   public name: string | null;
+  public level: number = 0;
+  public regex: boolean = false;
   public children: SnapshotNode[] = [];
   public parent: SnapshotNode | null = null;
   constructor(
     public key: string,
-    public value: string
+    public value: string | null
   ) {
     if (!key) {
       throw new Error("Key cannot be null or undefined");
@@ -48,7 +126,7 @@ class SnapshotNode {
     switch (this.role) {
       case "paragraph":
         // internal:role=paragraph >> internal:text='blinq_user'"
-        return `internal:role=${this.role} >> internal:text='${this.name}'`;
+        return `internal:role=${this.role} >> internal:text=${this.name}`;
       default:
         // "internal:role=textbox[name=\"Password\"]"
         if (this.name) {
@@ -62,7 +140,9 @@ class SnapshotNode {
     const locators: string[] = [];
     let currentNode: SnapshotNode | null = this;
     while (currentNode) {
-      locators.unshift(currentNode.generateNodeLocator());
+      if (currentNode.role !== "root") {
+        locators.unshift(currentNode.generateNodeLocator());
+      }
       currentNode = currentNode.parent;
     }
     // join the locators with " >> "
