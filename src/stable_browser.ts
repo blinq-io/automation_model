@@ -89,6 +89,7 @@ export const Types = {
   SNAPSHOT_VALIDATION: "snapshot_validation",
   VERIFY_FILE_EXISTS: "verify_file_exists",
   SET_INPUT_FILES: "set_input_files",
+  REPORT_COMMAND: "report_command",
 };
 export const apps = {};
 
@@ -1877,12 +1878,7 @@ class StableBrowser {
           if (matchResult.errorLine !== -1) {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
-          try {
-            // highlight and screenshot
-            await highlightSnapshot(newValue, scope);
-            // take screenshot
-            await _screenshot(state, this);
-          } catch (e) {}
+          // highlight and screenshot
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
@@ -2531,55 +2527,6 @@ class StableBrowser {
       console.debug(error);
     }
   }
-
-  // async _unhighlightElements(scope, css) {
-  //   try {
-  //     if (!scope) {
-  //       return;
-  //     }
-  //     if (!css) {
-  //       scope
-  //         .evaluate((node) => {
-  //           if (node && node.style) {
-  //             if (!node.__previousOutline) {
-  //               node.style.outline = "";
-  //             } else {
-  //               node.style.outline = node.__previousOutline;
-  //             }
-  //           }
-  //         })
-  //         .then(() => {})
-  //         .catch((e) => {
-  //           // console.log(`Error while unhighlighting node ${JSON.stringify(scope)}: ${e}`);
-  //         });
-  //     } else {
-  //       scope
-  //         .evaluate(([css]) => {
-  //           if (!css) {
-  //             return;
-  //           }
-  //           let elements = Array.from(document.querySelectorAll(css));
-  //           for (i = 0; i < elements.length; i++) {
-  //             let element = elements[i];
-  //             if (!element.style) {
-  //               return;
-  //             }
-  //             if (!element.__previousOutline) {
-  //               element.style.outline = "";
-  //             } else {
-  //               element.style.outline = element.__previousOutline;
-  //             }
-  //           }
-  //         })
-  //         .then(() => {})
-  //         .catch((e) => {
-  //           // console.error(`Error while unhighlighting element in css: ${e}`);
-  //         });
-  //     }
-  //   } catch (error) {
-  //     // console.debug(error);
-  //   }
-  // }
 
   async verifyPagePath(pathPart, options = {}, world = null) {
     const startTime = Date.now();
@@ -3816,6 +3763,57 @@ class StableBrowser {
     }
     return null;
   }
+
+  /**
+   * Sends command with custom payload to report.
+   * @param commandText - Title of the command to be shown in the report.
+   * @param commandStatus - Status of the command (e.g. "PASSED", "FAILED").
+   * @param content - Content of the command to be shown in the report.
+   * @param options - Options for the command. Example: { type: "json", screenshot: true }
+   * @param world - Optional world context.
+   * @public
+   */
+
+  async addCommandToReport(
+    commandText: string,
+    commandStatus: "PASSED" | "FAILED",
+    content: string,
+    options: any = {},
+    world: any = null
+  ) {
+    const state = {
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: options.screenshot ?? false,
+      highlight: options.highlight ?? false,
+      type: Types.REPORT_COMMAND,
+      text: commandText,
+      _text: commandText,
+      operation: "report_command",
+      log: "***** " + commandText + " *****\n",
+    };
+
+    try {
+      await _preCommand(state, this);
+      const payload = {
+        type: options.type ?? "text",
+        content: content,
+        screenshotId: null,
+      };
+      state.payload = payload;
+      if (commandStatus === "FAILED") {
+        state.throwError = true;
+        throw new Error("Command failed");
+      }
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
   async afterStep(world, step) {
     this.stepName = null;
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
@@ -3847,28 +3845,7 @@ class StableBrowser {
     }
   }
 }
-type JsonTimestamp = number;
-type JsonResultPassed = {
-  status: "PASSED";
-  startTime: JsonTimestamp;
-  endTime: JsonTimestamp;
-};
-type JsonResultFailed = {
-  status: "FAILED";
-  startTime: JsonTimestamp;
-  endTime: JsonTimestamp;
-  message?: string;
-  // exception?: JsonException
-};
 
-type JsonCommandResult = JsonResultPassed | JsonResultFailed;
-export type JsonCommandReport = {
-  type: string;
-  value?: string;
-  text: string;
-  screenshotId?: string;
-  result: JsonCommandResult;
-};
 function createTimedPromise(promise, label) {
   return promise
     .then((result) => ({ status: "fulfilled", label, result }))

@@ -13,3 +13,7 @@ network.json
 runs
 test.json
 .tmp
+lib
+tmp
+docs
+reports/*.md
