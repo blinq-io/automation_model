@@ -279,10 +279,15 @@ class Browser {
         });
       }
       if (initScripts.scripts) {
+        let i = 0;
         for (let script of initScripts.scripts) {
+          console.log("Adding init script:", i + 1);
+          script = prepareGeneratedScript(script);
           await this.context.addInitScript({
             content: script,
           });
+          console.log("Added init script successfully: ");
+          i++;
         }
       }
     }
