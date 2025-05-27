@@ -1,8 +1,31 @@
-import { stat } from "fs";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
-import { JsonCommandReport } from "./stable_browser.js";
 import { _fixUsingParams, maskValue, replaceWithLocalTestData } from "./utils.js";
+
+type JsonTimestamp = number;
+type JsonResultPassed = {
+  status: "PASSED";
+  startTime: JsonTimestamp;
+  endTime: JsonTimestamp;
+};
+type JsonResultFailed = {
+  status: "FAILED";
+  startTime: JsonTimestamp;
+  endTime: JsonTimestamp;
+  message?: string;
+  // exception?: JsonException
+};
+
+type JsonCommandResult = JsonResultPassed | JsonResultFailed;
+
+type JsonCommandReport = {
+  type: string;
+  value?: string;
+  text: string;
+  screenshotId?: string;
+  result: JsonCommandResult;
+};
+
 export async function _preCommand(state: any, web: any) {
   if (!state) {
     return;
@@ -160,7 +183,24 @@ export async function _commandFinally(state: any, web: any) {
       _value = state.originalValue;
     }
   }
-  const reportObject = {
+  const reportObject: {
+    element_name: string | null;
+    type: string;
+    text: string;
+    _text: string;
+    value: string;
+    screenshotId: string | null;
+    result: {
+      status: string;
+      startTime: string;
+      endTime: string;
+      message?: string;
+      stack?: string;
+    };
+    info: any;
+    locatorLog: string | null;
+    payload?: any;
+  } = {
     element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
     text: state.text,
@@ -185,6 +225,11 @@ export async function _commandFinally(state: any, web: any) {
   };
   if (state.originalValue && state.info) {
     state.info.value = maskValue(state.originalValue);
+  }
+
+  if (state.payload) {
+    const payload = state.payload;
+    reportObject.payload = payload;
   }
   _reportToWorld(state.world, reportObject);
 }

@@ -17,7 +17,8 @@
     "debug": "node tests/debug.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
     "regression": "cross-env HEADLESS=true npx mocha --bail --parallel --jobs=12 ./regression/ --timeout 120000",
-    "reg": "npm run build && npm run compile && npm run regression"
+    "reg": "npm run build && npm run compile && npm run regression",
+    "doc:local": "api-extractor run --verbose --local && api-documenter markdown --input-folder ./tmp/api-extractor --output-folder ./docs/api && markserv ./docs/api/automation_model.md --port 8080 --open"
   },
   "author": "",
   "license": "ISC",
@@ -40,6 +41,8 @@
     "tunnel": "^0.0.6"
   },
   "devDependencies": {
+    "@microsoft/api-documenter": "^7.26.27",
+    "@microsoft/api-extractor": "^7.52.8",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^20.9.3",
     "@types/object-path": "^0.11.4",
@@ -48,6 +51,7 @@
     "cross-env": "^7.0.3",
     "husky": "^8.0.0",
     "lint-staged": "^15.2.7",
+    "markserv": "^1.17.4",
     "mocha": "^11.1.0",
     "msw": "^2.6.8",
     "ncp": "^2.0.0",
