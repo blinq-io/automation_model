@@ -321,6 +321,7 @@ class StableBrowser {
     if (!url) {
       throw new Error("url is null, verify that the environment file is correct");
     }
+    url = await this._replaceWithLocalData(url, this.world);
     if (!url.startsWith("http")) {
       url = "https://" + url;
     }
@@ -3374,6 +3375,7 @@ class StableBrowser {
   }
   async saveStoreState(path: string | null = null, world: any = null) {
     const storageState = await this.page.context().storageState();
+    path = await this._replaceWithLocalData(path, this.world);
     //const testDataFile = _getDataFile(world, this.context, this);
     if (path) {
       // save { storageState: storageState } into the path
@@ -3383,6 +3385,7 @@ class StableBrowser {
     }
   }
   async restoreSaveState(path: string | null = null, world: any = null) {
+    path = await this._replaceWithLocalData(path, this.world);
     await refreshBrowser(this, path, world);
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
