@@ -92,6 +92,7 @@ export const Types = {
   SET_INPUT_FILES: "set_input_files",
   SNAPSHOT_VALIDATION: "snapshot_validation",
   REPORT_COMMAND: "report_command",
+  STEP_COMPLETE: "step_complete",
 };
 export const apps = {};
 
@@ -3842,6 +3843,25 @@ class StableBrowser {
         const obj = {};
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
+    }
+    const state = {
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: true,
+      highlight: true,
+      type: Types.STEP_COMPLETE,
+      text: "end of scenario",
+      _text: "end of scenario",
+      operation: "step_complete",
+      log: "***** " + "end of scenario" + " *****\n",
+    };
+    try {
+      await _preCommand(state, this);
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
     }
   }
 }
