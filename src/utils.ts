@@ -210,72 +210,86 @@ async function replaceWithLocalTestData(
   if (!value) {
     return value;
   }
-  let env = "";
 
-  if (context && context.environment) {
-    env = context.environment.name;
-  }
-  // find all the accurance of {{(.*?)}} and replace with the value
-  let regex = /{{(.*?)}}/g;
-  let matches = value.match(regex);
-  if (matches) {
-    const testData = _getTestData(world, context, web);
-    for (let i = 0; i < matches.length; i++) {
-      let match = matches[i];
-      let key = match.substring(2, match.length - 2);
-      if (key && key.trim().startsWith("date:")) {
-        const dateQuery = key.substring(5);
-        const parts = dateQuery.split(">>");
-        const returnTemplate = parts[1] || null;
+  let env = context?.environment?.name || "";
+  // used for unit tests
+  let testData = context?._data_ ? context._data_ : _getTestData(world, context, web);
 
-        let serviceUrl = _getServerUrl();
-        const config = {
-          method: "post",
-          url: `${serviceUrl}/api/runs/find-date/find`,
-          headers: {
-            "x-source": "true",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.TOKEN}`,
-          },
-          data: JSON.stringify({
-            value: parts[0],
-          }),
-        };
+  const resolveDatePlaceholder = async (key: string) => {
+    const dateQuery = key.substring(5);
+    const parts = dateQuery.split(">>");
+    const returnTemplate = parts[1] || null;
 
-        let result = await axios.request(config);
-        //console.log(JSON.stringify(frameDump[0]));
-        if (result.status !== 200 || !result.data || result.data.status !== true || !result.data.result) {
-          console.error("Failed to find date");
-          throw new Error("Failed to find date");
-        }
-        value = formatDate(result.data.result, returnTemplate);
-      } else {
-        let newValue = replaceTestDataValue(env, key, testData, _decrypt);
+    const serviceUrl = _getServerUrl();
+    const config = {
+      method: "post",
+      url: `${serviceUrl}/api/runs/find-date/find`,
+      headers: {
+        "x-source": "true",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.TOKEN}`,
+      },
+      data: JSON.stringify({ value: parts[0] }),
+    };
 
-        if (newValue !== null) {
-          value = value.replace(match, newValue);
-        } else {
-          newValue = replaceTestDataValue("*", key, testData, _decrypt);
+    const result = await axios.request(config);
+    if (result.status !== 200 || !result.data?.status || !result.data.result) {
+      console.error("Failed to find date");
+      throw new Error("Failed to find date");
+    }
 
-          if (newValue !== null) {
-            value = value.replace(match, newValue);
-          } else {
-            if (throwError) {
-              throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
-            } else {
-              console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
-            }
-          }
-        }
+    return formatDate(result.data.result, returnTemplate);
+  };
+
+  const resolvePlaceholder = async (key: string): Promise<string | null> => {
+    if (key.startsWith("date:")) {
+      return await resolveDatePlaceholder(key);
+    }
+
+    let resolved = replaceTestDataValue(env, key, testData, _decrypt);
+    if (resolved !== null) return resolved;
+
+    resolved = replaceTestDataValue("*", key, testData, _decrypt);
+    if (resolved !== null) return resolved;
+
+    if (throwError) {
+      throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
+    } else {
+      console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
+      return null;
+    }
+  };
+
+  const recursiveReplace = async (input: string): Promise<string> => {
+    const regex = /{{([^{}]+)}}/g;
+    let result = input;
+    let match;
+    let anyChange = false;
+
+    while ((match = regex.exec(result)) !== null) {
+      const fullMatch = match[0];
+      const key = match[1].trim();
+
+      const replacement = await resolvePlaceholder(key);
+      if (replacement !== null) {
+        result = result.replace(fullMatch, replacement);
+        anyChange = true;
+        regex.lastIndex = 0; // reset index due to string mutation
       }
     }
-  }
+
+    // If replacements were made, repeat to resolve nested placeholders
+    return anyChange ? await recursiveReplace(result) : result;
+  };
+
+  value = await recursiveReplace(value);
+  // Only evaluate if value contains a JS expression
   if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && _decrypt) {
     return decrypt(value, null, totpWait);
   }
-  // check if the value is ${}
+
   if (value.startsWith("${") && value.endsWith("}")) {
-    value = evaluateString(value, context.examplesRow);
+    value = evaluateString(value, context?.examplesRow);
   }
 
   return value;
