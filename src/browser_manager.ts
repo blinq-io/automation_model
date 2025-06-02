@@ -132,7 +132,7 @@ class Browser {
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     } else if (aiConfig.viewport && aiConfig.viewport.width && aiConfig.viewport.height) {
-      viewport = { width: aiConfig.viewport.width, height: aiConfig.viewport.height };
+      viewport = { width: parseInt(aiConfig.viewport.width), height: parseInt(aiConfig.viewport.height) };
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
