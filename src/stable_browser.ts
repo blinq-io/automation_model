@@ -3824,27 +3824,7 @@ class StableBrowser {
 
     await loadBrunoParams(this.context, this.context.environment.name);
   }
-  async afterScenario(world, scenario) {
-    const state = {
-      world,
-      locate: false,
-      scroll: false,
-      screenshot: true,
-      highlight: true,
-      type: Types.STEP_COMPLETE,
-      text: "end of scenario",
-      _text: "end of scenario",
-      operation: "step_complete",
-      log: "***** " + "end of scenario" + " *****\n",
-    };
-    try {
-      await _preCommand(state, this);
-    } catch (e) {
-      await _commandError(state, e, this);
-    } finally {
-      await _commandFinally(state, this);
-    }
-  }
+  async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
@@ -3990,6 +3970,25 @@ class StableBrowser {
         const obj = {};
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
+    }
+    const state = {
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: true,
+      highlight: true,
+      type: Types.STEP_COMPLETE,
+      text: "end of scenario",
+      _text: "end of scenario",
+      operation: "step_complete",
+      log: "***** " + "end of scenario" + " *****\n",
+    };
+    try {
+      await _preCommand(state, this);
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
     }
   }
 }
