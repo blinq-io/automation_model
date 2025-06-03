@@ -2673,10 +2673,10 @@ class StableBrowser {
             }
             break;
           default:
-            console.log("Unknown matching type, defaulting to contains match");
-            if (!url.includes(queryText)) {
+            console.log("Unknown matching type, defaulting to contains matching");
+            if (!url.includes(pathPart)) {
               if (i === 29) {
-                throw new Error(`Page URL ${url} does not contain ${queryText}`);
+                throw new Error(`Page URL ${url} does not contain ${pathPart}`);
               }
               await new Promise((resolve) => setTimeout(resolve, 1000));
               continue;
@@ -2783,10 +2783,10 @@ class StableBrowser {
             }
             break;
           default:
-            console.log("Unknown matching type, defaulting to contains match");
-            if (foundTitle !== queryText) {
+            console.log("Unknown matching type, defaulting to contains matching");
+            if (!foundTitle.includes(title)) {
               if (i === 29) {
-                throw new Error(`Page Title ${foundTitle} does not contain ${queryText}`);
+                throw new Error(`Page Title ${foundTitle} does not contain ${title}`);
               }
               await new Promise((resolve) => setTimeout(resolve, 1000));
               continue;
