@@ -3971,24 +3971,26 @@ class StableBrowser {
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
-    const state = {
-      world,
-      locate: false,
-      scroll: false,
-      screenshot: true,
-      highlight: true,
-      type: Types.STEP_COMPLETE,
-      text: "end of scenario",
-      _text: "end of scenario",
-      operation: "step_complete",
-      log: "***** " + "end of scenario" + " *****\n",
-    };
-    try {
-      await _preCommand(state, this);
-    } catch (e) {
-      await _commandError(state, e, this);
-    } finally {
-      await _commandFinally(state, this);
+    if (!process.env.TEMP_RUN) {
+      const state = {
+        world,
+        locate: false,
+        scroll: false,
+        screenshot: true,
+        highlight: true,
+        type: Types.STEP_COMPLETE,
+        text: "end of scenario",
+        _text: "end of scenario",
+        operation: "step_complete",
+        log: "***** " + "end of scenario" + " *****\n",
+      };
+      try {
+        await _preCommand(state, this);
+      } catch (e) {
+        await _commandError(state, e, this);
+      } finally {
+        await _commandFinally(state, this);
+      }
     }
   }
 }
