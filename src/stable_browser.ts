@@ -680,7 +680,7 @@ class StableBrowser {
 
       if (!element.rerun) {
         const randomToken = Math.random().toString(36).substring(7);
-        element.evaluate((el, randomToken) => {
+        await element.evaluate((el, randomToken) => {
           el.setAttribute("data-blinq-id-" + randomToken, "");
         }, randomToken);
         // if (element._frame) {
