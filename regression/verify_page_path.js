@@ -21,13 +21,13 @@ describe("verifyPagePath", function () {
 
   it("passes when the path contains the expected segment", async function () {
     // should resolve cleanly (no throw)
-    await context.web.verifyPagePath("/site/form/index.html", {}, this);
+    await context.web.verifyPagePath("contains:/site/form/index.html", {}, this);
   });
 
   it("throws when the path segment never appears", async function () {
     let caught = null;
     try {
-      await context.web.verifyPagePath("$$NON_EXISTENT_PATH$$", {}, this);
+      await context.web.verifyPagePath("contains:$$NON_EXISTENT_PATH$$", {}, this);
     } catch (e) {
       caught = e;
       console.log("error:", e.message);
