@@ -25,14 +25,14 @@ describe("verifyPageTitle", function () {
     let info = {};
     info.log = "";
 
-    await context.web.verifyPageTitle("Shop BlinqIO", {}, this);
+    await context.web.verifyPageTitle("exact:Shop BlinqIO", {}, this);
   });
   it("verifyPageTitle fail", async function () {
     let info = {};
     info.log = "";
     let ex = null;
     try {
-      await context.web.verifyPageTitle("Shop BlinqIO1", {}, this);
+      await context.web.verifyPageTitle("contains:Shop BlinqIO1", {}, this);
     } catch (error) {
       ex = error;
       //{textNotFound: true, lastError: 'failed to locate unique element', locatorNotFound: true, error: Error: failed to locate first element no eleme…d, ***** click on undefined *****attempt 0: …, fail: true}
