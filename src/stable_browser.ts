@@ -71,6 +71,7 @@ export const Types = {
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
   VERIFY_PAGE_PATH: "verify_page_path",
+  VERIFY_PAGE_TITLE: "verify_page_title",
   TYPE_PRESS: "type_press",
   PRESS: "press_key",
   HOVER: "hover_element",
@@ -2529,8 +2530,53 @@ class StableBrowser {
     }
   }
 
-  async verifyPagePath(pathPart, options = {}, world = null) {
-    const startTime = Date.now();
+  _matcher(text) {
+    if (!text) {
+      return { matcher: "contains", queryText: "" };
+    }
+    if (text.length < 2) {
+      return { matcher: "contains", queryText: text };
+    }
+    const split = text.split(":");
+    const matcher = split[0].toLowerCase();
+    const queryText = split.slice(1).join(":").trim();
+    return { matcher, queryText };
+  }
+
+  _getDomain(url: string) {
+    if (url.length === 0 || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+      return "";
+    }
+
+    let hostnameFragments = url.split("/")[2].split(".");
+
+    if (hostnameFragments.some((fragment) => fragment.includes(":"))) {
+      return hostnameFragments.join("-").split(":").join("-");
+    }
+
+    let n = hostnameFragments.length;
+    let fragments = [...hostnameFragments];
+    while (n > 0 && hostnameFragments[n - 1].length <= 3) {
+      hostnameFragments.pop();
+      n = hostnameFragments.length;
+    }
+    if (n == 0) {
+      if (fragments[0] === "www") fragments = fragments.slice(1);
+      return fragments.length > 1 ? fragments.slice(0, fragments.length - 1).join("-") : fragments.join("-");
+    }
+    if (hostnameFragments[0] === "www") hostnameFragments = hostnameFragments.slice(1);
+    return hostnameFragments.join(".");
+  }
+
+  /**
+   * Verify the page path matches the given path.
+   * @param {string} pathPart - The path to verify.
+   * @param {object} options - Options for verification.
+   * @param {object} world - The world context.
+   * @returns {Promise<object>} - The state info after verification.
+   */
+
+  async verifyPagePath(pathPart: string, options: object = {}, world: object = null): Promise<object> {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
@@ -2545,118 +2591,216 @@ class StableBrowser {
       pathPart = newValue;
     }
     info.pathPart = pathPart;
+
+    const { matcher, queryText } = this._matcher(pathPart);
+
+    const state = {
+      text_search: queryText,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.VERIFY_PAGE_PATH,
+      text: `Verify the page url is ${queryText}`,
+      _text: `Verify the page url is ${queryText}`,
+      operation: "verifyPagePath",
+      log: "***** verify page url is " + queryText + " *****\n",
+    };
+
     try {
+      await _preCommand(state, this);
+      state.info.text = queryText;
       for (let i = 0; i < 30; i++) {
         const url = await this.page.url();
-        if (!url.includes(pathPart)) {
-          if (i === 29) {
-            throw new Error(`url ${url} doesn't contain ${pathPart}`);
-          }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
+        switch (matcher) {
+          case "exact":
+            if (url !== queryText) {
+              if (i === 29) {
+                throw new Error(`Page URL ${url} is not equal to ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          case "contains":
+            if (!url.includes(queryText)) {
+              if (i === 29) {
+                throw new Error(`Page URL ${url} doesn't contain ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          case "starts-with":
+            {
+              const domain = this._getDomain(url);
+              if (domain.length > 0 && domain !== queryText) {
+                if (i === 29) {
+                  throw new Error(`Page URL ${url} doesn't start with ${queryText}`);
+                }
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                continue;
+              }
+            }
+            break;
+          case "ends-with":
+            {
+              const urlObj = new URL(url);
+              let route = "/";
+              if (urlObj.pathname !== "/") {
+                route = urlObj.pathname.split("/").slice(-1)[0].trim();
+              } else {
+                route = "/";
+              }
+              if (route !== queryText) {
+                if (i === 29) {
+                  throw new Error(`Page URL ${url} doesn't end with ${queryText}`);
+                }
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                continue;
+              }
+            }
+            break;
+          case "regex":
+            const regex = new RegExp(queryText.slice(1, -1), "g");
+            if (!regex.test(url)) {
+              if (i === 29) {
+                throw new Error(`Page URL ${url} doesn't match regex ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          default:
+            console.log("Unknown matching type, defaulting to contains matching");
+            if (!url.includes(pathPart)) {
+              if (i === 29) {
+                throw new Error(`Page URL ${url} does not contain ${pathPart}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
         }
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        return info;
+        await _screenshot(state, this);
+        return state.info;
       }
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      this.logger.error("verify page path failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      // throw e;
-      await _commandError(
-        { text: "verifyPagePath", operation: "verifyPagePath", pathPart, info, throwError: true },
-        e,
-        this
-      );
+      state.info.failCause.lastError = e.message;
+      state.info.failCause.assertionFailed = true;
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      _reportToWorld(world, {
-        type: Types.VERIFY_PAGE_PATH,
-        text: "Verify page path",
-        _text: "Verify the page path contains " + pathPart,
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      await _commandFinally(state, this);
     }
   }
-  async verifyPageTitle(title, options = {}, world = null) {
-    const startTime = Date.now();
+
+  /**
+   * Verify the page title matches the given title.
+   * @param {string} title - The title to verify.
+   * @param {object} options - Options for verification.
+   * @param {object} world - The world context.
+   * @returns {Promise<object>} - The state info after verification.
+   */
+
+  async verifyPageTitle(title: string, options: object = {}, world: object = null): Promise<object> {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const info = {};
-    info.log = "***** verify page title " + title + " *****\n";
-    info.operation = "verifyPageTitle";
 
     const newValue = await this._replaceWithLocalData(title, world);
     if (newValue !== title) {
       this.logger.info(title + "=" + newValue);
       title = newValue;
     }
-    info.title = title;
+
+    const { matcher, queryText } = this._matcher(title);
+
+    const state = {
+      text_search: queryText,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      highlight: false,
+      type: Types.VERIFY_PAGE_TITLE,
+      text: `Verify the page title is ${queryText}`,
+      _text: `Verify the page title is ${queryText}`,
+      operation: "verifyPageTitle",
+      log: "***** verify page title is " + queryText + " *****\n",
+    };
+
     try {
+      await _preCommand(state, this);
+      state.info.text = queryText;
       for (let i = 0; i < 30; i++) {
         const foundTitle = await this.page.title();
-        if (!foundTitle.includes(title)) {
-          if (i === 29) {
-            throw new Error(`url ${foundTitle} doesn't contain ${title}`);
-          }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
+        switch (matcher) {
+          case "exact":
+            if (foundTitle !== queryText) {
+              if (i === 29) {
+                throw new Error(`Page Title ${foundTitle} is not equal to ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          case "contains":
+            if (!foundTitle.includes(queryText)) {
+              if (i === 29) {
+                throw new Error(`Page Title ${foundTitle} doesn't contain ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          case "starts-with":
+            if (!foundTitle.startsWith(queryText)) {
+              if (i === 29) {
+                throw new Error(`Page title ${foundTitle} doesn't start with ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          case "ends-with":
+            if (!foundTitle.endsWith(queryText)) {
+              if (i === 29) {
+                throw new Error(`Page Title ${foundTitle} doesn't end with ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          case "regex":
+            const regex = new RegExp(queryText.slice(1, -1), "g");
+            if (!regex.test(foundTitle)) {
+              if (i === 29) {
+                throw new Error(`Page Title ${foundTitle} doesn't match regex ${queryText}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
+            break;
+          default:
+            console.log("Unknown matching type, defaulting to contains matching");
+            if (!foundTitle.includes(title)) {
+              if (i === 29) {
+                throw new Error(`Page Title ${foundTitle} does not contain ${title}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue;
+            }
         }
-        ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-        return info;
+        await _screenshot(state, this);
+        return state.info;
       }
     } catch (e) {
-      //await this.closeUnexpectedPopups();
-      this.logger.error("verify page title failed " + info.log);
-      ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
-      info.screenshotPath = screenshotPath;
-      Object.assign(e, { info: info });
-      error = e;
-      // throw e;
-      await _commandError(
-        { text: "verifyPageTitle", operation: "verifyPageTitle", title, info, throwError: true },
-        e,
-        this
-      );
+      state.info.failCause.lastError = e.message;
+      state.info.failCause.assertionFailed = true;
+      await _commandError(state, e, this);
     } finally {
-      const endTime = Date.now();
-      _reportToWorld(world, {
-        type: Types.VERIFY_PAGE_PATH,
-        text: "Verify page title",
-        _text: "Verify the page title contains " + title,
-        screenshotId,
-        result: error
-          ? {
-              status: "FAILED",
-              startTime,
-              endTime,
-              message: error?.message,
-            }
-          : {
-              status: "PASSED",
-              startTime,
-              endTime,
-            },
-        info: info,
-      });
+      await _commandFinally(state, this);
     }
   }
 
@@ -2767,27 +2911,12 @@ class StableBrowser {
             const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
 
             await this._highlightElements(frame, dataAttribute);
-            // if (world && world.screenshot && !world.screenshotPath) {
-            // console.log(`Highlighting for verify text is found while running from recorder`);
-            // this._highlightElements(frame, dataAttribute).then(async () => {
-            // await new Promise((resolve) => setTimeout(resolve, 1000));
-            // this._unhighlightElements(frame, dataAttribute)
-            // .then(async () => {
-            // console.log(`Unhighlighted frame dataAttribute successfully`);
-            // })
-            // .catch(
-            // (e) => {}
-            //  console.error(e)
-            // );
-            // });
-            // }
+
             const element = await frame.locator(dataAttribute).first();
-            // await new Promise((resolve) => setTimeout(resolve, 100));
-            // await this._unhighlightElements(frame, dataAttribute);
+
             if (element) {
               await this.scrollIfNeeded(element, state.info);
               await element.dispatchEvent("bvt_verify_page_contains_text");
-              // await _screenshot(state, this, element);
             }
           }
           await _screenshot(state, this);
@@ -2796,8 +2925,6 @@ class StableBrowser {
           console.error(error);
         }
       }
-
-      // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
