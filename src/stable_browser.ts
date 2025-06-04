@@ -1222,7 +1222,7 @@ class StableBrowser {
         // if (world && world.screenshot && !world.screenshotPath) {
         // console.log(`Highlighting while running from recorder`);
         await this._highlightElements(state.element);
-        await state.element.setChecked(checked);
+        await state.element.setChecked(checked, { timeout: 2000 });
         await new Promise((resolve) => setTimeout(resolve, 1000));
         // await this._unHighlightElements(element);
         // }
@@ -1232,11 +1232,26 @@ class StableBrowser {
         if (e.message && e.message.includes("did not change its state")) {
           this.logger.info("element did not change its state, ignoring...");
         } else {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           //await this.closeUnexpectedPopups();
           state.info.log += "setCheck failed, will try again" + "\n";
-          state.element = await this._locate(selectors, state.info, _params);
-          await state.element.setChecked(checked, { timeout: 5000, force: true });
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          state.element_found = false;
+          try {
+            state.element = await this._locate(selectors, state.info, _params, 100);
+            state.element_found = true;
+            // check the check state
+          } catch (error) {
+            // element dismissed
+          }
+          if (state.element_found) {
+            const isChecked = await state.element.isChecked();
+            if (isChecked !== checked) {
+              // perform click
+              await state.element.click({ timeout: 2000, force: true });
+            } else {
+              this.logger.info(`Element ${selectors.element_name} is already in the desired state (${checked})`);
+            }
+          }
         }
       }
       await this.waitForPageLoad();
