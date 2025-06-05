@@ -163,6 +163,13 @@ class StableBrowser {
         }
         context.pageLoading.status = true;
         this.page = page;
+        try {
+          if (this.configuration && this.configuration.acceptDialog) {
+            await page.on("dialog", (dialog) => dialog.accept());
+          }
+        } catch (error) {
+          console.error("Error on dialog accept registration", error);
+        }
         context.page = page;
         context.pages.push(page);
         registerNetworkEvents(this.world, this, context, this.page);
