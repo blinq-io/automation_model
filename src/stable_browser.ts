@@ -155,6 +155,9 @@ class StableBrowser {
     if (!context.pageLoading) {
       context.pageLoading = { status: false };
     }
+    if (this.configuration && this.configuration.acceptDialog && this.page) {
+      await this.page.on("dialog", (dialog) => dialog.accept());
+    }
     context.playContext.on(
       "page",
       async function (page) {
