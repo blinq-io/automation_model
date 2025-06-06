@@ -58,14 +58,14 @@ describe("snapshot", function () {
     await context.web.click(element);
     await context.web.afterStep(world, null);
     console.log(world.attachs);
-    expect(world.attachs).to.have.lengthOf(2, "Expected exactly 2 attachments");
+    expect(world.attachs).to.have.lengthOf(3, "Expected exactly 3 attachments");
 
-    const [first, second] = world.attachs;
+    const [first, second, third] = world.attachs;
 
     // Validate type
     expect(first.type).to.equal("application/json+snapshot-before", "First attachment type mismatch");
     expect(second.type).to.equal("application/json+snapshot-after", "Second attachment type mismatch");
-
+    expect(third.type.mediaType).to.equal("application/json", "Third attachment type mismatch");
     // Validate content structure
     // expect(first.content).to.have.property("snapshot_init");
     // expect(second.content).to.have.property("snapshot_0");
