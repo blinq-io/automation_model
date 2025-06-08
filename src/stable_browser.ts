@@ -1906,6 +1906,10 @@ class StableBrowser {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
           // highlight and screenshot
+          try {
+            await await highlightSnapshot(newValue, scope);
+            await _screenshot(state, this);
+          } catch (e) {}
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
