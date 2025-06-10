@@ -3750,7 +3750,7 @@ class StableBrowser {
       envName = this.context.environment.name;
     }
     if (!process.env.TEMP_RUN) {
-      await getTestData(envName, world, undefined, this.featureName, this.scenarioName);
+      await getTestData(envName, world, undefined, this.featureName, this.scenarioName, this.context);
     }
 
     await loadBrunoParams(this.context, this.context.environment.name);
