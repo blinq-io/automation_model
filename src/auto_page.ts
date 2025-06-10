@@ -107,7 +107,7 @@ const initContext = async (
   if (context) {
     const env = getEnv(envName);
     if (env && !process.env.TEMP_RUN) {
-      await getTestData(env, world);
+      await getTestData(env, world, undefined, undefined, undefined, context);
     }
   }
 
@@ -157,107 +157,130 @@ type testData = {
   feature?: string;
   scenario?: string;
 };
-const getTestData = async (currentEnv: string, world: any, dataFile?: string, feature?: string, scenario?: string) => {
+const getTestData = async (
+  currentEnv: string,
+  world: any,
+  dataFile?: string,
+  feature?: string,
+  scenario?: string,
+  context?: any
+) => {
   // copy the global test data located in data/data.json to the report folder
   try {
+    let jsonData = {} as Record<string, Omit<testData, "environment">[]>;
+    const filterFeatureScenario = feature || scenario;
     if (existsSync(path.join("data", "data.json"))) {
-      const filterFeatureScenario = feature || scenario;
       const data = readFileSync(path.join("data", "data.json"), "utf8");
-      const jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
-      let testData: Record<string, string> = {};
-      const allEnvData = jsonData["*"];
-      const currentEnvData = jsonData[currentEnv];
-
-      // Process all environment data first as a baseline
-      if (allEnvData) {
-        for (let i = 0; i < allEnvData.length; i++) {
-          const item = allEnvData[i];
-          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
-            testData[item.key] = process.env[item.key]!;
-            continue;
-          }
-          // Filter by feature/scenario if specified
-          if (filterFeatureScenario) {
-            if (feature && item.feature && item.feature !== feature) {
-              continue;
-            }
-            if (scenario && item.scenario && item.scenario !== scenario) {
-              continue;
-            }
-          } else if (item.feature || item.scenario) {
-            // Skip feature/scenario specific items when not filtering
-            continue;
-          }
-
-          let useValue = item.value;
-
-          if (item.DataType === "secret") {
-            testData[item.key] = "secret:" + item.value;
-            // decrypt the secret
-            useValue = decrypt("secret:" + item.value);
-          } else if (item.DataType === "totp") {
-            testData[item.key] = "totp:" + item.value;
-            useValue = "totp:" + item.value;
-          } else {
-            testData[item.key] = item.value;
-          }
-        }
-      }
-
-      // Then process currentEnvData to override the base values
-      if (currentEnvData) {
-        for (let i = 0; i < currentEnvData.length; i++) {
-          const item = currentEnvData[i];
-          if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
-            testData[item.key] = process.env[item.key]!;
-            continue;
-          }
-
-          // Filter by feature/scenario if specified
-          if (filterFeatureScenario) {
-            if (feature && item.feature && item.feature !== feature) {
-              continue;
-            }
-            if (scenario && item.scenario && item.scenario !== scenario) {
-              continue;
-            }
-          } else if (item.feature || item.scenario) {
-            // Skip feature/scenario specific items when not filtering
-            continue;
-          }
-
-          let useValue = item.value;
-
-          if (item.DataType === "secret") {
-            testData[item.key] = "secret:" + item.value;
-            // decrypt the secret
-            useValue = decrypt("secret:" + item.value);
-          } else if (item.DataType === "totp") {
-            testData[item.key] = "totp:" + item.value;
-            useValue = "totp:" + item.value;
-          } else {
-            testData[item.key] = item.value;
-          }
-        }
-      }
-
-      if (dataFile && !existsSync(path.dirname(dataFile))) {
-        mkdirSync(path.dirname(dataFile), { recursive: true });
-      }
-
-      if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
-      if (existsSync(dataFile)) {
-        try {
-          const content = readFileSync(dataFile, "utf8");
-          const data = JSON.parse(content);
-          // merge the global test data with the existing data
-          testData = Object.assign(data, testData);
-        } catch (error) {
-          console.log("Error reading data.json file: " + error);
-        }
-      }
-      writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+      jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
     }
+    let testData: Record<string, any> = {};
+    const allEnvData = jsonData["*"];
+    const currentEnvData = jsonData[currentEnv];
+
+    // Process all environment data first as a baseline
+    if (allEnvData) {
+      for (let i = 0; i < allEnvData.length; i++) {
+        const item = allEnvData[i];
+        if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+          testData[item.key] = process.env[item.key]!;
+          continue;
+        }
+        // Filter by feature/scenario if specified
+        if (filterFeatureScenario) {
+          if (feature && item.feature && item.feature !== feature) {
+            continue;
+          }
+          if (scenario && item.scenario && item.scenario !== scenario) {
+            continue;
+          }
+        } else if (item.feature || item.scenario) {
+          // Skip feature/scenario specific items when not filtering
+          continue;
+        }
+
+        let useValue = item.value;
+
+        if (item.DataType === "secret") {
+          testData[item.key] = "secret:" + item.value;
+          // decrypt the secret
+          useValue = decrypt("secret:" + item.value);
+        } else if (item.DataType === "totp") {
+          testData[item.key] = "totp:" + item.value;
+          useValue = "totp:" + item.value;
+        } else {
+          testData[item.key] = item.value;
+        }
+      }
+    }
+
+    // Then process currentEnvData to override the base values
+    if (currentEnvData) {
+      for (let i = 0; i < currentEnvData.length; i++) {
+        const item = currentEnvData[i];
+        if (process.env[item.key] && item.key.toLowerCase() !== "username" && item.key.toLowerCase() !== "user") {
+          testData[item.key] = process.env[item.key]!;
+          continue;
+        }
+
+        // Filter by feature/scenario if specified
+        if (filterFeatureScenario) {
+          if (feature && item.feature && item.feature !== feature) {
+            continue;
+          }
+          if (scenario && item.scenario && item.scenario !== scenario) {
+            continue;
+          }
+        } else if (item.feature || item.scenario) {
+          // Skip feature/scenario specific items when not filtering
+          continue;
+        }
+
+        let useValue = item.value;
+
+        if (item.DataType === "secret") {
+          testData[item.key] = "secret:" + item.value;
+          // decrypt the secret
+          useValue = decrypt("secret:" + item.value);
+        } else if (item.DataType === "totp") {
+          testData[item.key] = "totp:" + item.value;
+          useValue = "totp:" + item.value;
+        } else {
+          testData[item.key] = item.value;
+        }
+      }
+    }
+    if (context?.environment) {
+      const excludedKeys = new Set(["cookies", "apps", "origins", "extensionPath"]);
+
+      const envData = Object.entries(context.environment)
+        .filter(([key]) => !excludedKeys.has(key))
+        .reduce<Record<string, any>>((acc, [key, value]) => {
+          acc[key] = value;
+          return acc;
+        }, {});
+
+      if (Object.keys(envData).length > 0) {
+        testData.env = {
+          ...(testData.env || {}),
+          ...envData,
+        };
+      }
+    }
+    if (dataFile && !existsSync(path.dirname(dataFile))) {
+      mkdirSync(path.dirname(dataFile), { recursive: true });
+    }
+    if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+    if (existsSync(dataFile)) {
+      try {
+        const content = readFileSync(dataFile, "utf8");
+        const data = JSON.parse(content);
+        // merge the global test data with the existing data
+        testData = Object.assign(data, testData);
+      } catch (error) {
+        console.log("Error reading data.json file: " + error);
+      }
+    }
+    writeFileSync(dataFile, JSON.stringify(testData, null, 2));
   } catch (e) {
     console.log("Error reading data.json file: " + e);
   }
