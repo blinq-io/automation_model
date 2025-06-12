@@ -90,7 +90,7 @@ export async function _preCommand(state: any, web: any) {
   if (state.scroll === true) {
     await web.scrollIfNeeded(state.element, state.info);
   }
-  if (state.screenshot === true && !web.fastMode) {
+  if (state.screenshot === true /*&& !web.fastMode*/) {
     await _screenshot(state, web);
   }
   if (state.highlight === true) {
