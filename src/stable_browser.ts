@@ -114,7 +114,8 @@ class StableBrowser {
     public page: Page,
     public logger: any = null,
     public context: any = null,
-    public world?: any = null
+    public world?: any = null,
+    public fastMode: boolean = false
   ) {
     if (!this.logger) {
       this.logger = console;
@@ -144,7 +145,12 @@ class StableBrowser {
     context.pages = [this.page];
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
-
+    if (process.env.FAST_MODE === "true") {
+      this.fastMode = true;
+    }
+    if (this.context) {
+      this.context.fastMode = this.fastMode;
+    }
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
@@ -236,7 +242,9 @@ class StableBrowser {
     if (newContextCreated) {
       this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
-      await this.waitForPageLoad();
+      if (!this.fastMode) {
+        await this.waitForPageLoad();
+      }
     }
   }
   async switchTab(tabTitleOrIndex: number | string) {
@@ -1176,7 +1184,9 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       await performAction("click", state.element, options, this, state, _params);
-      await this.waitForPageLoad();
+      if (!this.fastMode) {
+        await this.waitForPageLoad();
+      }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1549,7 +1559,9 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
-      await _screenshot(state, this);
+      if (!this.fastMode) {
+        await _screenshot(state, this);
+      }
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
@@ -3879,7 +3891,7 @@ class StableBrowser {
 
     if (this.initSnapshotTaken === false) {
       this.initSnapshotTaken = true;
-      if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+      if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
         const snapshot = await this.getAriaSnapshot();
         if (snapshot) {
           await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
