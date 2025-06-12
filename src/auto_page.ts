@@ -106,7 +106,8 @@ const initContext = async (
   }
   if (context) {
     const env = getEnv(envName);
-    if (env && !process.env.CDP_CONNECT_URL) {
+
+    if (env && !process.env.TEMP_RUN) {
       await getTestData(env, world, undefined, undefined, undefined, context);
     }
   }
@@ -269,9 +270,7 @@ const getTestData = async (
     if (dataFile && !existsSync(path.dirname(dataFile))) {
       mkdirSync(path.dirname(dataFile), { recursive: true });
     }
-    if (context && context.environment) {
-      testData["env"] = context.environment;
-    }
+
     if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
     if (existsSync(dataFile)) {
       try {
