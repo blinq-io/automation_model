@@ -1559,9 +1559,9 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
-      if (!this.fastMode) {
-        await _screenshot(state, this);
-      }
+      //if (!this.fastMode) {
+      await _screenshot(state, this);
+      //}
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
