@@ -94,6 +94,7 @@ export const Types = {
   SNAPSHOT_VALIDATION: "snapshot_validation",
   REPORT_COMMAND: "report_command",
   STEP_COMPLETE: "step_complete",
+  SLEEP: "sleep",
 };
 export const apps = {};
 
@@ -3513,6 +3514,45 @@ class StableBrowser {
             },
         info: info,
       });
+    }
+  }
+  /**
+   * Explicit wait/sleep function that pauses execution for a specified duration
+   * @param duration - Duration to sleep in milliseconds (default: 1000ms)
+   * @param options - Optional configuration object
+   * @param world - Optional world context
+   * @returns Promise that resolves after the specified duration
+   */
+  async sleep(duration: number = 1000, options = {}, world = null) {
+    const state = {
+      duration,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+      type: Types.SLEEP,
+      text: `Sleep for ${duration} ms`,
+      _text: `Sleep for ${duration} ms`,
+      operation: "sleep",
+      log: `***** Sleep for ${duration} ms *****\n`,
+    };
+
+    try {
+      await _preCommand(state, this);
+
+      if (duration < 0) {
+        throw new Error("Sleep duration cannot be negative");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, duration));
+
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
