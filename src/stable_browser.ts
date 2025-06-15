@@ -2345,8 +2345,12 @@ class StableBrowser {
           state.value = await state.element.textContent();
           break;
         default:
-          state.value = await state.element.evaluate(element => element.property);
-          break;
+          if (property.startsWith("dataset.")) {
+            const dataAttribute = property.substring(8);
+            state.value = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
+          } else {
+            state.value = String(await state.element.evaluate((element, prop) => element[prop], property));
+          }
       }
 
       if (options !== null) {
@@ -2519,8 +2523,12 @@ class StableBrowser {
           val = String(!isEditable);
           break;
         default:
-          val = String(await state.element.evaluate(element => element.property));
-          break;
+          if (property.startsWith("dataset.")) {
+            const dataAttribute = property.substring(8); 
+            val = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
+          } else {
+            val = String(await state.element.evaluate((element, prop) => element[prop], property));
+          }
       }
       state.info.value = val;
       let regex;
