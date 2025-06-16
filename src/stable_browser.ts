@@ -2311,6 +2311,77 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+  async extractProperty(selectors, property, variable, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      property,
+      variable,
+      options,
+      world,
+      type: Types.EXTRACT_PROPERTY,
+      text: `Extract property from element`,
+      _text: `Extract property ${property} from ${selectors.element_name}`,
+      operation: "extractProperty",
+      log: "***** extract property " + property + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      await _preCommand(state, this);
+      switch (property) {
+        case "inner_text":
+          state.value = await state.element.innerText();
+          break;
+        case "href":
+          state.value = await state.element.getAttribute("href");
+          break;
+        case "value":
+          state.value = await state.element.inputValue();
+          break;
+        case "text":
+          state.value = await state.element.textContent();
+          break;
+        default:
+          if (property.startsWith("dataset.")) {
+            const dataAttribute = property.substring(8);
+            state.value = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
+          } else {
+            state.value = String(await state.element.evaluate((element, prop) => element[prop], property));
+          }
+      }
+
+      if (options !== null) {
+        if (options.regex && options.regex !== "") {
+          // Construct a regex pattern from the provided string
+          const regex = options.regex.slice(1, -1);
+          const regexPattern = new RegExp(regex, "g");
+          const matches = state.value.match(regexPattern);
+          if (matches) {
+            let newValue = "";
+            for (const match of matches) {
+              newValue += match;
+            }
+            state.value = newValue;
+          }
+        }
+        if (options.trimSpaces && options.trimSpaces === true) {
+          state.value = state.value.trim();
+        }
+      }
+
+      state.info.value = state.value;
+
+      this.setTestData({ [variable]: state.value }, world);
+      this.logger.info("set test data: " + variable + "=" + state.value);
+      // await new Promise((resolve) => setTimeout(resolve, 500));
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
   async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
     const state = {
       selectors,
@@ -2393,6 +2464,104 @@ class StableBrowser {
       } else {
         if (!val.match(regex)) {
           let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+          state.info.failCause.assertionFailed = true;
+          state.info.failCause.lastError = errorMessage;
+          throw new Error(errorMessage);
+        }
+      }
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+  async verifyProperty(selectors, property, value, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      property,
+      value,
+      options,
+      world,
+      type: Types.VERIFY_PROPERTY,
+      highlight: true,
+      screenshot: true,
+      text: `Verify element property`,
+      _text: `Verify property ${property} from ${selectors.element_name} is ${value}`,
+      operation: "verifyProperty",
+      log: "***** verify property " + property + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    let val;
+    let expectedValue;
+    try {
+      await _preCommand(state, this);
+      expectedValue = await replaceWithLocalTestData(state.value, world);
+      state.info.expectedValue = expectedValue;
+      switch (property) {
+        case "innerText":
+          val = String(await state.element.innerText());
+          break;
+        case "text":
+          val = String(await state.element.textContent());
+          break;
+        case "value":
+          val = String(await state.element.inputValue());
+          break;
+        case "checked":
+          val = String(await state.element.isChecked());
+          break;
+        case "disabled":
+          val = String(await state.element.isDisabled());
+          break;
+        case "readOnly":
+          const isEditable = await state.element.isEditable();
+          val = String(!isEditable);
+          break;
+        default:
+          if (property.startsWith("dataset.")) {
+            const dataAttribute = property.substring(8); 
+            val = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
+          } else {
+            val = String(await state.element.evaluate((element, prop) => element[prop], property));
+          }
+      }
+      state.info.value = val;
+      let regex;
+      if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
+        const patternBody = expectedValue.slice(1, -1);
+        const processedPattern = patternBody.replace(/\n/g, ".*");
+        regex = new RegExp(processedPattern, "gs");
+        state.info.regex = true;
+      } else {
+        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        regex = new RegExp(escapedPattern, "g");
+      }
+      if (property === "innerText") {
+        if (state.info.regex) {
+          if (!regex.test(val)) {
+            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        } else {
+          const valLines = val.split("\n");
+          const expectedLines = expectedValue.split("\n");
+          const isPart = expectedLines.every((expectedLine) => valLines.some((valLine) => valLine === expectedLine));
+
+          if (!isPart) {
+            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        }
+      } else {
+        if (!val.match(regex)) {
+          let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
           state.info.failCause.assertionFailed = true;
           state.info.failCause.lastError = errorMessage;
           throw new Error(errorMessage);
