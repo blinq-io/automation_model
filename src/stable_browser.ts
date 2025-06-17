@@ -2520,6 +2520,12 @@ class StableBrowser {
           const isEditable = await state.element.isEditable();
           val = String(!isEditable);
           break;
+        case "innerHTML":
+          val = String(await state.element.innerHTML());
+          break;
+        case "outerHTML":
+          val = String(await state.element.evaluate((element) => element.outerHTML));
+          break;
         default:
           if (property.startsWith("dataset.")) {
             const dataAttribute = property.substring(8); 
@@ -2528,6 +2534,18 @@ class StableBrowser {
             val = String(await state.element.evaluate((element, prop) => element[prop], property));
           }
       }
+      
+      // Helper function to remove all style="" attributes
+      const removeStyleAttributes = (htmlString) => {
+        return htmlString.replace(/\s*style\s*=\s*"[^"]*"/gi, '');
+      };
+      
+      // Remove style attributes for innerHTML and outerHTML properties
+      if (property === "innerHTML" || property === "outerHTML") {
+        val = removeStyleAttributes(val);
+        expectedValue = removeStyleAttributes(expectedValue);
+      }
+      
       state.info.value = val;
       let regex;
       if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
@@ -2548,10 +2566,16 @@ class StableBrowser {
             throw new Error(errorMessage);
           }
         } else {
+          // Fix: Replace escaped newlines with actual newlines before splitting
+          const normalizedExpectedValue = expectedValue.replace(/\\n/g, '\n');
           const valLines = val.split("\n");
-          const expectedLines = expectedValue.split("\n");
-          const isPart = expectedLines.every((expectedLine) => valLines.some((valLine) => valLine === expectedLine));
-
+          const expectedLines = normalizedExpectedValue.split("\n");
+          
+          // Check if all expected lines are present in the actual lines
+          const isPart = expectedLines.every((expectedLine) => 
+            valLines.some((valLine) => valLine.trim() === expectedLine.trim())
+          );
+  
           if (!isPart) {
             let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
             state.info.failCause.assertionFailed = true;
