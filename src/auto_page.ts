@@ -5,7 +5,7 @@ import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
 import { InitScripts } from "./generation_scripts.js";
-import { _getDataFile, decrypt } from "./utils.js";
+import { _getDataFile, _getTestData, decrypt } from "./utils.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 const navigate = async (path = "") => {
@@ -270,16 +270,17 @@ const getTestData = async (
       mkdirSync(path.dirname(dataFile), { recursive: true });
     }
     if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
-    if (existsSync(dataFile)) {
-      try {
-        const content = readFileSync(dataFile, "utf8");
-        const data = JSON.parse(content);
-        // merge the global test data with the existing data
-        testData = Object.assign(data, testData);
-      } catch (error) {
-        console.log("Error reading data.json file: " + error);
-      }
+    // if (existsSync(dataFile)) {
+    try {
+      //const content = readFileSync(dataFile, "utf8");
+      //const data = JSON.parse(content);
+      const data = _getTestData(world, context, context?.web);
+      // merge the global test data with the existing data
+      testData = Object.assign(data, testData);
+    } catch (error) {
+      console.log("Error reading data.json file: " + error);
     }
+    //}
     writeFileSync(dataFile, JSON.stringify(testData, null, 2));
   } catch (e) {
     console.log("Error reading data.json file: " + e);
