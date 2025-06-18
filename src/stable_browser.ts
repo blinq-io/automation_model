@@ -94,6 +94,7 @@ export const Types = {
   SNAPSHOT_VALIDATION: "snapshot_validation",
   REPORT_COMMAND: "report_command",
   STEP_COMPLETE: "step_complete",
+  SLEEP: "sleep",
 };
 export const apps = {};
 
@@ -114,7 +115,8 @@ class StableBrowser {
     public page: Page,
     public logger: any = null,
     public context: any = null,
-    public world?: any = null
+    public world?: any = null,
+    public fastMode: boolean = false
   ) {
     if (!this.logger) {
       this.logger = console;
@@ -144,7 +146,12 @@ class StableBrowser {
     context.pages = [this.page];
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
-
+    if (process.env.FAST_MODE === "true") {
+      this.fastMode = true;
+    }
+    if (this.context) {
+      this.context.fastMode = this.fastMode;
+    }
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
@@ -236,7 +243,9 @@ class StableBrowser {
     if (newContextCreated) {
       this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
-      await this.waitForPageLoad();
+      if (!this.fastMode) {
+        await this.waitForPageLoad();
+      }
     }
   }
   async switchTab(tabTitleOrIndex: number | string) {
@@ -1176,7 +1185,9 @@ class StableBrowser {
     try {
       await _preCommand(state, this);
       await performAction("click", state.element, options, this, state, _params);
-      await this.waitForPageLoad();
+      if (!this.fastMode) {
+        await this.waitForPageLoad();
+      }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1549,7 +1560,9 @@ class StableBrowser {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
+      //if (!this.fastMode) {
       await _screenshot(state, this);
+      //}
       if (enter === true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
@@ -1906,6 +1919,10 @@ class StableBrowser {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
           // highlight and screenshot
+          try {
+            await await highlightSnapshot(newValue, scope);
+            await _screenshot(state, this);
+          } catch (e) {}
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
@@ -2295,6 +2312,77 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+  async extractProperty(selectors, property, variable, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      property,
+      variable,
+      options,
+      world,
+      type: Types.EXTRACT_PROPERTY,
+      text: `Extract property from element`,
+      _text: `Extract property ${property} from ${selectors.element_name}`,
+      operation: "extractProperty",
+      log: "***** extract property " + property + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      await _preCommand(state, this);
+      switch (property) {
+        case "inner_text":
+          state.value = await state.element.innerText();
+          break;
+        case "href":
+          state.value = await state.element.getAttribute("href");
+          break;
+        case "value":
+          state.value = await state.element.inputValue();
+          break;
+        case "text":
+          state.value = await state.element.textContent();
+          break;
+        default:
+          if (property.startsWith("dataset.")) {
+            const dataAttribute = property.substring(8);
+            state.value = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
+          } else {
+            state.value = String(await state.element.evaluate((element, prop) => element[prop], property));
+          }
+      }
+
+      if (options !== null) {
+        if (options.regex && options.regex !== "") {
+          // Construct a regex pattern from the provided string
+          const regex = options.regex.slice(1, -1);
+          const regexPattern = new RegExp(regex, "g");
+          const matches = state.value.match(regexPattern);
+          if (matches) {
+            let newValue = "";
+            for (const match of matches) {
+              newValue += match;
+            }
+            state.value = newValue;
+          }
+        }
+        if (options.trimSpaces && options.trimSpaces === true) {
+          state.value = state.value.trim();
+        }
+      }
+
+      state.info.value = state.value;
+
+      this.setTestData({ [variable]: state.value }, world);
+      this.logger.info("set test data: " + variable + "=" + state.value);
+      // await new Promise((resolve) => setTimeout(resolve, 500));
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
   async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
     const state = {
       selectors,
@@ -2377,6 +2465,128 @@ class StableBrowser {
       } else {
         if (!val.match(regex)) {
           let errorMessage = `The ${attribute} attribute has a value of "${val}", but the expected value is "${expectedValue}"`;
+          state.info.failCause.assertionFailed = true;
+          state.info.failCause.lastError = errorMessage;
+          throw new Error(errorMessage);
+        }
+      }
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+  async verifyProperty(selectors, property, value, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      property,
+      value,
+      options,
+      world,
+      type: Types.VERIFY_PROPERTY,
+      highlight: true,
+      screenshot: true,
+      text: `Verify element property`,
+      _text: `Verify property ${property} from ${selectors.element_name} is ${value}`,
+      operation: "verifyProperty",
+      log: "***** verify property " + property + " from " + selectors.element_name + " *****\n",
+      allowDisabled: true,
+    };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    let val;
+    let expectedValue;
+    try {
+      await _preCommand(state, this);
+      expectedValue = await replaceWithLocalTestData(state.value, world);
+      state.info.expectedValue = expectedValue;
+      switch (property) {
+        case "innerText":
+          val = String(await state.element.innerText());
+          break;
+        case "text":
+          val = String(await state.element.textContent());
+          break;
+        case "value":
+          val = String(await state.element.inputValue());
+          break;
+        case "checked":
+          val = String(await state.element.isChecked());
+          break;
+        case "disabled":
+          val = String(await state.element.isDisabled());
+          break;
+        case "readOnly":
+          const isEditable = await state.element.isEditable();
+          val = String(!isEditable);
+          break;
+        case "innerHTML":
+          val = String(await state.element.innerHTML());
+          break;
+        case "outerHTML":
+          val = String(await state.element.evaluate((element) => element.outerHTML));
+          break;
+        default:
+          if (property.startsWith("dataset.")) {
+            const dataAttribute = property.substring(8); 
+            val = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
+          } else {
+            val = String(await state.element.evaluate((element, prop) => element[prop], property));
+          }
+      }
+      
+      // Helper function to remove all style="" attributes
+      const removeStyleAttributes = (htmlString) => {
+        return htmlString.replace(/\s*style\s*=\s*"[^"]*"/gi, '');
+      };
+      
+      // Remove style attributes for innerHTML and outerHTML properties
+      if (property === "innerHTML" || property === "outerHTML") {
+        val = removeStyleAttributes(val);
+        expectedValue = removeStyleAttributes(expectedValue);
+      }
+      
+      state.info.value = val;
+      let regex;
+      if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
+        const patternBody = expectedValue.slice(1, -1);
+        const processedPattern = patternBody.replace(/\n/g, ".*");
+        regex = new RegExp(processedPattern, "gs");
+        state.info.regex = true;
+      } else {
+        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        regex = new RegExp(escapedPattern, "g");
+      }
+      if (property === "innerText") {
+        if (state.info.regex) {
+          if (!regex.test(val)) {
+            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        } else {
+          // Fix: Replace escaped newlines with actual newlines before splitting
+          const normalizedExpectedValue = expectedValue.replace(/\\n/g, '\n');
+          const valLines = val.split("\n");
+          const expectedLines = normalizedExpectedValue.split("\n");
+          
+          // Check if all expected lines are present in the actual lines
+          const isPart = expectedLines.every((expectedLine) => 
+            valLines.some((valLine) => valLine.trim() === expectedLine.trim())
+          );
+  
+          if (!isPart) {
+            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
+            state.info.failCause.assertionFailed = true;
+            state.info.failCause.lastError = errorMessage;
+            throw new Error(errorMessage);
+          }
+        }
+      } else {
+        if (!val.match(regex)) {
+          let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
           state.info.failCause.assertionFailed = true;
           state.info.failCause.lastError = errorMessage;
           throw new Error(errorMessage);
@@ -3499,6 +3709,45 @@ class StableBrowser {
       });
     }
   }
+  /**
+   * Explicit wait/sleep function that pauses execution for a specified duration
+   * @param duration - Duration to sleep in milliseconds (default: 1000ms)
+   * @param options - Optional configuration object
+   * @param world - Optional world context
+   * @returns Promise that resolves after the specified duration
+   */
+  async sleep(duration: number = 1000, options = {}, world = null) {
+    const state = {
+      duration,
+      options,
+      world,
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+      type: Types.SLEEP,
+      text: `Sleep for ${duration} ms`,
+      _text: `Sleep for ${duration} ms`,
+      operation: "sleep",
+      log: `***** Sleep for ${duration} ms *****\n`,
+    };
+
+    try {
+      await _preCommand(state, this);
+
+      if (duration < 0) {
+        throw new Error("Sleep duration cannot be negative");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, duration));
+
+      return state.info;
+    } catch (e) {
+      await _commandError(state, e, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
     try {
       return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
@@ -3875,7 +4124,7 @@ class StableBrowser {
 
     if (this.initSnapshotTaken === false) {
       this.initSnapshotTaken = true;
-      if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+      if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
         const snapshot = await this.getAriaSnapshot();
         if (snapshot) {
           await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
