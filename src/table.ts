@@ -4,6 +4,14 @@ import { ElementHandle, Page } from "playwright";
 import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(__filename);
+interface AnalyzeResult {
+  status: boolean;
+  cells: any[];
+  error: string;
+  cellIndex: number;
+  rowIndex: number;
+}
+
 export class Table {
   private tableData: any;
   constructor() {}
@@ -72,9 +80,15 @@ analyzeObject examples:
 		expected_value
 	}
 */
-
-  analyze(analyzeObject: any) {
-    let result = { status: false, cells: null, error: "", cellIndex: -1, rowIndex: -1 };
+  // define the reault object structure
+  analyze(analyzeObject: any): AnalyzeResult {
+    let result: AnalyzeResult = {
+      status: false,
+      cells: [],
+      error: "",
+      cellIndex: -1,
+      rowIndex: -1,
+    };
     switch (analyzeObject.type) {
       case "VALIDATE_HEADER":
         result.cellIndex = _searchStringArrayInCellsArray(analyzeObject.cells, this.tableData.columnHeaders);
@@ -134,18 +148,76 @@ analyzeObject examples:
         result.error = "Cell not found";
         return result;
       }
-
-      // case "VALIDATE_CELL":
-      //   for (let i = 0; i < tableData[0].length; i++) {
-      //     if (tableData[0][i] === analyzeObject.column_name) {
-      //       for (let j = 1; j < tableData.length; j++) {
-      //         if (_compareStringArrayWithCellsArray([analyzeObject.column_search_name], tableData[j])) {
-      //           return tableData[j][i] === analyzeObject.expected_value;
-      //         }
-      //       }
-      //     }
-      //   }
-      //   return false;
+      case "GET_COLUMN_DATA": {
+        let columnIndex = -1;
+        if (!analyzeObject.column_name && !analyzeObject.column_index) {
+          result.error = "Missing parameters, expected: column_name or column_index";
+          return result;
+        }
+        if (analyzeObject.column_index) {
+          columnIndex = analyzeObject.column_index;
+        } else if (analyzeObject.column_name) {
+          columnIndex = _searchStringArrayInCellsArray([analyzeObject.column_name], this.tableData.columnHeaders);
+        }
+        if (columnIndex === -1) {
+          result.error = "Column not found";
+          return result;
+        }
+        for (let i = this.tableData.headerRowsCount; i < this.tableData.rows.length; i++) {
+          if (this.tableData.rows[i].children[columnIndex]) {
+            result.cells.push(this.tableData.rows[i].children[columnIndex].text);
+          }
+        }
+        result.status = true;
+        return result;
+      }
+      case "VALIDATE_COLUMN_DATA": {
+        analyzeObject.type = "GET_COLUMN_DATA"; // reuse the logic of GET_COLUMN_DATA
+        const columnDataResult = this.analyze(analyzeObject);
+        if (!columnDataResult.status) {
+          return columnDataResult; // return the error if column data is not found
+        }
+        if (analyzeObject.validation === "ascending") {
+          for (let i = 0; i < columnDataResult.cells.length - 1; i++) {
+            if (columnDataResult.cells[i] > columnDataResult.cells[i + 1]) {
+              result.status = false;
+              result.error = `rows ${i} and ${i + 1} are not in ascending order: ${columnDataResult.cells[i]} >= ${columnDataResult.cells[i + 1]}`;
+              return result;
+            }
+          }
+          result.status = true;
+          return result;
+        } else if (analyzeObject.validation === "descending") {
+          for (let i = 0; i < columnDataResult.cells.length - 1; i++) {
+            if (columnDataResult.cells[i] < columnDataResult.cells[i + 1]) {
+              result.status = false;
+              result.error = `rows ${i} and ${i + 1} are not in descending order: ${columnDataResult.cells[i]} <= ${columnDataResult.cells[i + 1]}`;
+              return result;
+            }
+          }
+          result.status = true;
+          return result;
+        } else if (analyzeObject.validation === "check_filter") {
+          const filter = analyzeObject.filter_text;
+          if (!filter) {
+            result.error = "Missing filter parameter";
+            return result;
+          }
+          // if one of the cells does not contain the filter text, return false
+          for (let i = 0; i < columnDataResult.cells.length; i++) {
+            if (!columnDataResult.cells[i].includes(filter)) {
+              result.status = false;
+              result.error = `Cell ${i} does not contain the filter text: ${filter}`;
+              return result;
+            }
+          }
+          result.status = true;
+          return result;
+        } else {
+          result.error = "Unknown validation type: " + analyzeObject.validation;
+          return result;
+        }
+      }
       default:
         throw new Error("Unknown analyzeObject type: " + analyzeObject.type);
     }
