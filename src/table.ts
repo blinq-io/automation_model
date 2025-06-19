@@ -179,7 +179,7 @@ analyzeObject examples:
         }
         if (analyzeObject.validation === "ascending") {
           for (let i = 0; i < columnDataResult.cells.length - 1; i++) {
-            if (columnDataResult.cells[i] > columnDataResult.cells[i + 1]) {
+            if (columnDataResult.cells[i] >= columnDataResult.cells[i + 1]) {
               result.status = false;
               result.error = `rows ${i} and ${i + 1} are not in ascending order: ${columnDataResult.cells[i]} >= ${columnDataResult.cells[i + 1]}`;
               return result;
@@ -189,7 +189,7 @@ analyzeObject examples:
           return result;
         } else if (analyzeObject.validation === "descending") {
           for (let i = 0; i < columnDataResult.cells.length - 1; i++) {
-            if (columnDataResult.cells[i] < columnDataResult.cells[i + 1]) {
+            if (columnDataResult.cells[i] <= columnDataResult.cells[i + 1]) {
               result.status = false;
               result.error = `rows ${i} and ${i + 1} are not in descending order: ${columnDataResult.cells[i]} <= ${columnDataResult.cells[i + 1]}`;
               return result;

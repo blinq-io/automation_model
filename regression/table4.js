@@ -53,7 +53,7 @@ describe("Actions Tests", function () {
       validation: "ascending",
     });
 
-    expect(result.status).to.equal(true);
+    expect(result.status).to.equal(false);
   });
   it("column filter", async function () {
     let info = {};
