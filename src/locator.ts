@@ -56,7 +56,7 @@ document.getTableData = getTableData;
 
 function getTableData2(table) {
   // Scan the table and build a tree
-  function scanTable(root, nodeArray, tableData) {
+  function scanTable(root, nodeArray, tableData, inHeader = false) {
     const role = document.getRole(root);
     if (
       role &&
@@ -79,19 +79,26 @@ function getTableData2(table) {
       if (role === Roles.ROW) {
         tableData.rowsCount++;
         tableData.rows.push(node);
+        if (inHeader) {
+          tableData.headerRowsCount++;
+        }
       }
       nodeArray.push(node);
       nodeArray = node.children;
     }
+    if (root.tagName === "THEAD") {
+      inHeader = true;
+    }
     const children = Array.from(root.children);
     for (let i = 0; i < children.length; i++) {
-      scanTable(children[i], nodeArray, tableData);
+      scanTable(children[i], nodeArray, tableData, inHeader);
     }
   }
 
   const tableData = {
     rowsCount: 0,
     columnsCount: 0,
+    headerRowsCount: 0,
     nodes: [], // Initialize nodes as an empty array
     rows: [],
     columnHeaders: [],
