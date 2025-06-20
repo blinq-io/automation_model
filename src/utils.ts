@@ -535,6 +535,10 @@ export async function performAction(action: string, element: any, options: any, 
           usedOptions.timeout = 1000;
         }
       }
+      if (usedOptions && usedOptions.clickCount) {
+        state.info.count = usedOptions.clickCount;
+      }
+
       try {
         await element.click(usedOptions);
       } catch (e) {
