@@ -150,11 +150,11 @@ analyzeObject examples:
       }
       case "GET_COLUMN_DATA": {
         let columnIndex = -1;
-        if (!analyzeObject.column_name && !analyzeObject.column_index) {
+        if (!analyzeObject.column_name && analyzeObject.column_index === undefined) {
           result.error = "Missing parameters, expected: column_name or column_index";
           return result;
         }
-        if (analyzeObject.column_index) {
+        if (analyzeObject.column_index !== undefined) {
           columnIndex = analyzeObject.column_index;
         } else if (analyzeObject.column_name) {
           columnIndex = _searchStringArrayInCellsArray([analyzeObject.column_name], this.tableData.columnHeaders);
