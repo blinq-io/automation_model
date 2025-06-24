@@ -11,7 +11,7 @@ This API is built on top of Playwright to control browsers. The most common comm
 - **selectors** - An object that can contain the name of the element as well as multiple selectors (CSS, ARIA, etc.) used to locate the element.
 - **world** - Used as part of `cucumber-js`.
 - **\_params** - An object that includes the original function parameters (used in dynamic selectors).
-- **options** - Can be used to set the timeout (`{timeout: 30000}` is the default).
+- **options** - All actions playwright options are supported: "button", "clickCount", "delay", "modifiers", "force", "position", "trial", "timeout".
 - **climb** - After finding the element using the selectors, will climb the DOM.
 
 Unless stated otherwise, the APIs will return an information object and will throw an error in case of failure.
@@ -128,3 +128,5 @@ async function login_with_user_and_password(_username, _password) {
   await context.web.click(elements["button_login"], _params, { timeout: 120000 }, this);
 }
 ```
+
+To use the playwright page object directly, use: context.web.page
