@@ -4138,6 +4138,7 @@ class StableBrowser {
         }
       }
     }
+    this.context.routeResults = null;
     await registerBeforeStepRoutes(this.context, this.stepName);
   }
   async getAriaSnapshot() {
@@ -4253,7 +4254,7 @@ class StableBrowser {
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
-    await registerAfterStepRoutes(this.context, world);
+    this.context.routeResults = await registerAfterStepRoutes(this.context, world);
 
     if (!process.env.TEMP_RUN) {
       const state = {
