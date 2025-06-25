@@ -89,9 +89,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
     if (!matchedItem) return route.continue();
 
-    console.log(`Matched route: ${matchedItem.filters.path} with method ${request.method()}`);
-    const fetchPromise = route.fetch();
-
     const tracking: InterceptedRoute = {
       routeItem: matchedItem,
       url: request.url(),
@@ -110,9 +107,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
 
     let response: APIResponse;
     try {
-      response = await fetchPromise;
+      response = await route.fetch();
     } catch (e) {
-      console.error("Failed to fetch response for", request.url(), e);
+      console.error("Fetch failed for", request.url(), e);
       if (tracking.timer) clearTimeout(tracking.timer);
       return route.abort();
     }
@@ -144,21 +141,21 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
 
         case "json_modify":
           if (!json) {
-            console.error(`[json_modify] Response not JSON`);
+            console.error(`[json_modify] Response is not JSON`);
             actionStatus = "fail";
-            break;
-          }
-          for (const mod of action.config) {
-            const pathParts = mod.path.split(".");
-            let obj = json;
-            for (let i = 0; i < pathParts.length - 1; i++) {
-              obj = obj?.[pathParts[i]];
-              if (!obj) break;
+          } else {
+            for (const mod of action.config) {
+              const pathParts = mod.path.split(".");
+              let obj = json;
+              for (let i = 0; i < pathParts.length - 1; i++) {
+                obj = obj?.[pathParts[i]];
+                if (!obj) break;
+              }
+              const lastKey = pathParts[pathParts.length - 1];
+              if (obj) obj[lastKey] = mod.value;
             }
-            const lastKey = pathParts[pathParts.length - 1];
-            if (obj) obj[lastKey] = mod.value;
+            console.log(`[json_modify] Modified JSON`);
           }
-          console.log(`[json_modify] Modified JSON`);
           break;
 
         case "status_code_change":
@@ -179,14 +176,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
 
     const responseBody = json ? JSON.stringify(json) : body;
 
-    await route.fulfill({
-      status,
-      body: responseBody,
-      headers,
-    });
+    await route.fulfill({ status, body: responseBody, headers });
   });
 }
-
 export async function registerAfterStepRoutes(context: any) {
   const state: RouteContextState = context.__routeState;
   if (!state) return [];
@@ -205,10 +197,7 @@ export async function registerAfterStepRoutes(context: any) {
       const allCompleted = mandatoryRoutes.every((r) => r.completed);
       const elapsed = Date.now() - startTime;
 
-      if (allCompleted) {
-        clearInterval(interval);
-        resolve();
-      } else if (elapsed >= maxTimeout) {
+      if (allCompleted || elapsed >= maxTimeout) {
         mandatoryRoutes.forEach((r) => {
           if (!r.completed) {
             console.error(`[MANDATORY] Request to ${r.url} did not complete within ${r.routeItem.timeout}ms`);
@@ -221,40 +210,39 @@ export async function registerAfterStepRoutes(context: any) {
   });
 
   const results = mandatoryRoutes.map((tracked) => {
-    const { routeItem, url, completed } = tracked;
+    const { routeItem, url, completed, actionResults = [] } = tracked;
 
-    const actionResults =
-      tracked.actionResults?.map((ar) => {
-        let status: "success" | "fail" | "timeout" = ar.status;
-        if (!completed) status = "timeout";
-        return {
-          type: ar.type,
-          description: ar.description,
-          status,
-        };
-      }) || [];
+    const actions = actionResults.map((ar) => {
+      let status: "success" | "fail" | "timeout" = ar.status;
+      if (!completed) status = "timeout";
+      return {
+        type: ar.type,
+        description: ar.description,
+        status,
+      };
+    });
 
-    let overallStatus: "fulfill" | "timeout" | "fail";
+    let overallStatus: "success" | "fail" | "timeout";
     if (!completed) {
       overallStatus = "timeout";
-    } else if (actionResults.some((a) => a.status === "fail")) {
+    } else if (actions.some((a) => a.status === "fail")) {
       overallStatus = "fail";
     } else {
-      overallStatus = "fulfill";
+      overallStatus = "success";
     }
 
     return {
       url,
       filters: routeItem.filters,
-      actions: actionResults,
+      actions,
       overallStatus,
     };
   });
 
   context.__routeState = null;
+  context.routeResults = results;
   return results;
 }
-
 // Helper functions
 
 const toCucumberExpression = (text: string) =>

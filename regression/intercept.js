@@ -100,4 +100,34 @@ describe("route", function () {
     expect(verifyAction?.status).to.equal("success");
     expect(verifyAction?.description).to.equal("200");
   });
+  it("route timeout", async function () {
+    const stepObject = {
+      pickleStep: { text: 'login with "user_name" and "password" 3', keyword: "Given" },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "Login scenario",
+      },
+    };
+    await context.web.beforeStep(context, stepObject);
+    await context.web.page.reload();
+    await context.web.waitForPageLoad();
+    await context.web.afterStep(context, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+
+    expect(context.routeResults).to.have.lengthOf(1);
+
+    const result = context.routeResults[0];
+    expect(result.filters.path).to.equal("/favicon1.svg");
+    expect(result.filters.method).to.equal("GET");
+    expect(result.overallStatus).to.equal("success");
+
+    const actions = result.actions;
+    expect(actions).to.have.lengthOf(1);
+
+    // Check status_code_verification
+    // const verifyAction = actions.find((a) => a.type === "status_code_verification");
+    // expect(verifyAction).to.exist;
+    // expect(verifyAction?.status).to.equal("success");
+    // expect(verifyAction?.description).to.equal("200");
+  });
 });
