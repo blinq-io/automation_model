@@ -54,6 +54,7 @@ import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js"
 import { loadBrunoParams } from "./bruno.js";
 import { snapshotValidation } from "./snapshot_validation.js";
 
+import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -2535,7 +2536,7 @@ class StableBrowser {
           break;
         default:
           if (property.startsWith("dataset.")) {
-            const dataAttribute = property.substring(8); 
+            const dataAttribute = property.substring(8);
             val = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
           } else {
             val = String(await state.element.evaluate((element, prop) => element[prop], property));
@@ -4137,6 +4138,7 @@ class StableBrowser {
         }
       }
     }
+    await registerBeforeStepRoutes(this.context, this.stepName);
   }
   async getAriaSnapshot() {
     try {
@@ -4251,6 +4253,8 @@ class StableBrowser {
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
+    await registerAfterStepRoutes(this.context, world);
+
     if (!process.env.TEMP_RUN) {
       const state = {
         world,
