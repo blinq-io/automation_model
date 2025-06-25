@@ -25,7 +25,7 @@ describe("verifyPageTitle", function () {
     let info = {};
     info.log = "";
 
-    await context.web.verifyPageTitle("exact:Shop BlinqIO", {}, this);
+    await context.web.verifyPageTitle("exact:Shop Blinq - Login", {}, this);
   });
   it("verifyPageTitle fail", async function () {
     let info = {};

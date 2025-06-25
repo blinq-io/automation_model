@@ -71,4 +71,20 @@ describe("Actions Tests", function () {
 
     expect(result.status).to.equal(true);
   });
+  it("column filter 2", async function () {
+    let info = {};
+    info.log = "";
+    info.failCause = {};
+    const element = await context.web._locate({ locators: [{ css: "table" }] }, info, null, 10000);
+    const table = new Table();
+    await table.initFromElement(context.web.page, element);
+    let result = table.analyze({
+      type: "VALIDATE_COLUMN_DATA",
+      column_index: 0, // 0-based index for the second column
+      validation: "check_filter",
+      filter_text: "90",
+    });
+
+    expect(result.status).to.equal(true);
+  });
 });
