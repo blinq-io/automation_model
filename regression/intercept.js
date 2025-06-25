@@ -121,4 +121,27 @@ describe("route", function () {
     expect(result.filters.method).to.equal("GET");
     expect(result.overallStatus).to.equal("timeout");
   });
+
+  it("route change_text", async function () {
+    const stepObject = {
+      pickleStep: { text: 'login with "user_name" and "password" 4', keyword: "Given" },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "Login scenario",
+      },
+    };
+    await context.web.beforeStep(context, stepObject);
+    await context.web.page.reload();
+    await context.web.waitForPageLoad();
+    await context.web.verifyTextExistInPage("Modified by Playwright");
+    await context.web.afterStep(context, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+
+    expect(context.routeResults).to.have.lengthOf(1);
+
+    const result = context.routeResults[0];
+    expect(result.filters.path).to.equal("/login");
+    expect(result.filters.method).to.equal("GET");
+    expect(result.overallStatus).to.equal("success");
+  });
 });
