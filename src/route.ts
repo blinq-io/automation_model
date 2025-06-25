@@ -185,7 +185,15 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
           status = action.config;
           console.log(`[status_code_change] Status changed to ${status}`);
           break;
-
+        case "change_text":
+          if (!headers["content-type"]?.includes("text/html")) {
+            console.error(`[change_text] Content-Type is not text/html`);
+            actionStatus = "fail";
+          } else {
+            body = action.config;
+            console.log(`[change_text] HTML body replaced`);
+          }
+          break;
         default:
           console.warn(`Unknown action type: ${action.type}`);
       }
