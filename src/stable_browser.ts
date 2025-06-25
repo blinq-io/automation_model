@@ -53,6 +53,7 @@ import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
+import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -2533,18 +2534,18 @@ class StableBrowser {
             val = String(await state.element.evaluate((element, prop) => element[prop], property));
           }
       }
-      
+
       // Helper function to remove all style="" attributes
       const removeStyleAttributes = (htmlString) => {
-        return htmlString.replace(/\s*style\s*=\s*"[^"]*"/gi, '');
+        return htmlString.replace(/\s*style\s*=\s*"[^"]*"/gi, "");
       };
-      
+
       // Remove style attributes for innerHTML and outerHTML properties
       if (property === "innerHTML" || property === "outerHTML") {
         val = removeStyleAttributes(val);
         expectedValue = removeStyleAttributes(expectedValue);
       }
-      
+
       state.info.value = val;
       let regex;
       if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
@@ -2566,15 +2567,15 @@ class StableBrowser {
           }
         } else {
           // Fix: Replace escaped newlines with actual newlines before splitting
-          const normalizedExpectedValue = expectedValue.replace(/\\n/g, '\n');
+          const normalizedExpectedValue = expectedValue.replace(/\\n/g, "\n");
           const valLines = val.split("\n");
           const expectedLines = normalizedExpectedValue.split("\n");
-          
+
           // Check if all expected lines are present in the actual lines
-          const isPart = expectedLines.every((expectedLine) => 
+          const isPart = expectedLines.every((expectedLine) =>
             valLines.some((valLine) => valLine.trim() === expectedLine.trim())
           );
-  
+
           if (!isPart) {
             let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
             state.info.failCause.assertionFailed = true;
@@ -4129,6 +4130,7 @@ class StableBrowser {
         }
       }
     }
+    await registerBeforeStepRoutes(this.context, this.stepName);
   }
   async getAriaSnapshot() {
     try {
@@ -4243,6 +4245,8 @@ class StableBrowser {
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
+    await registerAfterStepRoutes(this.context, world);
+
     if (!process.env.TEMP_RUN) {
       const state = {
         world,
