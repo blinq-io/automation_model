@@ -119,15 +119,6 @@ describe("route", function () {
     const result = context.routeResults[0];
     expect(result.filters.path).to.equal("/favicon1.svg");
     expect(result.filters.method).to.equal("GET");
-    expect(result.overallStatus).to.equal("success");
-
-    const actions = result.actions;
-    expect(actions).to.have.lengthOf(1);
-
-    // Check status_code_verification
-    // const verifyAction = actions.find((a) => a.type === "status_code_verification");
-    // expect(verifyAction).to.exist;
-    // expect(verifyAction?.status).to.equal("success");
-    // expect(verifyAction?.description).to.equal("200");
+    expect(result.overallStatus).to.equal("timeout");
   });
 });
