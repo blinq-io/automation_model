@@ -84,25 +84,48 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
     context.__routeState = { matched: [] } as RouteContextState;
   }
 
+  // Pre-register all mandatory routes
+  for (const item of allRouteItems) {
+    if (item.mandatory) {
+      const tracking: InterceptedRoute = {
+        routeItem: item,
+        url: "",
+        completed: false,
+        startedAt: Date.now(),
+        actionResults: [],
+      };
+      tracking.timer = setTimeout(() => {
+        if (!tracking.completed) {
+          console.error(`[MANDATORY] Request to ${item.filters.path} did not complete within ${item.timeout}ms`);
+        }
+      }, item.timeout);
+
+      context.__routeState.matched.push(tracking);
+    }
+  }
+
   page.route("**/*", async (route: any) => {
     const request = route.request();
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
     if (!matchedItem) return route.continue();
 
-    const tracking: InterceptedRoute = {
-      routeItem: matchedItem,
-      url: request.url(),
-      completed: false,
-      startedAt: Date.now(),
-    };
-    context.__routeState.matched.push(tracking);
+    // Find pre-registered tracker
+    let tracking = context.__routeState.matched.find(
+      (t: InterceptedRoute) => t.routeItem === matchedItem && !t.completed
+    );
 
-    if (matchedItem.mandatory) {
-      tracking.timer = setTimeout(() => {
-        if (!tracking.completed) {
-          console.error(`[MANDATORY] Request to ${tracking.url} did not complete within ${matchedItem.timeout}ms`);
-        }
-      }, matchedItem.timeout);
+    // If not mandatory, register dynamically
+    if (!tracking) {
+      tracking = {
+        routeItem: matchedItem,
+        url: request.url(),
+        completed: false,
+        startedAt: Date.now(),
+        actionResults: [],
+      };
+      context.__routeState.matched.push(tracking);
+    } else {
+      tracking.url = request.url();
     }
 
     let response: APIResponse;
@@ -110,7 +133,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
       response = await route.fetch();
     } catch (e) {
       console.error("Fetch failed for", request.url(), e);
-      if (tracking.timer) clearTimeout(tracking.timer);
+      if (tracking?.timer) clearTimeout(tracking.timer);
       return route.abort();
     }
 
@@ -175,10 +198,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
     if (tracking.timer) clearTimeout(tracking.timer);
 
     const responseBody = json ? JSON.stringify(json) : body;
-
     await route.fulfill({ status, body: responseBody, headers });
   });
 }
+
 export async function registerAfterStepRoutes(context: any) {
   const state: RouteContextState = context.__routeState;
   if (!state) return [];
@@ -200,7 +223,9 @@ export async function registerAfterStepRoutes(context: any) {
       if (allCompleted || elapsed >= maxTimeout) {
         mandatoryRoutes.forEach((r) => {
           if (!r.completed) {
-            console.error(`[MANDATORY] Request to ${r.url} did not complete within ${r.routeItem.timeout}ms`);
+            console.error(
+              `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms`
+            );
           }
         });
         clearInterval(interval);
@@ -243,6 +268,7 @@ export async function registerAfterStepRoutes(context: any) {
   context.routeResults = results;
   return results;
 }
+
 // Helper functions
 
 const toCucumberExpression = (text: string) =>
