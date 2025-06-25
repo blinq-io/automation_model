@@ -53,6 +53,7 @@ import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
+import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -4135,6 +4136,8 @@ class StableBrowser {
         }
       }
     }
+    this.context.routeResults = null;
+    await registerBeforeStepRoutes(this.context, this.stepName);
   }
   async getAriaSnapshot() {
     try {
@@ -4249,6 +4252,8 @@ class StableBrowser {
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
+    this.context.routeResults = await registerAfterStepRoutes(this.context, world);
+
     if (!process.env.TEMP_RUN) {
       const state = {
         world,

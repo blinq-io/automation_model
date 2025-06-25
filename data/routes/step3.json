@@ -1,0 +1,20 @@
+{
+    "template": "login with {string} and {string} 3",
+    "routes": [
+        {
+            "filters": {
+                "path": "/favicon1.svg",
+                "queryParams": [],
+                "method": "GET"
+            },
+            "actions": [
+                {
+                    "type": "status_code_verification",
+                    "config": 200
+                }
+            ],
+            "mandatory": true,
+            "timeout": 2000
+        }
+    ]
+}
