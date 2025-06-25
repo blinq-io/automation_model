@@ -146,8 +146,14 @@ class StableBrowser {
     context.pages = [this.page];
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
+    if (this.configuration && this.configuration.fastMode === true) {
+      this.fastMode = true;
+    }
     if (process.env.FAST_MODE === "true") {
       this.fastMode = true;
+    }
+    if (process.env.FAST_MODE === "false") {
+      this.fastMode = false;
     }
     if (this.context) {
       this.context.fastMode = this.fastMode;
@@ -2535,18 +2541,18 @@ class StableBrowser {
             val = String(await state.element.evaluate((element, prop) => element[prop], property));
           }
       }
-      
+
       // Helper function to remove all style="" attributes
       const removeStyleAttributes = (htmlString) => {
-        return htmlString.replace(/\s*style\s*=\s*"[^"]*"/gi, '');
+        return htmlString.replace(/\s*style\s*=\s*"[^"]*"/gi, "");
       };
-      
+
       // Remove style attributes for innerHTML and outerHTML properties
       if (property === "innerHTML" || property === "outerHTML") {
         val = removeStyleAttributes(val);
         expectedValue = removeStyleAttributes(expectedValue);
       }
-      
+
       state.info.value = val;
       let regex;
       if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
@@ -2568,15 +2574,15 @@ class StableBrowser {
           }
         } else {
           // Fix: Replace escaped newlines with actual newlines before splitting
-          const normalizedExpectedValue = expectedValue.replace(/\\n/g, '\n');
+          const normalizedExpectedValue = expectedValue.replace(/\\n/g, "\n");
           const valLines = val.split("\n");
           const expectedLines = normalizedExpectedValue.split("\n");
-          
+
           // Check if all expected lines are present in the actual lines
-          const isPart = expectedLines.every((expectedLine) => 
+          const isPart = expectedLines.every((expectedLine) =>
             valLines.some((valLine) => valLine.trim() === expectedLine.trim())
           );
-  
+
           if (!isPart) {
             let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
             state.info.failCause.assertionFailed = true;
