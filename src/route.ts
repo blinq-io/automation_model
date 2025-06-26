@@ -70,7 +70,7 @@ function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
 
   return methodMatch && pathMatch && queryMatch;
 }
-
+let debug = false;
 export async function registerBeforeStepRoutes(context: any, stepName: string) {
   const page = context.web.page;
   if (!page) throw new Error("context.web.page is missing");
@@ -106,9 +106,15 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
 
   page.route("**/*", async (route: any) => {
     const request = route.request();
+    // print the url if debug is enabled
+    if (debug) {
+      console.log(`Intercepting request: ${request.method()} ${request.url()}`);
+    }
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
     if (!matchedItem) return route.continue();
-
+    if (debug) {
+      console.log(`Matched route item: ${JSON.stringify(matchedItem)}`);
+    }
     // Find pre-registered tracker
     let tracking = context.__routeState.matched.find(
       (t: InterceptedRoute) => t.routeItem === matchedItem && !t.completed
