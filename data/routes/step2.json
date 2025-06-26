@@ -3,7 +3,7 @@
     "routes": [
         {
             "filters": {
-                "path": "/favicon.svg",
+                "path": "/assets/index-_1_OQ1og.css",
                 "queryParams": [],
                 "method": "GET"
             },
@@ -14,7 +14,7 @@
                 }
             ],
             "mandatory": true,
-            "timeout": 5000
+            "timeout": 20000
         }
     ]
 }
