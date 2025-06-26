@@ -29,6 +29,7 @@ import {
   _getDataFile,
   testForRegex,
   performAction,
+  _getTestData,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -2088,12 +2089,7 @@ class StableBrowser {
   }
 
   getTestData(world = null) {
-    const dataFile = _getDataFile(world, this.context, this);
-    let data = {};
-    if (fs.existsSync(dataFile)) {
-      data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
-    }
-    return data;
+    return _getTestData(world, this.context, this);
   }
 
   async _screenShot(options = {}, world = null, info = null) {
@@ -2535,7 +2531,7 @@ class StableBrowser {
           break;
         default:
           if (property.startsWith("dataset.")) {
-            const dataAttribute = property.substring(8); 
+            const dataAttribute = property.substring(8);
             val = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
           } else {
             val = String(await state.element.evaluate((element, prop) => element[prop], property));
