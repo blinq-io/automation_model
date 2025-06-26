@@ -87,7 +87,7 @@ describe("route", function () {
     expect(context.routeResults).to.have.lengthOf(1);
 
     const result = context.routeResults[0];
-    expect(result.filters.path).to.equal("/favicon.svg");
+    expect(result.filters.path).to.equal("/assets/index-_1_OQ1og.css");
     expect(result.filters.method).to.equal("GET");
     expect(result.overallStatus).to.equal("success");
 
