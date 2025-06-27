@@ -59,7 +59,9 @@ import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
-  NAVIGATE: "navigate", ///
+  NAVIGATE: "navigate",
+  GO_BACK: "go_back",
+  GO_FORWARD: " go_forward",
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
   OPEN: "open_environment", //
@@ -375,6 +377,62 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goto", error);
+      _commandError(state, error, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
+  async goBack(options, world = null) {
+    const state = {
+      value: "",
+      world: world,
+      type: Types.GO_BACK,
+      text: `Browser navigate back`,
+      operation: "goBack",
+      log: "***** navigate back *****\n",
+      info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+    };
+    try {
+      await _preCommand(state, this);
+      await this.page.goBack({
+        waitUntil: "load",
+      });
+      await _screenshot(state, this);
+    } catch (error) {
+      console.error("Error on goBack", error);
+      _commandError(state, error, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
+  async goForward(options, world = null) {
+    const state = {
+      value: "",
+      world: world,
+      type: Types.GO_FORWARD,
+      text: `Browser navigate forward`,
+      operation: "goForward",
+      log: "***** navigate forward *****\n",
+      info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+    };
+    try {
+      await _preCommand(state, this);
+      await this.page.goForward({
+        waitUntil: "load",
+      });
+      await _screenshot(state, this);
+    } catch (error) {
+      console.error("Error on goForward", error);
       _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
