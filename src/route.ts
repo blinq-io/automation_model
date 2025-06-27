@@ -45,18 +45,27 @@ let loadedRoutes: Route[] | null = null;
 async function loadRoutes(): Promise<Route[]> {
   if (loadedRoutes !== null) return loadedRoutes;
 
-  const dir = path.join(process.cwd(), "data", "routes");
-  const files = await fs.readdir(dir);
-  const jsonFiles = files.filter((f) => f.endsWith(".json"));
+  try {
+    const dir = path.join(process.cwd(), "data", "routes");
+    if (!(await folderExists(dir))) {
+      loadedRoutes = [];
+      return loadedRoutes;
+    }
+    const files = await fs.readdir(dir);
+    const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
-  const allRoutes: Route[] = [];
-  for (const file of jsonFiles) {
-    const content = await fs.readFile(path.join(dir, file), "utf-8");
-    const routeObj: Route = JSON.parse(content);
-    allRoutes.push(routeObj);
+    const allRoutes: Route[] = [];
+    for (const file of jsonFiles) {
+      const content = await fs.readFile(path.join(dir, file), "utf-8");
+      const routeObj: Route = JSON.parse(content);
+      allRoutes.push(routeObj);
+    }
+
+    loadedRoutes = allRoutes;
+  } catch (error) {
+    console.error("Error loading routes:", error);
+    loadedRoutes = [];
   }
-
-  loadedRoutes = allRoutes;
   return loadedRoutes;
 }
 
@@ -315,4 +324,12 @@ function _stepNameToTemplate(stepName: string): string {
     result = result.replace(t, "{string}");
   });
   return result;
+}
+async function folderExists(path: string): Promise<boolean> {
+  try {
+    const stat = await fs.stat(path);
+    return stat.isDirectory();
+  } catch (err) {
+    return false;
+  }
 }
