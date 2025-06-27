@@ -99,6 +99,7 @@ export const Types = {
   REPORT_COMMAND: "report_command",
   STEP_COMPLETE: "step_complete",
   SLEEP: "sleep",
+  CONDITIONAL_WAIT: "conditional_wait",
 };
 export const apps = {};
 
@@ -2660,6 +2661,107 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+  async conditionalWait(selectors, condition, timeout = 1000, _params = null, options = {}, world = null) {
+    const state = {
+      selectors,
+      _params,
+      condition,
+      timeout,
+      options,
+      world,
+      type: Types.CONDITIONAL_WAIT,
+      highlight: true,
+      screenshot: true,
+      text: `Conditional wait for element`,
+      _text: `Wait for ${selectors.element_name} to be ${condition} (timeout: ${timeout}ms)`,
+      operation: "conditionalWait",
+      log: `***** conditional wait for ${condition} on ${selectors.element_name} *****\n`,
+      allowDisabled: true,
+      info: {}
+    };
+  
+    try {
+      await _preCommand(state, this);
+  
+      const startTime = Date.now();
+      let conditionMet = false;
+      let currentValue = null;
+  
+      const checkCondition = async () => {
+        try {
+          switch (condition.toLowerCase()) {
+            case "checked":
+              currentValue = await state.element.isChecked();
+              return currentValue === true;
+            case "unchecked":
+              currentValue = await state.element.isChecked();
+              return currentValue === false;
+            case "visible":
+              currentValue = await state.element.isVisible();
+              return currentValue === true;
+            case "hidden":
+              currentValue = await state.element.isVisible();
+              return currentValue === false;
+            case "enabled":
+              currentValue = await state.element.isDisabled();
+              return currentValue === false;
+            case "disabled":
+              currentValue = await state.element.isDisabled();
+              return currentValue === true;
+            case "editable":
+              currentValue = await state.element.isEditable();
+              return currentValue === true;
+            default:
+              state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
+              state.info.success = false;
+              return false;
+          }
+        } catch {
+          return false;
+        }
+      };
+  
+      while (Date.now() - startTime < timeout) {
+        conditionMet = await checkCondition();
+        if (conditionMet) break;
+        await new Promise(res => setTimeout(res, 50));
+      }
+  
+      const actualWaitTime = Date.now() - startTime;
+      state.info = {
+        success: conditionMet,
+        conditionMet,
+        actualWaitTime,
+        currentValue,
+        message: conditionMet
+          ? `Condition '${condition}' met after ${actualWaitTime}ms`
+          : `Condition '${condition}' not met within ${timeout}ms timeout`,
+      };
+  
+      state.log += state.info.message + "\n";
+  
+      return state.info;
+  
+    } catch (e) {
+      state.info = {
+        success: false,
+        conditionMet: false,
+        actualWaitTime: timeout,
+        currentValue: null,
+        error: e.message,
+        message: `Error during conditional wait: ${e.message}`,
+      };
+      state.log += `Error during conditional wait: ${e.message}\n`;
+  
+      await new Promise(resolve => setTimeout(resolve, timeout));
+  
+      return state.info;
+  
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+  
   async extractEmailData(emailAddress, options, world) {
     if (!emailAddress) {
       throw new Error("email address is null");
