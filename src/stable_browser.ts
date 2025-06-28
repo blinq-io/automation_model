@@ -2606,18 +2606,21 @@ class StableBrowser {
     }
   }
   async conditionalWait(selectors, condition, timeout = 1000, _params = null, options = {}, world = null) {
+    // Convert timeout from seconds to milliseconds
+    const timeoutMs = timeout * 1000;
+    
     const state = {
       selectors,
       _params,
       condition,
-      timeout,
+      timeout: timeoutMs, // Store as milliseconds for internal use
       options,
       world,
       type: Types.CONDITIONAL_WAIT,
       highlight: true,
       screenshot: true,
       text: `Conditional wait for element`,
-      _text: `Wait for ${selectors.element_name} to be ${condition} (timeout: ${timeout}ms)`,
+      _text: `Wait for ${selectors.element_name} to be ${condition} (timeout: ${timeout}s)`, // Display original seconds
       operation: "conditionalWait",
       log: `***** conditional wait for ${condition} on ${selectors.element_name} *****\n`,
       allowDisabled: true,
@@ -2665,7 +2668,7 @@ class StableBrowser {
         }
       };
   
-      while (Date.now() - startTime < timeout) {
+      while (Date.now() - startTime < timeoutMs) { // Use milliseconds for comparison
         conditionMet = await checkCondition();
         if (conditionMet) break;
         await new Promise(res => setTimeout(res, 50));
@@ -2678,8 +2681,8 @@ class StableBrowser {
         actualWaitTime,
         currentValue,
         message: conditionMet
-          ? `Condition '${condition}' met after ${actualWaitTime}ms`
-          : `Condition '${condition}' not met within ${timeout}ms timeout`,
+          ? `Condition '${condition}' met after ${(actualWaitTime / 1000).toFixed(2)}s`
+          : `Condition '${condition}' not met within ${timeout}s timeout`, // Use original seconds value
       };
   
       state.log += state.info.message + "\n";
@@ -2690,14 +2693,14 @@ class StableBrowser {
       state.info = {
         success: false,
         conditionMet: false,
-        actualWaitTime: timeout,
+        actualWaitTime: timeoutMs, // Store as milliseconds
         currentValue: null,
         error: e.message,
         message: `Error during conditional wait: ${e.message}`,
       };
       state.log += `Error during conditional wait: ${e.message}\n`;
   
-      await new Promise(resolve => setTimeout(resolve, timeout));
+      await new Promise(resolve => setTimeout(resolve, timeoutMs)); // Use milliseconds
   
       return state.info;
   
