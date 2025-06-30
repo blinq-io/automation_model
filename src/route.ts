@@ -286,7 +286,11 @@ export async function registerAfterStepRoutes(context: any) {
       overallStatus,
     };
   });
-
+  try {
+    await context.web.page.unroute("**/*");
+  } catch (e) {
+    console.error("Failed to unroute:", e);
+  }
   context.__routeState = null;
   context.routeResults = results;
   return results;
