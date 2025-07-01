@@ -2712,7 +2712,7 @@ class StableBrowser {
               currentValue = await state.element.isDisabled();
               return currentValue === true;
             case "editable":
-              currentValue = await state.element.isEditable();
+              currentValue = await String(await state.element.evaluate((element, prop) => element[prop], "isContentEditable"));
               return currentValue === true;
             default:
               state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
