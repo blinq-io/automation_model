@@ -112,7 +112,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
   if (ignoreCase) {
     queryEnd += "i";
   }
-  return query + pattern + queryEnd;
+  return query + pattern + queryEnd + " >> visible=true";
 }
 
 function escapeRegex(str: string) {
