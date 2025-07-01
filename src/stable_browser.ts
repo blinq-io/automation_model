@@ -591,10 +591,8 @@ class StableBrowser {
       info.locatorLog = new LocatorLog(selectorHierarchy);
     }
     let locatorSearch = selectorHierarchy[index];
-    let originalLocatorSearch = "";
     try {
-      originalLocatorSearch = _fixUsingParams(JSON.stringify(locatorSearch), _params);
-      locatorSearch = JSON.parse(originalLocatorSearch);
+      locatorSearch = _fixLocatorUsingParams(locatorSearch, _params);
     } catch (e) {
       console.error(e);
     }
@@ -2666,7 +2664,7 @@ class StableBrowser {
   async conditionalWait(selectors, condition, timeout = 1000, _params = null, options = {}, world = null) {
     // Convert timeout from seconds to milliseconds
     const timeoutMs = timeout * 1000;
-    
+
     const state = {
       selectors,
       _params,
@@ -2682,16 +2680,16 @@ class StableBrowser {
       operation: "conditionalWait",
       log: `***** conditional wait for ${condition} on ${selectors.element_name} *****\n`,
       allowDisabled: true,
-      info: {}
+      info: {},
     };
-  
+
     try {
       await _preCommand(state, this);
-  
+
       const startTime = Date.now();
       let conditionMet = false;
       let currentValue = null;
-  
+
       const checkCondition = async () => {
         try {
           switch (condition.toLowerCase()) {
@@ -2714,7 +2712,9 @@ class StableBrowser {
               currentValue = await state.element.isDisabled();
               return currentValue === true;
             case "editable":
-              currentValue = await String(await state.element.evaluate((element, prop) => element[prop], "isContentEditable"));
+              currentValue = await String(
+                await state.element.evaluate((element, prop) => element[prop], "isContentEditable")
+              );
               return currentValue === true;
             default:
               state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
@@ -2725,13 +2725,14 @@ class StableBrowser {
           return false;
         }
       };
-  
-      while (Date.now() - startTime < timeoutMs) { // Use milliseconds for comparison
+
+      while (Date.now() - startTime < timeoutMs) {
+        // Use milliseconds for comparison
         conditionMet = await checkCondition();
         if (conditionMet) break;
-        await new Promise(res => setTimeout(res, 50));
+        await new Promise((res) => setTimeout(res, 50));
       }
-  
+
       const actualWaitTime = Date.now() - startTime;
       state.info = {
         success: conditionMet,
@@ -2742,11 +2743,10 @@ class StableBrowser {
           ? `Condition '${condition}' met after ${(actualWaitTime / 1000).toFixed(2)}s`
           : `Condition '${condition}' not met within ${timeout}s timeout`, // Use original seconds value
       };
-  
+
       state.log += state.info.message + "\n";
-  
+
       return state.info;
-  
     } catch (e) {
       state.info = {
         success: false,
@@ -2757,16 +2757,15 @@ class StableBrowser {
         message: `Error during conditional wait: ${e.message}`,
       };
       state.log += `Error during conditional wait: ${e.message}\n`;
-  
-      await new Promise(resolve => setTimeout(resolve, timeoutMs)); // Use milliseconds
-  
+
+      await new Promise((resolve) => setTimeout(resolve, timeoutMs)); // Use milliseconds
+
       return state.info;
-  
     } finally {
       await _commandFinally(state, this);
     }
   }
-  
+
   async extractEmailData(emailAddress, options, world) {
     if (!emailAddress) {
       throw new Error("email address is null");
