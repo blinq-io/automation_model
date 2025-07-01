@@ -591,10 +591,8 @@ class StableBrowser {
       info.locatorLog = new LocatorLog(selectorHierarchy);
     }
     let locatorSearch = selectorHierarchy[index];
-    let originalLocatorSearch = "";
     try {
-      originalLocatorSearch = _fixUsingParams(JSON.stringify(locatorSearch), _params);
-      locatorSearch = JSON.parse(originalLocatorSearch);
+      locatorSearch = _fixLocatorUsingParams(locatorSearch, _params);
     } catch (e) {
       console.error(e);
     }
@@ -2712,7 +2710,9 @@ class StableBrowser {
               currentValue = await state.element.isDisabled();
               return currentValue === true;
             case "editable":
-              currentValue = await String(await state.element.evaluate((element, prop) => element[prop], "isContentEditable"));
+              currentValue = await String(
+                await state.element.evaluate((element, prop) => element[prop], "isContentEditable")
+              );
               return currentValue === true;
             default:
               state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
