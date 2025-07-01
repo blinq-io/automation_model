@@ -59,7 +59,7 @@ export const Types = {
   WAIT_ELEMENT: "wait_element",
   NAVIGATE: "navigate",
   GO_BACK: "go_back",
-  GO_FORWARD: " go_forward",
+  GO_FORWARD: "go_forward",
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
   OPEN: "open_environment", //
