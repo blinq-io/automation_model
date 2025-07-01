@@ -51,6 +51,7 @@ async closePage(options = {}, world);
 saveTestDataAsGlobal(options, world);
 async setViewportSize(width, height, options = {}, world);
 async reloadPage(options = {}, world);
+async conditionalWait(selectors, condition, timeout = 1000, _params = null, options = {}, world = null);
 /* Return the ARIA snapshot as string */
 async getAriaSnapshot();
 ```
