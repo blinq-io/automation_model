@@ -596,6 +596,7 @@ class StableBrowser {
     } catch (e) {
       console.error(e);
     }
+    let originalLocatorSearch = JSON.stringify(locatorSearch);
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
