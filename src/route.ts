@@ -1,6 +1,7 @@
 import { APIResponse, Route as PWRoute } from "playwright";
 import fs from "fs/promises";
 import path from "path";
+import objectPath from "object-path";
 
 export interface Route {
   template: string;
@@ -10,7 +11,7 @@ export interface Route {
 export interface RouteItem {
   filters: {
     path: string;
-    queryParams: string[] | null;
+    queryParams: Record<string, string> | null;
     method: string | null;
   };
   actions: Action[];
@@ -74,8 +75,10 @@ function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
 
   const methodMatch = !routeItem.filters.method || routeItem.filters.method === req.request().method();
   const pathMatch = routeItem.filters.path === url.pathname;
+
+  const queryParams = routeItem.filters.queryParams;
   const queryMatch =
-    !routeItem.filters.queryParams || routeItem.filters.queryParams.every((p) => url.searchParams.has(p));
+    !queryParams || Object.entries(queryParams).every(([key, value]) => url.searchParams.get(key) === value);
 
   return methodMatch && pathMatch && queryMatch;
 }
@@ -183,14 +186,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
             actionStatus = "fail";
           } else {
             for (const mod of action.config) {
-              const pathParts = mod.path.split(".");
-              let obj = json;
-              for (let i = 0; i < pathParts.length - 1; i++) {
-                obj = obj?.[pathParts[i]];
-                if (!obj) break;
-              }
-              const lastKey = pathParts[pathParts.length - 1];
-              if (obj) obj[lastKey] = mod.value;
+              objectPath.set(json, mod.path, mod.value);
+              console.log(`[json_modify] Modified path ${mod.path} to ${mod.value}`);
             }
             console.log(`[json_modify] Modified JSON`);
           }
@@ -207,6 +204,40 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
           } else {
             body = action.config;
             console.log(`[change_text] HTML body replaced`);
+          }
+          break;
+        case "assert_json":
+          if (!json) {
+            console.error(`[assert_json] Response is not JSON`);
+            actionStatus = "fail";
+          } else {
+            for (const check of action.config) {
+              const actual = getValue(json, check.path);
+              const expected = check.expected;
+              if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                console.error(`[assert_json] Path ${check.path}: expected ${expected}, got ${actual}`);
+                actionStatus = "fail";
+              } else {
+                console.log(`[assert_json] Assertion passed for path ${check.path}`);
+              }
+            }
+          }
+          break;
+
+        case "assert_text":
+          if (typeof body !== "string") {
+            console.error(`[assert_text] Body is not text`);
+            actionStatus = "fail";
+          } else {
+            if (action.config.contains && !body.includes(action.config.contains)) {
+              console.error(`[assert_text] Expected to contain: "${action.config.contains}"`);
+              actionStatus = "fail";
+            } else if (action.config.equals && body !== action.config.equals) {
+              console.error(`[assert_text] Expected exact match`);
+              actionStatus = "fail";
+            } else {
+              console.log(`[assert_text] Assertion passed`);
+            }
           }
           break;
         default:
@@ -337,3 +368,22 @@ async function folderExists(path: string): Promise<boolean> {
     return false;
   }
 }
+const getValue = (data: any, pattern: string): any => {
+  const path = pattern.split(".");
+  let lengthExists = false;
+  if (path[path.length - 1] === "length") {
+    path.pop();
+    lengthExists = true;
+  }
+  const value = objectPath.get(data, pattern);
+  if (lengthExists && Array.isArray(value)) {
+    return value?.length;
+  } else if (hasValue(value)) {
+    return value;
+  }
+
+  return undefined;
+};
+const hasValue = (value: any) => {
+  return value !== undefined;
+};
