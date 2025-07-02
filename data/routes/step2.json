@@ -4,7 +4,7 @@
         {
             "filters": {
                 "path": "/assets/index-_1_OQ1og.css",
-                "queryParams": [],
+                "queryParams": {},
                 "method": "GET"
             },
             "actions": [

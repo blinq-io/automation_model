@@ -1,0 +1,30 @@
+{
+    "template": "login with {string} and {string} 6",
+    "routes": [
+        {
+            "filters": {
+                "path": "/v1/forecast",
+                "queryParams": {
+                    "latitude": "51.5072",
+                    "longitude": "-0.1276",
+                    "current": "temperature_2m",
+                    "timezone": "auto"
+                },
+                "method": "GET"
+            },
+            "actions": [
+                {
+                    "type": "assert_json",
+                    "config": [
+                        {
+                            "path": "latitude",
+                            "expected": 51.5
+                        }
+                    ]
+                }
+            ],
+            "mandatory": true,
+            "timeout": 5000
+        }
+    ]
+}

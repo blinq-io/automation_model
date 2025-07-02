@@ -4,7 +4,7 @@
         {
             "filters": {
                 "path": "/login",
-                "queryParams": [],
+                "queryParams": {},
                 "method": "GET"
             },
             "actions": [
