@@ -4002,7 +4002,6 @@ class StableBrowser {
       } else if (e.label === "domcontentloaded") {
         console.log("waited for the domcontent loaded timeout");
       }
-      console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
@@ -4045,7 +4044,6 @@ class StableBrowser {
       await _preCommand(state, this);
       await this.page.close();
     } catch (e) {
-      console.log(".");
       await _commandError(state, e, this);
     } finally {
       await _commandFinally(state, this);
@@ -4159,7 +4157,6 @@ class StableBrowser {
       }
       await this.page.setViewportSize({ width: width, height: hight });
     } catch (e) {
-      console.log(".");
       await _commandError({ text: "setViewportSize", operation: "setViewportSize", width, hight, info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -4196,7 +4193,6 @@ class StableBrowser {
     try {
       await this.page.reload();
     } catch (e) {
-      console.log(".");
       await _commandError({ text: "reloadPage", operation: "reloadPage", info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
