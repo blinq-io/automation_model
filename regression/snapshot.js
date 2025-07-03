@@ -58,7 +58,8 @@ describe("snapshot", function () {
     await context.web.click(element);
     await context.web.afterStep(world, null);
     console.log(world.attachs);
-    expect(world.attachs).to.have.lengthOf(4, "Expected exactly 4 attachments");
+    world.attachs.shift(); // Remove the first attachment which is the report folder path
+    expect(world.attachs).to.have.lengthOf(3, "Expected exactly 3 attachments");
 
     const [first, second, third] = world.attachs;
 
