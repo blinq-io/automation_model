@@ -311,4 +311,4 @@ const _createSnapshotsFolder = (folder: string) => {
   return specificPath;
 };
 
-export { initContext, navigate, closeContext, resetTestData, getTestData };
+export { initContext, navigate, closeContext, resetTestData, getTestData, context as TestContext };
