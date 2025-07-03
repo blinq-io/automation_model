@@ -58,7 +58,7 @@ describe("snapshot", function () {
     await context.web.click(element);
     await context.web.afterStep(world, null);
     console.log(world.attachs);
-    expect(world.attachs).to.have.lengthOf(3, "Expected exactly 3 attachments");
+    expect(world.attachs).to.have.lengthOf(4, "Expected exactly 4 attachments");
 
     const [first, second, third] = world.attachs;
 
