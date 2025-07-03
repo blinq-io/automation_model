@@ -4076,6 +4076,9 @@ class StableBrowser {
     }
   }
   async beforeScenario(world, scenario) {
+    if (world && world.attach) {
+      world.attach(this.context.reportFolder, { mediaType: "text/plain" });
+    }
     this.beforeScenarioCalled = true;
     if (scenario && scenario.pickle && scenario.pickle.name) {
       this.scenarioName = scenario.pickle.name;
