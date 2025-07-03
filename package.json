@@ -15,7 +15,7 @@
     "clean": "rimraf -g build && rimraf -g types",
     "build": "npm run clean && npm run compile && ncp package.json build/package.json && ncp README.md build/README.md && mkdir build/lib/scripts && ncp scripts/axe.mini.js build/lib/scripts/axe.mini.js",
     "build:watch": "npm run build && npm run compile:watch",
-    "test": "cross-env HEADLESS=true npx mocha --parallel --jobs=8 ./regression/ --timeout 180000",
+    "test": "npm run build && cross-env HEADLESS=true npx mocha --parallel --jobs=8 ./regression/ --timeout 180000",
     "debug": "node tests/debug.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
     "regression": "cross-env HEADLESS=true npx mocha --bail --parallel --jobs=12 ./regression/ --timeout 120000",
