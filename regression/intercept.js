@@ -144,4 +144,61 @@ describe("route", function () {
     expect(result.filters.method).to.equal("GET");
     expect(result.overallStatus).to.equal("success");
   });
+  it("route change_json", async function () {
+    const stepObject = {
+      pickleStep: { text: 'login with "user_name" and "password" 5', keyword: "Given" },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "Login scenario",
+      },
+    };
+    await context.web.beforeStep(context, stepObject);
+    await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/api/index.html");
+    await context.web.waitForPageLoad();
+
+    await context.web.verifyTextExistInPage("55");
+    await context.web.afterStep(context, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+    expect(context.routeResults).to.have.lengthOf(1);
+    const result = context.routeResults[0];
+    expect(result.actions).to.have.lengthOf(1);
+    expect(result.actions[0].type).to.equal("json_modify");
+    expect(result.actions[0].status).to.equal("success");
+
+    // expect(context.routeResults).to.have.lengthOf(1);
+
+    // const result = context.routeResults[0];
+    // expect(result.filters.path).to.equal("/login");
+    // expect(result.filters.method).to.equal("GET");
+    // expect(result.overallStatus).to.equal("success");
+  });
+  it("route assert_json", async function () {
+    const stepObject = {
+      pickleStep: { text: 'login with "user_name" and "password" 6', keyword: "Given" },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "Login scenario",
+      },
+    };
+    await context.web.beforeStep(context, stepObject);
+    await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/api/index.html");
+    await context.web.waitForPageLoad();
+
+    await context.web.afterStep(context, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+    expect(context.routeResults).to.have.lengthOf(1);
+    const result = context.routeResults[0];
+    expect(result.actions).to.have.lengthOf(1);
+    expect(result.actions[0].type).to.equal("assert_json");
+    expect(result.actions[0].status).to.equal("success");
+
+    // expect(context.routeResults).to.have.lengthOf(1);
+
+    // const result = context.routeResults[0];
+    // expect(result.filters.path).to.equal("/login");
+    // expect(result.filters.method).to.equal("GET");
+    // expect(result.overallStatus).to.equal("success");
+  });
+
+  // https://weatherapi.pelmorex.com/api/v1/observation?locale=en-CA&lat=40.712&long=-74.005&unit=metric
 });
