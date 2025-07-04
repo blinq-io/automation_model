@@ -2682,87 +2682,122 @@ class StableBrowser {
       info: {},
     };
 
-    try {
-      await _preCommand(state, this);
+    // Initialize startTime outside try block to ensure it's always accessible
+    const startTime = Date.now();
+    let conditionMet = false;
+    let currentValue = null;
+    let lastError = null;
 
-      const startTime = Date.now();
-      let conditionMet = false;
-      let currentValue = null;
-
-      const checkCondition = async () => {
-        try {
-          switch (condition.toLowerCase()) {
-            case "checked":
-              currentValue = await state.element.isChecked();
-              return currentValue === true;
-            case "unchecked":
-              currentValue = await state.element.isChecked();
-              return currentValue === false;
-            case "visible":
-              currentValue = await state.element.isVisible();
-              return currentValue === true;
-            case "hidden":
-              currentValue = await state.element.isVisible();
-              return currentValue === false;
-            case "enabled":
-              currentValue = await state.element.isDisabled();
-              return currentValue === false;
-            case "disabled":
-              currentValue = await state.element.isDisabled();
-              return currentValue === true;
-            case "editable":
-              currentValue = await String(
-                await state.element.evaluate((element, prop) => element[prop], "isContentEditable")
-              );
-              return currentValue === true;
-            default:
-              state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
-              state.info.success = false;
-              return false;
+    // Main retry loop - continues until timeout or condition is met
+    while (Date.now() - startTime < timeoutMs) {
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = timeoutMs - elapsedTime;
+      
+      try {
+        // Try to execute _preCommand (element location)
+        await _preCommand(state, this);
+        
+        // If _preCommand succeeds, start condition checking
+        const checkCondition = async () => {          
+          try {
+            switch (condition.toLowerCase()) {
+              case "checked":
+                currentValue = await state.element.isChecked();
+                return currentValue === true;
+              case "unchecked":
+                currentValue = await state.element.isChecked();
+                return currentValue === false;
+              case "visible":
+                currentValue = await state.element.isVisible();
+                return currentValue === true;
+              case "hidden":
+                currentValue = await state.element.isVisible();
+                return currentValue === false;
+              case "enabled":
+                currentValue = await state.element.isDisabled();
+                return currentValue === false;
+              case "disabled":
+                currentValue = await state.element.isDisabled();
+                return currentValue === true;
+              case "editable":
+                // currentValue = await String(await state.element.evaluate((element, prop) => element[prop], "isContentEditable"));
+                currentValue = await state.element.isContentEditable();
+                return currentValue === true;
+              default:
+                state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
+                state.info.success = false;
+                return false;
+            }
+          } catch (error) {
+            // Don't throw here, just return false to continue retrying
+            return false;
           }
-        } catch {
-          return false;
+        };
+        
+        // Inner loop for condition checking (once element is located)
+        while (Date.now() - startTime < timeoutMs) {
+          const currentElapsedTime = Date.now() - startTime;
+          
+          conditionMet = await checkCondition();
+          
+          if (conditionMet) {
+            break;
+          }
+          
+          // Check if we still have time for another attempt
+          if (Date.now() - startTime + 50 < timeoutMs) {
+            await new Promise(res => setTimeout(res, 50));
+          } else {
+            break;
+          }
         }
-      };
-
-      while (Date.now() - startTime < timeoutMs) {
-        // Use milliseconds for comparison
-        conditionMet = await checkCondition();
-        if (conditionMet) break;
-        await new Promise((res) => setTimeout(res, 50));
+        
+        // If we got here and condition is met, break out of main loop
+        if (conditionMet) {
+          break;
+        }
+        
+        // If condition not met but no exception, we've timed out
+        break;
+        
+      } catch (e) {
+        lastError = e;
+        const currentElapsedTime = Date.now() - startTime;
+        const timeLeft = timeoutMs - currentElapsedTime;
+        
+        // Check if we have enough time left to retry
+        if (timeLeft > 100) { 
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } else {
+          break;
+        }
       }
-
-      const actualWaitTime = Date.now() - startTime;
-      state.info = {
-        success: conditionMet,
-        conditionMet,
-        actualWaitTime,
-        currentValue,
-        message: conditionMet
-          ? `Condition '${condition}' met after ${(actualWaitTime / 1000).toFixed(2)}s`
-          : `Condition '${condition}' not met within ${timeout}s timeout`, // Use original seconds value
-      };
-
-      state.log += state.info.message + "\n";
-
-      return state.info;
-    } catch (e) {
-      state.info = {
-        success: false,
-        conditionMet: false,
-        actualWaitTime: timeoutMs, // Store as milliseconds
-        currentValue: null,
-        error: e.message,
-        message: `Error during conditional wait: ${e.message}`,
-      };
-      state.log += `Error during conditional wait: ${e.message}\n`;
-
-      await new Promise((resolve) => setTimeout(resolve, timeoutMs)); // Use milliseconds
-
-      return state.info;
-    } finally {
-      await _commandFinally(state, this);
     }
+
+    const actualWaitTime = Date.now() - startTime;
+    
+    state.info = {
+      success: conditionMet,
+      conditionMet,
+      actualWaitTime,
+      currentValue,
+      lastError: lastError?.message || null,
+      message: conditionMet
+        ? `Condition '${condition}' met after ${(actualWaitTime / 1000).toFixed(2)}s`
+        : `Condition '${condition}' not met within ${timeout}s timeout`,
+    };
+
+    if (lastError) {
+      state.log += `Last error: ${lastError.message}\n`;
+    }
+
+    try {
+      await _commandFinally(state, this);
+    } catch (finallyError) {
+      state.log += `Error in _commandFinally: ${finallyError.message}\n`;
+    }
+    
+    return state.info;
   }
 
   async extractEmailData(emailAddress, options, world) {
