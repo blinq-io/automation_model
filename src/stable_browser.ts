@@ -2692,13 +2692,13 @@ class StableBrowser {
     while (Date.now() - startTime < timeoutMs) {
       const elapsedTime = Date.now() - startTime;
       const remainingTime = timeoutMs - elapsedTime;
-      
+
       try {
         // Try to execute _preCommand (element location)
         await _preCommand(state, this);
-        
+
         // If _preCommand succeeds, start condition checking
-        const checkCondition = async () => {          
+        const checkCondition = async () => {
           try {
             switch (condition.toLowerCase()) {
               case "checked":
@@ -2733,41 +2733,40 @@ class StableBrowser {
             return false;
           }
         };
-        
+
         // Inner loop for condition checking (once element is located)
         while (Date.now() - startTime < timeoutMs) {
           const currentElapsedTime = Date.now() - startTime;
-          
+
           conditionMet = await checkCondition();
-          
+
           if (conditionMet) {
             break;
           }
-          
+
           // Check if we still have time for another attempt
           if (Date.now() - startTime + 50 < timeoutMs) {
-            await new Promise(res => setTimeout(res, 50));
+            await new Promise((res) => setTimeout(res, 50));
           } else {
             break;
           }
         }
-        
+
         // If we got here and condition is met, break out of main loop
         if (conditionMet) {
           break;
         }
-        
+
         // If condition not met but no exception, we've timed out
         break;
-        
       } catch (e) {
         lastError = e;
         const currentElapsedTime = Date.now() - startTime;
         const timeLeft = timeoutMs - currentElapsedTime;
-        
+
         // Check if we have enough time left to retry
-        if (timeLeft > 100) { 
-          await new Promise(resolve => setTimeout(resolve, 50));
+        if (timeLeft > 100) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
         } else {
           break;
         }
@@ -2775,7 +2774,7 @@ class StableBrowser {
     }
 
     const actualWaitTime = Date.now() - startTime;
-    
+
     state.info = {
       success: conditionMet,
       conditionMet,
@@ -2796,7 +2795,7 @@ class StableBrowser {
     } catch (finallyError) {
       state.log += `Error in _commandFinally: ${finallyError.message}\n`;
     }
-    
+
     return state.info;
   }
 
@@ -4353,13 +4352,19 @@ class StableBrowser {
         try {
           // Ensure frame is attached and has body
           const body = frame.locator("body");
-          await body.waitFor({ timeout: 200 }); // wait explicitly
-
+          //await body.waitFor({ timeout: 2000 }); // wait explicitly
           const snapshot = await body.ariaSnapshot({ timeout });
+          if (!snapshot) {
+            continue;
+          }
           content.push(`- frame: ${i}`);
           content.push(snapshot);
-        } catch (innerErr) {}
+        } catch (innerErr) {
+          console.warn(`Frame ${i} snapshot failed:`, innerErr);
+          content.push(`- frame: ${i} - error: ${innerErr.message}`);
+        }
       }
+
       return content.join("\n");
     } catch (e) {
       console.log("Error in getAriaSnapshot");
