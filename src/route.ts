@@ -171,6 +171,19 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
       const description = JSON.stringify(action.config);
 
       switch (action.type) {
+        case "abort_request":
+          if (tracking?.timer) clearTimeout(tracking.timer);
+          const errorCode = action.config?.errorCode ?? "failed";
+          console.log(`[abort_request] Aborting  with error code: ${errorCode}`);
+          await route.abort(errorCode);
+          tracking.completed = true;
+          actionResults.push({
+            type: action.type,
+            description: JSON.stringify(action.config),
+            status: "success",
+          });
+          return;
+
         case "status_code_verification":
           if (status !== action.config) {
             console.error(`[status_code_verification] Expected ${action.config}, got ${status}`);
