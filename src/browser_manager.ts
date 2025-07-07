@@ -145,7 +145,7 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors"],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk"],
       });
     } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
@@ -158,6 +158,7 @@ class Browser {
           "--load-extension=" + extensionPath,
           "--no-incognito",
           "--ignore-certificate-errors",
+          "--use-gtk",
         ],
       });
     } else {
