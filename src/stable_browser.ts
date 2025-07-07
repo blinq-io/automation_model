@@ -29,6 +29,7 @@ import {
   _getDataFile,
   testForRegex,
   performAction,
+  _getTestData,
 } from "./utils.js";
 import csv from "csv-parser";
 import { Readable } from "node:stream";
@@ -54,10 +55,13 @@ import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js"
 import { loadBrunoParams } from "./bruno.js";
 import { snapshotValidation } from "./snapshot_validation.js";
 
+import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
-  NAVIGATE: "navigate", ///
+  NAVIGATE: "navigate",
+  GO_BACK: "go_back",
+  GO_FORWARD: "go_forward",
   FILL: "fill_element",
   EXECUTE: "execute_page_method", //
   OPEN: "open_environment", //
@@ -95,6 +99,7 @@ export const Types = {
   REPORT_COMMAND: "report_command",
   STEP_COMPLETE: "step_complete",
   SLEEP: "sleep",
+  CONDITIONAL_WAIT: "conditional_wait",
 };
 export const apps = {};
 
@@ -379,6 +384,62 @@ class StableBrowser {
     }
   }
 
+  async goBack(options, world = null) {
+    const state = {
+      value: "",
+      world: world,
+      type: Types.GO_BACK,
+      text: `Browser navigate back`,
+      operation: "goBack",
+      log: "***** navigate back *****\n",
+      info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+    };
+    try {
+      await _preCommand(state, this);
+      await this.page.goBack({
+        waitUntil: "load",
+      });
+      await _screenshot(state, this);
+    } catch (error) {
+      console.error("Error on goBack", error);
+      _commandError(state, error, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
+  async goForward(options, world = null) {
+    const state = {
+      value: "",
+      world: world,
+      type: Types.GO_FORWARD,
+      text: `Browser navigate forward`,
+      operation: "goForward",
+      log: "***** navigate forward *****\n",
+      info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
+    };
+    try {
+      await _preCommand(state, this);
+      await this.page.goForward({
+        waitUntil: "load",
+      });
+      await _screenshot(state, this);
+    } catch (error) {
+      console.error("Error on goForward", error);
+      _commandError(state, error, this);
+    } finally {
+      await _commandFinally(state, this);
+    }
+  }
+
   async _getLocator(locator, scope, _params) {
     locator = _fixLocatorUsingParams(locator, _params);
     // locator = await this._replaceWithLocalData(locator);
@@ -530,13 +591,12 @@ class StableBrowser {
       info.locatorLog = new LocatorLog(selectorHierarchy);
     }
     let locatorSearch = selectorHierarchy[index];
-    let originalLocatorSearch = "";
     try {
-      originalLocatorSearch = _fixUsingParams(JSON.stringify(locatorSearch), _params);
-      locatorSearch = JSON.parse(originalLocatorSearch);
+      locatorSearch = _fixLocatorUsingParams(locatorSearch, _params);
     } catch (e) {
       console.error(e);
     }
+    let originalLocatorSearch = JSON.stringify(locatorSearch);
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
@@ -2088,12 +2148,7 @@ class StableBrowser {
   }
 
   getTestData(world = null) {
-    const dataFile = _getDataFile(world, this.context, this);
-    let data = {};
-    if (fs.existsSync(dataFile)) {
-      data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
-    }
-    return data;
+    return _getTestData(world, this.context, this);
   }
 
   async _screenShot(options = {}, world = null, info = null) {
@@ -2535,7 +2590,7 @@ class StableBrowser {
           break;
         default:
           if (property.startsWith("dataset.")) {
-            const dataAttribute = property.substring(8); 
+            const dataAttribute = property.substring(8);
             val = String(await state.element.getAttribute(`data-${dataAttribute}`)) || "";
           } else {
             val = String(await state.element.evaluate((element, prop) => element[prop], property));
@@ -2605,6 +2660,145 @@ class StableBrowser {
       await _commandFinally(state, this);
     }
   }
+  async conditionalWait(selectors, condition, timeout = 1000, _params = null, options = {}, world = null) {
+    // Convert timeout from seconds to milliseconds
+    const timeoutMs = timeout * 1000;
+
+    const state = {
+      selectors,
+      _params,
+      condition,
+      timeout: timeoutMs, // Store as milliseconds for internal use
+      options,
+      world,
+      type: Types.CONDITIONAL_WAIT,
+      highlight: true,
+      screenshot: true,
+      text: `Conditional wait for element`,
+      _text: `Wait for ${selectors.element_name} to be ${condition} (timeout: ${timeout}s)`, // Display original seconds
+      operation: "conditionalWait",
+      log: `***** conditional wait for ${condition} on ${selectors.element_name} *****\n`,
+      allowDisabled: true,
+      info: {},
+    };
+
+    // Initialize startTime outside try block to ensure it's always accessible
+    const startTime = Date.now();
+    let conditionMet = false;
+    let currentValue = null;
+    let lastError = null;
+
+    // Main retry loop - continues until timeout or condition is met
+    while (Date.now() - startTime < timeoutMs) {
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = timeoutMs - elapsedTime;
+
+      try {
+        // Try to execute _preCommand (element location)
+        await _preCommand(state, this);
+
+        // If _preCommand succeeds, start condition checking
+        const checkCondition = async () => {
+          try {
+            switch (condition.toLowerCase()) {
+              case "checked":
+                currentValue = await state.element.isChecked();
+                return currentValue === true;
+              case "unchecked":
+                currentValue = await state.element.isChecked();
+                return currentValue === false;
+              case "visible":
+                currentValue = await state.element.isVisible();
+                return currentValue === true;
+              case "hidden":
+                currentValue = await state.element.isVisible();
+                return currentValue === false;
+              case "enabled":
+                currentValue = await state.element.isDisabled();
+                return currentValue === false;
+              case "disabled":
+                currentValue = await state.element.isDisabled();
+                return currentValue === true;
+              case "editable":
+                // currentValue = await String(await state.element.evaluate((element, prop) => element[prop], "isContentEditable"));
+                currentValue = await state.element.isContentEditable();
+                return currentValue === true;
+              default:
+                state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
+                state.info.success = false;
+                return false;
+            }
+          } catch (error) {
+            // Don't throw here, just return false to continue retrying
+            return false;
+          }
+        };
+
+        // Inner loop for condition checking (once element is located)
+        while (Date.now() - startTime < timeoutMs) {
+          const currentElapsedTime = Date.now() - startTime;
+
+          conditionMet = await checkCondition();
+
+          if (conditionMet) {
+            break;
+          }
+
+          // Check if we still have time for another attempt
+          if (Date.now() - startTime + 50 < timeoutMs) {
+            await new Promise((res) => setTimeout(res, 50));
+          } else {
+            break;
+          }
+        }
+
+        // If we got here and condition is met, break out of main loop
+        if (conditionMet) {
+          break;
+        }
+
+        // If condition not met but no exception, we've timed out
+        break;
+      } catch (e) {
+        lastError = e;
+        const currentElapsedTime = Date.now() - startTime;
+        const timeLeft = timeoutMs - currentElapsedTime;
+
+        // Check if we have enough time left to retry
+        if (timeLeft > 100) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        } else {
+          break;
+        }
+      }
+    }
+
+    const actualWaitTime = Date.now() - startTime;
+
+    state.info = {
+      success: conditionMet,
+      conditionMet,
+      actualWaitTime,
+      currentValue,
+      lastError: lastError?.message || null,
+      message: conditionMet
+        ? `Condition '${condition}' met after ${(actualWaitTime / 1000).toFixed(2)}s`
+        : `Condition '${condition}' not met within ${timeout}s timeout`,
+    };
+
+    if (lastError) {
+      state.log += `Last error: ${lastError.message}\n`;
+    }
+
+    try {
+      await _commandFinally(state, this);
+    } catch (finallyError) {
+      state.log += `Error in _commandFinally: ${finallyError.message}\n`;
+    }
+
+    return state.info;
+  }
+
   async extractEmailData(emailAddress, options, world) {
     if (!emailAddress) {
       throw new Error("email address is null");
@@ -3840,7 +4034,6 @@ class StableBrowser {
       } else if (e.label === "domcontentloaded") {
         console.log("waited for the domcontent loaded timeout");
       }
-      console.log(".");
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
@@ -3883,7 +4076,6 @@ class StableBrowser {
       await _preCommand(state, this);
       await this.page.close();
     } catch (e) {
-      console.log(".");
       await _commandError(state, e, this);
     } finally {
       await _commandFinally(state, this);
@@ -3997,7 +4189,6 @@ class StableBrowser {
       }
       await this.page.setViewportSize({ width: width, height: hight });
     } catch (e) {
-      console.log(".");
       await _commandError({ text: "setViewportSize", operation: "setViewportSize", width, hight, info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -4034,7 +4225,6 @@ class StableBrowser {
     try {
       await this.page.reload();
     } catch (e) {
-      console.log(".");
       await _commandError({ text: "reloadPage", operation: "reloadPage", info }, e, this);
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -4140,6 +4330,8 @@ class StableBrowser {
         }
       }
     }
+    this.context.routeResults = null;
+    await registerBeforeStepRoutes(this.context, this.stepName);
   }
   async getAriaSnapshot() {
     try {
@@ -4160,13 +4352,19 @@ class StableBrowser {
         try {
           // Ensure frame is attached and has body
           const body = frame.locator("body");
-          await body.waitFor({ timeout: 200 }); // wait explicitly
-
+          //await body.waitFor({ timeout: 2000 }); // wait explicitly
           const snapshot = await body.ariaSnapshot({ timeout });
+          if (!snapshot) {
+            continue;
+          }
           content.push(`- frame: ${i}`);
           content.push(snapshot);
-        } catch (innerErr) {}
+        } catch (innerErr) {
+          console.warn(`Frame ${i} snapshot failed:`, innerErr);
+          content.push(`- frame: ${i} - error: ${innerErr.message}`);
+        }
       }
+
       return content.join("\n");
     } catch (e) {
       console.log("Error in getAriaSnapshot");
@@ -4254,6 +4452,8 @@ class StableBrowser {
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
       }
     }
+    this.context.routeResults = await registerAfterStepRoutes(this.context, world);
+
     if (!process.env.TEMP_RUN) {
       const state = {
         world,

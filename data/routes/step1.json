@@ -1,0 +1,24 @@
+{
+    "template": "login with {string} and {string}",
+    "routes": [
+        {
+            "filters": {
+                "path": "/login",
+                "queryParams": {},
+                "method": "GET"
+            },
+            "actions": [
+                {
+                    "type": "status_code_change",
+                    "config": 502
+                },
+                {
+                    "type": "status_code_verification",
+                    "config": 501
+                }
+            ],
+            "mandatory": true,
+            "timeout": 5000
+        }
+    ]
+}

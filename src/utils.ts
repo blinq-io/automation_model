@@ -112,7 +112,7 @@ function _convertToRegexQuery(text: string, isRegex: boolean, fullMatch: boolean
   if (ignoreCase) {
     queryEnd += "i";
   }
-  return query + pattern + queryEnd;
+  return query + pattern + queryEnd + " >> visible=true";
 }
 
 function escapeRegex(str: string) {
@@ -168,10 +168,9 @@ function _getDataFile(world: any = null, context: any = null, web: any = null) {
     dataFile = path.join(web.reportFolder, "data.json");
   } else if (context && context.reportFolder) {
     dataFile = path.join(context.reportFolder, "data.json");
-  }  else if(web && web.project_path) {
-    dataFile = path.join(web.project_path,"data", "data.json");
-}
-  else {
+  } else if (web && web.project_path) {
+    dataFile = path.join(web.project_path, "data", "data.json");
+  } else {
     dataFile = "data.json";
   }
   return dataFile;
@@ -197,7 +196,9 @@ function _getTestData(world = null, context = null, web = null) {
   const dataFile = _getDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
-    data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+    // convert \r\n to \n
+    const fileContent = fs.readFileSync(dataFile, "utf8").replace(/\r\n/g, "\n");
+    data = JSON.parse(fileContent);
   }
   return data;
 }
@@ -338,7 +339,7 @@ function replaceTestDataValue(env: string, key: string, testData: TestData, decr
       }
     }
     if (obj.DataType === "totp") {
-        return `totp:${obj.value}`;
+      return `totp:${obj.value}`;
     }
 
     return obj.value;
@@ -535,6 +536,10 @@ export async function performAction(action: string, element: any, options: any, 
           usedOptions.timeout = 1000;
         }
       }
+      if (usedOptions && usedOptions.clickCount) {
+        state.info.count = usedOptions.clickCount;
+      }
+
       try {
         await element.click(usedOptions);
       } catch (e) {
@@ -783,4 +788,6 @@ export {
   _getDataFile,
   tryParseJson,
   getTestDataValue,
+  replaceTestDataValue,
+  _getTestData,
 };

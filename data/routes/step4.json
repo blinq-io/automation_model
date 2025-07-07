@@ -1,0 +1,20 @@
+{
+    "template": "login with {string} and {string} 4",
+    "routes": [
+        {
+            "filters": {
+                "path": "/login",
+                "queryParams": {},
+                "method": "GET"
+            },
+            "actions": [
+                {
+                    "type": "change_text",
+                    "config": "<html><body><h1>Modified by Playwright</h1></body></html>"
+                }
+            ],
+            "mandatory": true,
+            "timeout": 5000
+        }
+    ]
+}
