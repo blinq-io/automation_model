@@ -136,7 +136,7 @@ class Browser {
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
-    const args = ["--ignore-https-errors", "--ignore-certificate-errors", "--use-gtk"];
+    const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
