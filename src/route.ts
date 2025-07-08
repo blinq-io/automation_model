@@ -106,11 +106,11 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
         startedAt: Date.now(),
         actionResults: [],
       };
-      tracking.timer = setTimeout(() => {
-        if (!tracking.completed) {
-          console.error(`[MANDATORY] Request to ${item.filters.path} did not complete within ${item.timeout}ms`);
-        }
-      }, item.timeout);
+      // tracking.timer = setTimeout(() => {
+      //   if (!tracking.completed) {
+      //     console.error(`[MANDATORY] Request to ${item.filters.path} did not complete within ${item.timeout}ms`);
+      //   }
+      // }, item.timeout);
 
       context.__routeState.matched.push(tracking);
     }
@@ -156,12 +156,23 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
     }
 
     let status = response.status();
-    let body = await response.text();
     let headers = response.headers();
+    const isBinary =
+      !headers["content-type"]?.includes("application/json") && !headers["content-type"]?.includes("text");
+
+    let body;
+    if (isBinary) {
+      body = await response.body(); // returns a Buffer
+    } else {
+      body = await response.text();
+    }
 
     let json: any;
     try {
-      json = JSON.parse(body);
+      // check if the body is string
+      if (typeof body === "string") {
+        json = JSON.parse(body);
+      }
     } catch (_) {}
 
     const actionResults: InterceptedRoute["actionResults"] = [];
@@ -264,7 +275,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
     tracking.actionResults = actionResults;
     if (tracking.timer) clearTimeout(tracking.timer);
 
-    const responseBody = json ? JSON.stringify(json) : body;
+    const responseBody = isBinary ? body : json ? JSON.stringify(json) : body;
     await route.fulfill({ status, body: responseBody, headers });
   });
 }
@@ -284,17 +295,21 @@ export async function registerAfterStepRoutes(context: any) {
 
   await new Promise<void>((resolve) => {
     const interval = setInterval(() => {
-      const allCompleted = mandatoryRoutes.every((r) => r.completed);
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
 
-      if (allCompleted || elapsed >= maxTimeout) {
-        mandatoryRoutes.forEach((r) => {
-          if (!r.completed) {
-            console.error(
-              `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms`
-            );
-          }
-        });
+      const allCompleted = mandatoryRoutes.every((r) => r.completed);
+      const allTimedOut = mandatoryRoutes.every((r) => r.completed || now - startTime >= r.routeItem.timeout);
+
+      for (const r of mandatoryRoutes) {
+        const elapsed = now - startTime;
+        if (!r.completed && elapsed >= r.routeItem.timeout) {
+          console.error(
+            `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms (elapsed: ${elapsed})`
+          );
+        }
+      }
+
+      if (allCompleted || allTimedOut) {
         clearInterval(interval);
         resolve();
       }
