@@ -136,7 +136,7 @@ class Browser {
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
-    const args = ["--ignore-https-errors", "--ignore-certificate-errors", "--use-gtk"];
+    const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
@@ -178,7 +178,8 @@ class Browser {
         });
       } else if (channel) {
         {
-          args.push(`"--use-gtk"`);
+          args.push('--use-gtk');
+
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
@@ -191,7 +192,7 @@ class Browser {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
         } else {
-          args.push(`"--use-gtk"`);
+          args.push('--use-gtk');
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
