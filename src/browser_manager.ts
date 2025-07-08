@@ -141,12 +141,11 @@ class Browser {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
     if (!extensionPath && userDataDirPath) {
-      args.push(`"--use-gtk"`);
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors"],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk"],
       });
     } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
