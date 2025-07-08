@@ -55,7 +55,7 @@ describe("verifiy", function () {
     }
     // store the full HTML in a file
     fs.writeFileSync("temp/fullHTML.html", fullHTML);
-    const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
+    const args = ["--ignore-https-errors", "--ignore-certificate-errors", "--use-gtk"];
     const browser = await chromium.launch({
       headless: true,
       timeout: 0,
