@@ -178,7 +178,7 @@ class Browser {
         });
       } else if (channel) {
         {
-          args.push(`"--use-gtk"`);
+          args.push("--use-gtk");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
@@ -191,7 +191,7 @@ class Browser {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
         } else {
-          args.push(`"--use-gtk"`);
+          args.push("--use-gtk");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
