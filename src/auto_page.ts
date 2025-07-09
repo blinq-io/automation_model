@@ -47,11 +47,12 @@ type Attachment = {
   options: any;
 };
 interface DomyWorld {
-  attch: (data: any, options: any) => void;
+  attach: (data: any, options: any) => void;
   attachments: Attachment[] | null;
   [key: string]: any; // Allow other properties to be added dynamically
 }
 let domyWorld: DomyWorld | null = null;
+let foundWold: any = null;
 const initContext = async (
   path: string,
   doNavigate = true,
@@ -61,23 +62,34 @@ const initContext = async (
   initScript: InitScripts | null = null,
   envName: string | null = null
 ) => {
+  if (world) {
+    foundWold = world;
+  }
   if (domyWorld && world) {
     // first compy all the fields from domyWorld to world
     for (const key in domyWorld) {
+      // check that key is not a function
+      if (typeof domyWorld[key] === "function") {
+        continue;
+      }
       if (Object.prototype.hasOwnProperty.call(domyWorld, key)) {
         world[key] = domyWorld[key];
       }
     }
     if (domyWorld.attachments) {
-      world.attachments.push(...domyWorld.attachments);
+      for (const attachment of domyWorld.attachments) {
+        world.attach(attachment.data, attachment.options);
+      }
     }
     domyWorld = null; // clear the domyWorld after copying
   }
 
   if (!world) {
     const myworld: DomyWorld = {
-      attch: (data, options) => {
-        if (myworld.attachments) {
+      attach: (data, options) => {
+        if (foundWold) {
+          foundWold.attach(data, options);
+        } else if (myworld.attachments) {
           myworld.attachments.push({ data, options });
         }
       },
