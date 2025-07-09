@@ -76,7 +76,7 @@ const initContext = async (
         world[key] = domyWorld[key];
       }
     }
-    if (domyWorld.attachments) {
+    if (domyWorld.attachments && world.attach) {
       for (const attachment of domyWorld.attachments) {
         world.attach(attachment.data, attachment.options);
       }
@@ -87,7 +87,7 @@ const initContext = async (
   if (!world) {
     const myworld: DomyWorld = {
       attach: (data, options) => {
-        if (foundWold) {
+        if (foundWold && foundWold.attach) {
           foundWold.attach(data, options);
         } else if (myworld.attachments) {
           myworld.attachments.push({ data, options });
