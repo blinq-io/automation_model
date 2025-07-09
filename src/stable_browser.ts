@@ -47,7 +47,7 @@ import {
   _reportToWorld,
 } from "./command_common.js";
 import { register } from "module";
-import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
+import { networkAfterStep, networkBeforeStep, registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
@@ -4334,6 +4334,7 @@ class StableBrowser {
     }
     this.context.routeResults = null;
     await registerBeforeStepRoutes(this.context, this.stepName);
+    networkBeforeStep(this.stepName);
   }
   async getAriaSnapshot() {
     try {
@@ -4477,6 +4478,7 @@ class StableBrowser {
         await _commandFinally(state, this);
       }
     }
+    networkAfterStep(this.stepName);
   }
 }
 
