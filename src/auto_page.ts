@@ -41,6 +41,18 @@ const _findEmptyFolder = (folder?: string) => {
   }
   return path.join(folder, nextIndex.toString());
 };
+
+type Attachment = {
+  data: any;
+  options: any;
+};
+interface DomyWorld {
+  attach: (data: any, options: any) => void;
+  attachments: Attachment[] | null;
+  [key: string]: any; // Allow other properties to be added dynamically
+}
+let domyWorld: DomyWorld | null = null;
+let foundWold: any = null;
 const initContext = async (
   path: string,
   doNavigate = true,
@@ -50,6 +62,42 @@ const initContext = async (
   initScript: InitScripts | null = null,
   envName: string | null = null
 ) => {
+  if (world) {
+    foundWold = world;
+  }
+  if (domyWorld && world) {
+    // first compy all the fields from domyWorld to world
+    for (const key in domyWorld) {
+      // check that key is not a function
+      if (typeof domyWorld[key] === "function") {
+        continue;
+      }
+      if (Object.prototype.hasOwnProperty.call(domyWorld, key)) {
+        world[key] = domyWorld[key];
+      }
+    }
+    if (domyWorld.attachments && world.attach) {
+      for (const attachment of domyWorld.attachments) {
+        world.attach(attachment.data, attachment.options);
+      }
+    }
+    domyWorld = null; // clear the domyWorld after copying
+  }
+
+  if (!world) {
+    const myworld: DomyWorld = {
+      attach: (data, options) => {
+        if (foundWold && foundWold.attach) {
+          foundWold.attach(data, options);
+        } else if (myworld.attachments) {
+          myworld.attachments.push({ data, options });
+        }
+      },
+      attachments: [],
+    };
+    domyWorld = myworld;
+    world = domyWorld;
+  }
   if (context && context.playContext && (context.playContext as any).isClosed !== true) {
     if (process.env.TEMP_RUN) {
       if (world && !world.context) {
