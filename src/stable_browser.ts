@@ -821,7 +821,7 @@ class StableBrowser {
               framescope = testframescope;
               break;
             } catch (error) {
-              console.error("frame not found " + frameLocator.css);
+              // console.error("frame not found " + frameLocator.css);
             }
           }
         }
