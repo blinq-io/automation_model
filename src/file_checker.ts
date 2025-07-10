@@ -98,7 +98,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
         [pattern, flags] = raw.split("::");
       }
 
-      console.log(`🧪 Regex pattern: ${pattern}, flags: ${flags}`);
+      console.log(`Regex pattern: ${pattern}, flags: ${flags}`);
 
       try {
         const regex = new RegExp(pattern, flags);
@@ -119,10 +119,10 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
       if (!isSoft) {
         throw new Error(`No file matched the pattern: ${filePath}`);
       } else {
-        console.warn(`⚠️ Soft assertion failed for pattern: ${filePath}`);
+        console.warn(`Soft assertion failed for pattern: ${filePath}`);
       }
     } else {
-      console.log(`✅ File verification successful for pattern: ${input}`);
+      console.log(`File verification successful for pattern: ${input}`);
     }
   } catch (err) {
     await _commandError(state, err, context.web);
