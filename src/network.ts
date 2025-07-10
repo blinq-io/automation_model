@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import { _stepNameToTemplate } from "./route.js";
 import crypto from "crypto";
+import { tmpdir } from "os";
 
 function _getNetworkFile(world: any = null, web: any = null, context: any = null) {
   let networkFile = null;
@@ -191,14 +192,15 @@ interface ExecutionState {
   currentStepHash: string | null;
   liveRequestsMap: Map<any, any>;
 }
-const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
-const detailedNetworkFolder = "temp/detailed_network_data";
+const detailedNetworkFolder = path.join(tmpdir(), "blinq_network_events");
+
 const executionState = {
   currentStepHash: null,
   liveRequestsMap: new Map<any, any>(),
 } as ExecutionState;
 
 export function networkBeforeStep(stepName: string) {
+  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
@@ -206,7 +208,17 @@ export function networkBeforeStep(stepName: string) {
   if (!fs.existsSync(detailedNetworkFolder)) {
     fs.mkdirSync(detailedNetworkFolder, { recursive: true });
   }
-  const stepHash = stepNameToHash(stepName);
+  // const stepHash = stepNameToHash(stepName);
+  let stepHash = "";
+
+  if (process.env.CURRENT_STEP_ID) {
+    console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
+    // If CURRENT_STEP_ID is set, use it as the step hash
+    stepHash = process.env.CURRENT_STEP_ID;
+  } else {
+    stepHash = stepNameToHash(stepName);
+  }
+
   // check if the file exists, if exists delete it
   const networkFile = path.join(detailedNetworkFolder, `${stepHash}.json`);
   if (fs.existsSync(networkFile)) {
@@ -216,6 +228,7 @@ export function networkBeforeStep(stepName: string) {
 }
 
 export function networkAfterStep(stepName: string) {
+  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
@@ -224,9 +237,10 @@ export function networkAfterStep(stepName: string) {
 function stepNameToHash(stepName: string): string {
   const templateName = _stepNameToTemplate(stepName);
   // create hash from the template name
-  return crypto.createHash("sha256").update(stepName).digest("hex");
+  return crypto.createHash("sha256").update(templateName).digest("hex");
 }
 function handleRequest(request: any) {
+  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData || !executionState.currentStepHash) {
     return;
   }
@@ -243,6 +257,7 @@ function handleRequest(request: any) {
   executionState.liveRequestsMap.set(request, requestData);
 }
 function saveNetworkDataToFile(requestData: any) {
+  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
@@ -260,9 +275,11 @@ function saveNetworkDataToFile(requestData: any) {
   // Add the live requests to the existing data
   existingData.push(requestData);
   // Save the updated data back to the file
+  console.log("Saving network data to file:", networkFile);
   fs.writeFileSync(networkFile, JSON.stringify(existingData, null, 2), "utf8");
 }
 async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
+  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }

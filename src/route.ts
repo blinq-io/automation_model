@@ -2,6 +2,7 @@ import { APIResponse, Route as PWRoute } from "playwright";
 import fs from "fs/promises";
 import path from "path";
 import objectPath from "object-path";
+import { tmpdir } from "os";
 
 export interface Route {
   template: string;
@@ -47,7 +48,11 @@ async function loadRoutes(): Promise<Route[]> {
   if (loadedRoutes !== null) return loadedRoutes;
 
   try {
-    const dir = path.join(process.cwd(), "data", "routes");
+    let dir = path.join(process.cwd(), "data", "routes");
+    if (process.env.TEMP_RUN) {
+      dir = path.join(tmpdir(), "blinq_temp_routes");
+    }
+
     if (!(await folderExists(dir))) {
       loadedRoutes = [];
       return loadedRoutes;
