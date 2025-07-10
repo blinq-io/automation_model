@@ -115,7 +115,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
     }
 
     if (!found) {
-      console.log(`📁 Available files in '${dir}':`, files);
+      console.log(`Available files in '${dir}':`, files);
       if (!isSoft) {
         throw new Error(`No file matched the pattern: ${filePath}`);
       } else {
