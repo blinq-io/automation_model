@@ -137,7 +137,7 @@ class Browser {
       viewport = { width: 1280, height: 800 };
     }
     const chromePosition = viewport ? viewport.width : 800;
-        const args = ["--ignore-https-errors", "--ignore-certificate-errors", `--window-position=${chromePosition},100`];
+        const args = ["--ignore-https-errors", "--ignore-certificate-errors", `--window-position=${chromePosition},100`, "--use_ozone=false"];
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
@@ -146,7 +146,7 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk"],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk", "--use_ozone=false"],
       });
     } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
@@ -160,6 +160,7 @@ class Browser {
           "--no-incognito",
           "--ignore-certificate-errors",
           "--use-gtk",
+          "--use_ozone=false",
         ],
       });
     } else {
@@ -181,6 +182,7 @@ class Browser {
         {
           args.push('--use-gtk');
           args.push(`--window-position=${chromePosition},100`);
+          args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
@@ -195,6 +197,7 @@ class Browser {
         } else {
           args.push('--use-gtk');
           args.push(`--window-position=${chromePosition},100`);
+          args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
