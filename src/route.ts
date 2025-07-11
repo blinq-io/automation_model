@@ -49,7 +49,7 @@ async function loadRoutes(): Promise<Route[]> {
 
   try {
     let dir = path.join(process.cwd(), "data", "routes");
-    if (process.env.TEMP_RUN) {
+    if (process.env.TEMP_RUN === "true") {
       dir = path.join(tmpdir(), "blinq_temp_routes");
     }
 
@@ -68,6 +68,7 @@ async function loadRoutes(): Promise<Route[]> {
     }
 
     loadedRoutes = allRoutes;
+    console.log(`Loaded ${allRoutes.length} route definitions from ${dir}`);
   } catch (error) {
     console.error("Error loading routes:", error);
     loadedRoutes = [];
@@ -128,6 +129,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
       console.log(`Intercepting request: ${request.method()} ${request.url()}`);
     }
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
+    if (debug) {
+      console.log("Matched route item:", matchedItem);
+    }
     if (!matchedItem) return route.continue();
     if (debug) {
       console.log(`Matched route item: ${JSON.stringify(matchedItem)}`);
@@ -182,6 +186,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
 
     const actionResults: InterceptedRoute["actionResults"] = [];
 
+    let abortActionPerformed = false;
+
     for (const action of matchedItem.actions) {
       let actionStatus: "success" | "fail" = "success";
       const description = JSON.stringify(action.config);
@@ -192,13 +198,14 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
           const errorCode = action.config?.errorCode ?? "failed";
           console.log(`[abort_request] Aborting  with error code: ${errorCode}`);
           await route.abort(errorCode);
+          abortActionPerformed = true;
           tracking.completed = true;
           actionResults.push({
             type: action.type,
             description: JSON.stringify(action.config),
             status: "success",
           });
-          return;
+          break;
 
         case "status_code_verification":
           if (status !== action.config) {
@@ -278,10 +285,13 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
 
     tracking.completed = true;
     tracking.actionResults = actionResults;
+    console.log("Current action results:", tracking.actionResults);
     if (tracking.timer) clearTimeout(tracking.timer);
 
     const responseBody = isBinary ? body : json ? JSON.stringify(json) : body;
-    await route.fulfill({ status, body: responseBody, headers });
+    if (!abortActionPerformed) {
+      await route.fulfill({ status, body: responseBody, headers });
+    }
   });
 }
 
