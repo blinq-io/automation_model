@@ -4459,6 +4459,13 @@ class StableBrowser {
     }
     this.context.routeResults = await registerAfterStepRoutes(this.context, world);
 
+    if (this.context.routeResults) {
+      this.logger.info("Route results after step: " + JSON.stringify(this.context.routeResults));
+      if (world && world.attach) {
+        await world.attach(JSON.stringify(this.context.routeResults), "application/json+intercept-results");
+      }
+    }
+
     if (!process.env.TEMP_RUN) {
       const state = {
         world,
