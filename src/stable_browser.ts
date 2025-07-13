@@ -4335,6 +4335,7 @@ class StableBrowser {
       }
     }
     this.context.routeResults = null;
+    this.context.loadedRoutes = null;
     await registerBeforeStepRoutes(this.context, this.stepName);
     networkBeforeStep(this.stepName);
   }
