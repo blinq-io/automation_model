@@ -42,10 +42,8 @@ interface RouteContextState {
   matched: InterceptedRoute[];
 }
 
-let loadedRoutes: Route[] | null = null;
-
-async function loadRoutes(): Promise<Route[]> {
-  if (loadedRoutes !== null) return loadedRoutes;
+async function loadRoutes(context: any): Promise<Route[]> {
+  if (context.loadedRoutes !== null) return context.loadedRoutes;
 
   try {
     let dir = path.join(process.cwd(), "data", "routes");
@@ -54,8 +52,8 @@ async function loadRoutes(): Promise<Route[]> {
     }
 
     if (!(await folderExists(dir))) {
-      loadedRoutes = [];
-      return loadedRoutes;
+      context.loadedRoutes = [];
+      return context.loadedRoutes;
     }
     const files = await fs.readdir(dir);
     const jsonFiles = files.filter((f) => f.endsWith(".json"));
@@ -67,13 +65,13 @@ async function loadRoutes(): Promise<Route[]> {
       allRoutes.push(routeObj);
     }
 
-    loadedRoutes = allRoutes;
+    context.loadedRoutes = allRoutes;
     console.log(`Loaded ${allRoutes.length} route definitions from ${dir}`);
   } catch (error) {
     console.error("Error loading routes:", error);
-    loadedRoutes = [];
+    context.loadedRoutes = [];
   }
-  return loadedRoutes;
+  return context.loadedRoutes;
 }
 
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
@@ -94,7 +92,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
   if (!page) throw new Error("context.web.page is missing");
 
   const stepTemplate = _stepNameToTemplate(stepName);
-  const routes = await loadRoutes();
+  const routes = await loadRoutes(context);
   const matchedRouteDefs = routes.filter((r) => r.template === stepTemplate);
   const allRouteItems: RouteItem[] = matchedRouteDefs.flatMap((r) => r.routes);
 
@@ -200,15 +198,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
           await route.abort(errorCode);
           abortActionPerformed = true;
           tracking.completed = true;
-          actionResults.push({
-            type: action.type,
-            description: JSON.stringify(action.config),
-            status: "success",
-          });
           break;
 
         case "status_code_verification":
-          if (status !== action.config) {
+          if (String(status) !== String(action.config)) {
             console.error(`[status_code_verification] Expected ${action.config}, got ${status}`);
             actionStatus = "fail";
           } else {
