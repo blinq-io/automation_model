@@ -27,6 +27,9 @@ type JsonCommandReport = {
 };
 
 export async function _preCommand(state: any, web: any) {
+  if (web && web.getCmdId) {
+    state.cmdId = web.getCmdId();
+  }
   if (!state) {
     return;
   }
@@ -200,6 +203,7 @@ export async function _commandFinally(state: any, web: any) {
     info: any;
     locatorLog: string | null;
     payload?: any;
+    cmdId?: string;
   } = {
     element_name: state.selectors ? state.selectors.element_name : null,
     type: state.type,
@@ -222,6 +226,7 @@ export async function _commandFinally(state: any, web: any) {
         },
     info: state.info,
     locatorLog: state.info.locatorLog ? state.info.locatorLog.toString() : null,
+    cmdId: state.cmdId,
   };
   if (state.originalValue && state.info) {
     state.info.value = maskValue(state.originalValue);
