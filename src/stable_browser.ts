@@ -4302,7 +4302,6 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
-    console.log("Inside beforeStep");
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
     }
@@ -4336,7 +4335,7 @@ class StableBrowser {
     }
     this.context.routeResults = null;
     this.context.loadedRoutes = null;
-    await registerBeforeStepRoutes(this.context, this.stepName);
+    await registerBeforeStepRoutes(this.context, this.stepName, world);
     networkBeforeStep(this.stepName);
   }
   async getAriaSnapshot() {
@@ -4459,12 +4458,6 @@ class StableBrowser {
       }
     }
     this.context.routeResults = await registerAfterStepRoutes(this.context, world);
-
-    if (this.context.routeResults && this.context.routeResults.length > 0) {
-      if (world && world.attach) {
-        await world.attach(JSON.stringify(this.context.routeResults), "application/json+intercept-results");
-      }
-    }
 
     if (!process.env.TEMP_RUN) {
       const state = {
