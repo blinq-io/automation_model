@@ -4270,6 +4270,7 @@ class StableBrowser {
     if (world && world.attach) {
       world.attach(this.context.reportFolder, { mediaType: "text/plain" });
     }
+    this.context.loadedRoutes = null;
     this.beforeScenarioCalled = true;
     if (scenario && scenario.pickle && scenario.pickle.name) {
       this.scenarioName = scenario.pickle.name;
@@ -4457,7 +4458,6 @@ class StableBrowser {
     this.context.routeResults = await registerAfterStepRoutes(this.context, world);
 
     if (this.context.routeResults) {
-      this.logger.info("Route results after step: " + JSON.stringify(this.context.routeResults));
       if (world && world.attach) {
         await world.attach(JSON.stringify(this.context.routeResults), "application/json+intercept-results");
       }
