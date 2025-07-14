@@ -349,7 +349,7 @@ function extractQuotedText(inputString: string): string[] {
   return matches;
 }
 
-function _stepNameToTemplate(stepName: string): string {
+export function _stepNameToTemplate(stepName: string): string {
   if (stepName.includes("{string}")) {
     return stepName;
   }
