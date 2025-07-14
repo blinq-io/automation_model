@@ -4270,6 +4270,7 @@ class StableBrowser {
     if (world && world.attach) {
       world.attach(this.context.reportFolder, { mediaType: "text/plain" });
     }
+    this.context.loadedRoutes = null;
     this.beforeScenarioCalled = true;
     if (scenario && scenario.pickle && scenario.pickle.name) {
       this.scenarioName = scenario.pickle.name;
