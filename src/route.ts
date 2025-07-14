@@ -236,7 +236,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           break;
 
         case "status_code_change":
-          status = action.config;
+          status = Number(action.config);
           console.log(`[status_code_change] Status changed to ${status}`);
           break;
 
