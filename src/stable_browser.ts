@@ -4295,14 +4295,13 @@ class StableBrowser {
     if (!process.env.TEMP_RUN) {
       await getTestData(envName, world, undefined, this.featureName, this.scenarioName, this.context);
     }
-
     await loadBrunoParams(this.context, this.context.environment.name);
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
-    console.log("Inside beforeStep");
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
+      this.context.loadedRoutes = null;
     }
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
