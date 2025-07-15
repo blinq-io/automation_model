@@ -155,7 +155,7 @@ class StableBrowser {
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "true") {
-      console.log("Fast mode enabled from environment variable");
+      // console.log("Fast mode enabled from environment variable");
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "false") {
