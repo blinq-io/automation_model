@@ -68,7 +68,7 @@ async function loadRoutes(context: any): Promise<Route[]> {
     }
 
     context.loadedRoutes = allRoutes;
-    console.log(`Loaded ${allRoutes.length} route definitions from ${dir}`);
+    if (debug) console.log(`Loaded ${allRoutes.length} route definitions from ${dir}`);
   } catch (error) {
     console.error("Error loading routes:", error);
     context.loadedRoutes = [];
@@ -216,12 +216,12 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             tracking.actionResults = actionResults;
             message = "JSON modification failed. Response is not JSON";
           } else {
-            for (const [path, modifyValue] of Object.entries(action.config)) {
-              objectPath.set(json, path, modifyValue);
-              console.log(`[json_modify] Modified path ${path} to ${modifyValue}`);
+            if (action.config && action.config.path && action.config.modifyValue) {
+              objectPath.set(json, action.config.path, action.config.modifyValue);
+              console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
+              console.log(`[json_modify] Modified JSON`);
+              message = `JSON modified successfully`;
             }
-            console.log(`[json_modify] Modified JSON`);
-            message = `JSON modified successfully`;
           }
           break;
 
@@ -248,16 +248,14 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             tracking.actionResults = actionResults;
             message = "JSON assertion failed. Response is not JSON";
           } else {
-            for (const [path, expectedValue] of Object.entries(action.config)) {
-              const actual = objectPath.get(json, path);
-              if (JSON.stringify(actual) !== JSON.stringify(expectedValue)) {
-                actionStatus = "fail";
-                tracking.actionResults = actionResults;
-                message = `JSON assertion failed for path ${path}: expected ${JSON.stringify(expectedValue)}, got ${JSON.stringify(actual)}`;
-              } else {
-                console.log(`[assert_json] Assertion passed for path ${path}`);
-                message = `JSON assertion passed for path ${path}`;
-              }
+            const actual = objectPath.get(json, action.config.path);
+            if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
+              actionStatus = "fail";
+              tracking.actionResults = actionResults;
+              message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+            } else {
+              console.log(`[assert_json] Assertion passed for path ${action.config.path}`);
+              message = `JSON assertion passed for path ${action.config.path}`;
             }
           }
           break;
@@ -351,6 +349,7 @@ export async function registerAfterStepRoutes(context: any, world: any) {
         type: ar.type,
         description: ar.description,
         status,
+        message: ar.message || null,
       };
     });
 
