@@ -47,7 +47,7 @@ import {
   _reportToWorld,
 } from "./command_common.js";
 import { register } from "module";
-import { registerDownloadEvent, registerNetworkEvents } from "./network.js";
+import { networkAfterStep, networkBeforeStep, registerDownloadEvent, registerNetworkEvents } from "./network.js";
 import { LocatorLog } from "./locator_log.js";
 import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
@@ -155,6 +155,7 @@ class StableBrowser {
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "true") {
+      // console.log("Fast mode enabled from environment variable");
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "false") {
@@ -818,7 +819,7 @@ class StableBrowser {
               framescope = testframescope;
               break;
             } catch (error) {
-              console.error("frame not found " + frameLocator.css);
+              // console.error("frame not found " + frameLocator.css);
             }
           }
         }
@@ -3448,6 +3449,9 @@ class StableBrowser {
       log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
     };
 
+    const cmdStartTime = Date.now();
+    let cmdEndTime = null;
+
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -3488,6 +3492,15 @@ class StableBrowser {
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
+        } else {
+          cmdEndTime = Date.now();
+          if (cmdEndTime - cmdStartTime > 55000) {
+            if (foundAncore) {
+              throw new Error(`Text ${textToVerify} not found in page`);
+            } else {
+              throw new Error(`Text ${textAnchor} not found in page`);
+            }
+          }
         }
         try {
           for (let i = 0; i < resultWithElementsFound.length; i++) {
@@ -4269,6 +4282,7 @@ class StableBrowser {
     if (world && world.attach) {
       world.attach(this.context.reportFolder, { mediaType: "text/plain" });
     }
+    this.context.loadedRoutes = null;
     this.beforeScenarioCalled = true;
     if (scenario && scenario.pickle && scenario.pickle.name) {
       this.scenarioName = scenario.pickle.name;
@@ -4294,13 +4308,13 @@ class StableBrowser {
     if (!process.env.TEMP_RUN) {
       await getTestData(envName, world, undefined, this.featureName, this.scenarioName, this.context);
     }
-
     await loadBrunoParams(this.context, this.context.environment.name);
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
+      this.context.loadedRoutes = null;
     }
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;
@@ -4332,6 +4346,7 @@ class StableBrowser {
     }
     this.context.routeResults = null;
     await registerBeforeStepRoutes(this.context, this.stepName);
+    networkBeforeStep(this.stepName);
   }
   async getAriaSnapshot() {
     try {
@@ -4454,6 +4469,12 @@ class StableBrowser {
     }
     this.context.routeResults = await registerAfterStepRoutes(this.context, world);
 
+    if (this.context.routeResults) {
+      if (world && world.attach) {
+        await world.attach(JSON.stringify(this.context.routeResults), "application/json+intercept-results");
+      }
+    }
+
     if (!process.env.TEMP_RUN) {
       const state = {
         world,
@@ -4475,6 +4496,7 @@ class StableBrowser {
         await _commandFinally(state, this);
       }
     }
+    networkAfterStep(this.stepName);
   }
 }
 

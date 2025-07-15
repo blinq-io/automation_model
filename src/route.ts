@@ -2,6 +2,8 @@ import { APIResponse, Route as PWRoute } from "playwright";
 import fs from "fs/promises";
 import path from "path";
 import objectPath from "object-path";
+import { tmpdir } from "os";
+import { error } from "console";
 
 export interface Route {
   template: string;
@@ -34,6 +36,7 @@ interface InterceptedRoute {
     type: string;
     description: string;
     status: "success" | "fail";
+    message: string | null;
   }[];
 }
 
@@ -41,16 +44,18 @@ interface RouteContextState {
   matched: InterceptedRoute[];
 }
 
-let loadedRoutes: Route[] | null = null;
-
-async function loadRoutes(): Promise<Route[]> {
-  if (loadedRoutes !== null) return loadedRoutes;
+async function loadRoutes(context: any): Promise<Route[]> {
+  if (context.loadedRoutes !== null) return context.loadedRoutes;
 
   try {
-    const dir = path.join(process.cwd(), "data", "routes");
+    let dir = path.join(process.cwd(), "data", "routes");
+    if (process.env.TEMP_RUN === "true") {
+      dir = path.join(tmpdir(), "blinq_temp_routes");
+    }
+
     if (!(await folderExists(dir))) {
-      loadedRoutes = [];
-      return loadedRoutes;
+      context.loadedRoutes = [];
+      return context.loadedRoutes;
     }
     const files = await fs.readdir(dir);
     const jsonFiles = files.filter((f) => f.endsWith(".json"));
@@ -62,12 +67,13 @@ async function loadRoutes(): Promise<Route[]> {
       allRoutes.push(routeObj);
     }
 
-    loadedRoutes = allRoutes;
+    context.loadedRoutes = allRoutes;
+    if (debug) console.log(`Loaded ${allRoutes.length} route definitions from ${dir}`);
   } catch (error) {
     console.error("Error loading routes:", error);
-    loadedRoutes = [];
+    context.loadedRoutes = [];
   }
-  return loadedRoutes;
+  return context.loadedRoutes;
 }
 
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
@@ -83,12 +89,12 @@ function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
   return methodMatch && pathMatch && queryMatch;
 }
 let debug = false;
-export async function registerBeforeStepRoutes(context: any, stepName: string) {
+export async function registerBeforeStepRoutes(context: any, stepName: string, world: any) {
   const page = context.web.page;
   if (!page) throw new Error("context.web.page is missing");
 
   const stepTemplate = _stepNameToTemplate(stepName);
-  const routes = await loadRoutes();
+  const routes = await loadRoutes(context);
   const matchedRouteDefs = routes.filter((r) => r.template === stepTemplate);
   const allRouteItems: RouteItem[] = matchedRouteDefs.flatMap((r) => r.routes);
 
@@ -106,15 +112,11 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
         startedAt: Date.now(),
         actionResults: [],
       };
-      tracking.timer = setTimeout(() => {
-        if (!tracking.completed) {
-          console.error(`[MANDATORY] Request to ${item.filters.path} did not complete within ${item.timeout}ms`);
-        }
-      }, item.timeout);
-
       context.__routeState.matched.push(tracking);
     }
   }
+
+  let message: string | null = null;
 
   page.route("**/*", async (route: any) => {
     const request = route.request();
@@ -123,6 +125,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
       console.log(`Intercepting request: ${request.method()} ${request.url()}`);
     }
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
+    if (debug) {
+      console.log("Matched route item:", matchedItem);
+    }
     if (!matchedItem) return route.continue();
     if (debug) {
       console.log(`Matched route item: ${JSON.stringify(matchedItem)}`);
@@ -156,70 +161,101 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
     }
 
     let status = response.status();
-    let body = await response.text();
     let headers = response.headers();
+    const isBinary =
+      !headers["content-type"]?.includes("application/json") && !headers["content-type"]?.includes("text");
+
+    let body;
+    if (isBinary) {
+      body = await response.body(); // returns a Buffer
+    } else {
+      body = await response.text();
+    }
 
     let json: any;
     try {
-      json = JSON.parse(body);
+      // check if the body is string
+      if (typeof body === "string") {
+        json = JSON.parse(body);
+      }
     } catch (_) {}
 
     const actionResults: InterceptedRoute["actionResults"] = [];
+
+    let abortActionPerformed = false;
 
     for (const action of matchedItem.actions) {
       let actionStatus: "success" | "fail" = "success";
       const description = JSON.stringify(action.config);
 
       switch (action.type) {
+        case "abort_request":
+          if (tracking?.timer) clearTimeout(tracking.timer);
+          const errorCode = action.config?.errorCode ?? "failed";
+          console.log(`[abort_request] Aborting  with error code: ${errorCode}`);
+          await route.abort(errorCode);
+          abortActionPerformed = true;
+          tracking.completed = true;
+          break;
+
         case "status_code_verification":
-          if (status !== action.config) {
-            console.error(`[status_code_verification] Expected ${action.config}, got ${status}`);
+          if (String(status) !== String(action.config)) {
             actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = `Status code verification failed. Expected ${action.config}, got ${status}`;
           } else {
             console.log(`[status_code_verification] Passed`);
+            message = `Status code verification passed. Expected ${action.config}, got ${status}`;
           }
           break;
 
         case "json_modify":
           if (!json) {
-            console.error(`[json_modify] Response is not JSON`);
+            // console.error(`[json_modify] Response is not JSON`);
             actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = "JSON modification failed. Response is not JSON";
           } else {
-            for (const mod of action.config) {
-              objectPath.set(json, mod.path, mod.value);
-              console.log(`[json_modify] Modified path ${mod.path} to ${mod.value}`);
+            if (action.config && action.config.path && action.config.modifyValue) {
+              objectPath.set(json, action.config.path, action.config.modifyValue);
+              console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
+              console.log(`[json_modify] Modified JSON`);
+              message = `JSON modified successfully`;
             }
-            console.log(`[json_modify] Modified JSON`);
           }
           break;
 
         case "status_code_change":
-          status = action.config;
+          status = Number(action.config);
           console.log(`[status_code_change] Status changed to ${status}`);
+          message = `Status code changed to ${status}`;
           break;
+
         case "change_text":
           if (!headers["content-type"]?.includes("text/html")) {
-            console.error(`[change_text] Content-Type is not text/html`);
             actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = "Change text action failed. Content-Type is not text/html";
           } else {
             body = action.config;
             console.log(`[change_text] HTML body replaced`);
+            message = `HTML body replaced successfully`;
           }
           break;
         case "assert_json":
           if (!json) {
-            console.error(`[assert_json] Response is not JSON`);
             actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = "JSON assertion failed. Response is not JSON";
           } else {
-            for (const check of action.config) {
-              const actual = getValue(json, check.path);
-              const expected = check.expected;
-              if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-                console.error(`[assert_json] Path ${check.path}: expected ${expected}, got ${actual}`);
-                actionStatus = "fail";
-              } else {
-                console.log(`[assert_json] Assertion passed for path ${check.path}`);
-              }
+            const actual = objectPath.get(json, action.config.path);
+            if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
+              actionStatus = "fail";
+              tracking.actionResults = actionResults;
+              message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+            } else {
+              console.log(`[assert_json] Assertion passed for path ${action.config.path}`);
+              message = `JSON assertion passed for path ${action.config.path}`;
             }
           }
           break;
@@ -228,15 +264,20 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
           if (typeof body !== "string") {
             console.error(`[assert_text] Body is not text`);
             actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = "Text assertion failed. Body is not text";
           } else {
             if (action.config.contains && !body.includes(action.config.contains)) {
-              console.error(`[assert_text] Expected to contain: "${action.config.contains}"`);
               actionStatus = "fail";
+              tracking.actionResults = actionResults;
+              message = `Text assertion failed. Expected to contain: "${action.config.contains}", actual: "${body}"`;
             } else if (action.config.equals && body !== action.config.equals) {
-              console.error(`[assert_text] Expected exact match`);
               actionStatus = "fail";
+              tracking.actionResults = actionResults;
+              message = `Text assertion failed. Expected exact match: "${action.config.equals}", actual: "${body}"`;
             } else {
               console.log(`[assert_text] Assertion passed`);
+              message = `Text assertion passed.`;
             }
           }
           break;
@@ -244,19 +285,22 @@ export async function registerBeforeStepRoutes(context: any, stepName: string) {
           console.warn(`Unknown action type: ${action.type}`);
       }
 
-      actionResults.push({ type: action.type, description, status: actionStatus });
+      actionResults.push({ type: action.type, description, status: actionStatus, message: message });
     }
 
     tracking.completed = true;
     tracking.actionResults = actionResults;
+
     if (tracking.timer) clearTimeout(tracking.timer);
 
-    const responseBody = json ? JSON.stringify(json) : body;
-    await route.fulfill({ status, body: responseBody, headers });
+    const responseBody = isBinary ? body : json ? JSON.stringify(json) : body;
+    if (!abortActionPerformed) {
+      await route.fulfill({ status, body: responseBody, headers });
+    }
   });
 }
 
-export async function registerAfterStepRoutes(context: any) {
+export async function registerAfterStepRoutes(context: any, world: any) {
   const state: RouteContextState = context.__routeState;
   if (!state) return [];
 
@@ -269,26 +313,33 @@ export async function registerAfterStepRoutes(context: any) {
   const maxTimeout = Math.max(...mandatoryRoutes.map((r) => r.routeItem.timeout));
   const startTime = Date.now();
 
+  const mandatoryRouteReached = mandatoryRoutes.map((r) => true);
+
   await new Promise<void>((resolve) => {
     const interval = setInterval(() => {
-      const allCompleted = mandatoryRoutes.every((r) => r.completed);
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
 
-      if (allCompleted || elapsed >= maxTimeout) {
-        mandatoryRoutes.forEach((r) => {
-          if (!r.completed) {
-            console.error(
-              `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms`
-            );
-          }
-        });
+      const allCompleted = mandatoryRoutes.every((r) => r.completed);
+      const allTimedOut = mandatoryRoutes.every((r) => r.completed || now - startTime >= r.routeItem.timeout);
+
+      for (const r of mandatoryRoutes) {
+        const elapsed = now - startTime;
+        if (!r.completed && elapsed >= r.routeItem.timeout) {
+          mandatoryRouteReached[mandatoryRoutes.indexOf(r)] = false;
+          // console.error(
+          //   `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms (elapsed: ${elapsed})`
+          // );
+        }
+      }
+
+      if (allCompleted || allTimedOut) {
         clearInterval(interval);
         resolve();
       }
     }, 100);
   });
 
-  const results = mandatoryRoutes.map((tracked) => {
+  context.results = mandatoryRoutes.map((tracked) => {
     const { routeItem, url, completed, actionResults = [] } = tracked;
 
     const actions = actionResults.map((ar) => {
@@ -298,6 +349,7 @@ export async function registerAfterStepRoutes(context: any) {
         type: ar.type,
         description: ar.description,
         status,
+        message: ar.message || null,
       };
     });
 
@@ -323,11 +375,32 @@ export async function registerAfterStepRoutes(context: any) {
     console.error("Failed to unroute:", e);
   }
   context.__routeState = null;
-  context.routeResults = results;
-  return results;
-}
+  if (context.results && context.results.length > 0) {
+    if (world && world.attach) {
+      await world.attach(JSON.stringify(context.results), "application/json+intercept-results");
+    }
+  }
 
-// Helper functions
+  const hasFailed = context.results.some((r: any) => r.overallStatus === "fail" || r.overallStatus === "timeout");
+  if (hasFailed) {
+    const errorMessage = context.results
+      .filter((r: any) => r.overallStatus === "fail" || r.overallStatus === "timeout")
+      .map((r: any) => `Route to ${r.url} failed with status: ${r.overallStatus}`)
+      .join("\n");
+    throw new Error(`Route verification failed:\n${errorMessage}`);
+  }
+
+  const hasTimedOut = context.results.some((r: any) => r.overallStatus === "timeout");
+  if (hasTimedOut) {
+    const timeoutMessage = context.results
+      .filter((r: any) => r.overallStatus === "timeout")
+      .map((r: any) => `Mandatory Route to ${r.url} timed out after ${r.actions[0]?.description}`)
+      .join("\n");
+    throw new Error(`Mandatory Route verification timed out:\n${timeoutMessage}`);
+  }
+
+  return context.results;
+}
 
 const toCucumberExpression = (text: string) =>
   text.replaceAll("/", "\\\\/").replaceAll("(", "\\\\(").replaceAll("{", "\\\\{");
@@ -349,7 +422,7 @@ function extractQuotedText(inputString: string): string[] {
   return matches;
 }
 
-function _stepNameToTemplate(stepName: string): string {
+export function _stepNameToTemplate(stepName: string): string {
   if (stepName.includes("{string}")) {
     return stepName;
   }

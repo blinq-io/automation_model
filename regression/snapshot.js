@@ -59,14 +59,15 @@ describe("snapshot", function () {
     await context.web.afterStep(world, null);
     console.log(world.attachs);
     world.attachs.shift(); // Remove the first attachment which is the report folder path
-    expect(world.attachs).to.have.lengthOf(3, "Expected exactly 3 attachments");
+    expect(world.attachs).to.have.lengthOf(4, "Expected exactly 4 attachments");
 
-    const [first, second, third] = world.attachs;
+    const [first, second, third, fourth] = world.attachs;
 
     // Validate type
     expect(first.type).to.equal("application/json+snapshot-before", "First attachment type mismatch");
     expect(second.type).to.equal("application/json+snapshot-after", "Second attachment type mismatch");
-    expect(third.type.mediaType).to.equal("application/json", "Third attachment type mismatch");
+    expect(third.type).to.equal("application/json+intercept-results", "Third attachment type mismatch");
+    expect(fourth.type.mediaType).to.equal("application/json", "Fourth attachment type mismatch");
     // Validate content structure
     // expect(first.content).to.have.property("snapshot_init");
     // expect(second.content).to.have.property("snapshot_0");

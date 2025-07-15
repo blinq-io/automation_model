@@ -145,7 +145,7 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors"],
+        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk"],
       });
     } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
@@ -158,6 +158,7 @@ class Browser {
           "--load-extension=" + extensionPath,
           "--no-incognito",
           "--ignore-certificate-errors",
+          "--use-gtk",
         ],
       });
     } else {
@@ -177,6 +178,7 @@ class Browser {
         });
       } else if (channel) {
         {
+          args.push("--use-gtk");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
@@ -189,6 +191,7 @@ class Browser {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
         } else {
+          args.push("--use-gtk");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
