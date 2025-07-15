@@ -212,7 +212,7 @@ export function networkBeforeStep(stepName: string) {
   let stepHash = "";
 
   if (process.env.CURRENT_STEP_ID) {
-    console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
+    // console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
     // If CURRENT_STEP_ID is set, use it as the step hash
     stepHash = process.env.CURRENT_STEP_ID;
   } else {
@@ -275,7 +275,7 @@ function saveNetworkDataToFile(requestData: any) {
   // Add the live requests to the existing data
   existingData.push(requestData);
   // Save the updated data back to the file
-  console.log("Saving network data to file:", networkFile);
+  // console.log("Saving network data to file:", networkFile);
   fs.writeFileSync(networkFile, JSON.stringify(existingData, null, 2), "utf8");
 }
 async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
