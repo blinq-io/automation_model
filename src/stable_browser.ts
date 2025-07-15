@@ -3449,6 +3449,9 @@ class StableBrowser {
       log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
     };
 
+    const cmdStartTime = Date.now();
+    let cmdEndTime = null;
+
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -3489,6 +3492,15 @@ class StableBrowser {
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
+        } else {
+          cmdEndTime = Date.now();
+          if (cmdEndTime - cmdStartTime > 55000) {
+            if (foundAncore) {
+              throw new Error(`Text ${textToVerify} not found in page`);
+            } else {
+              throw new Error(`Text ${textAnchor} not found in page`);
+            }
+          }
         }
         try {
           for (let i = 0; i < resultWithElementsFound.length; i++) {
