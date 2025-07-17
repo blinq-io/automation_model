@@ -2612,48 +2612,54 @@ class StableBrowser {
 
       state.info.value = val;
       let regex;
-      if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
-        const patternBody = expectedValue.slice(1, -1);
-        const processedPattern = patternBody.replace(/\n/g, ".*");
-        regex = new RegExp(processedPattern, "gs");
-        state.info.regex = true;
-      } else {
-        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        regex = new RegExp(escapedPattern, "g");
-      }
-      if (property === "innerText") {
-        if (state.info.regex) {
-          if (!regex.test(val)) {
-            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
-            state.info.failCause.assertionFailed = true;
-            state.info.failCause.lastError = errorMessage;
-            throw new Error(errorMessage);
-          }
+      state.info.value = val;
+
+      const isRegex = expectedValue.startsWith("regex:");
+      const isContains = expectedValue.startsWith("contains:");
+      const isExact = expectedValue.startsWith("exact:");
+      let matchPassed = false;
+
+      if (isRegex) {
+        const rawPattern = expectedValue.slice(6); // remove "regex:"
+        const lastSlashIndex = rawPattern.lastIndexOf("/");
+        if (rawPattern.startsWith("/") && lastSlashIndex > 0) {
+          const patternBody = rawPattern.slice(1, lastSlashIndex).replace(/\n/g, ".*");
+          const flags = rawPattern.slice(lastSlashIndex + 1) || "gs";
+          const regex = new RegExp(patternBody, flags);
+          state.info.regex = true;
+          matchPassed = regex.test(val);
         } else {
-          // Fix: Replace escaped newlines with actual newlines before splitting
-          const normalizedExpectedValue = expectedValue.replace(/\\n/g, "\n");
-          const valLines = val.split("\n");
-          const expectedLines = normalizedExpectedValue.split("\n");
-
-          // Check if all expected lines are present in the actual lines
-          const isPart = expectedLines.every((expectedLine) =>
-            valLines.some((valLine) => valLine.trim() === expectedLine.trim())
-          );
-
-          if (!isPart) {
-            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
-            state.info.failCause.assertionFailed = true;
-            state.info.failCause.lastError = errorMessage;
-            throw new Error(errorMessage);
-          }
+          // Fallback: treat as literal
+          const escapedPattern = rawPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(escapedPattern, "g");
+          matchPassed = regex.test(val);
         }
+      } else if (isContains) {
+        const containsValue = expectedValue.slice(9); // remove "contains:"
+        matchPassed = val.includes(containsValue);
+      } else if(isExact) {
+        const exactValue = expectedValue.slice(6); // remove "exact:"
+        matchPassed = val === exactValue;
+      } else if (property === "innerText") {
+        // Default innerText logic
+        const normalizedExpectedValue = expectedValue.replace(/\\n/g, "\n");
+        const valLines = val.split("\n");
+        const expectedLines = normalizedExpectedValue.split("\n");
+        matchPassed = expectedLines.every((expectedLine) =>
+          valLines.some((valLine) => valLine.trim() === expectedLine.trim())
+        );
       } else {
-        if (!val.match(regex)) {
-          let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
-          state.info.failCause.assertionFailed = true;
-          state.info.failCause.lastError = errorMessage;
-          throw new Error(errorMessage);
-        }
+        // Fallback exact or loose match
+        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escapedPattern, "g");
+        matchPassed = regex.test(val);
+      }
+
+      if (!matchPassed) {
+        let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
+        state.info.failCause.assertionFailed = true;
+        state.info.failCause.lastError = errorMessage;
+        throw new Error(errorMessage);
       }
       return state.info;
     } catch (e) {
