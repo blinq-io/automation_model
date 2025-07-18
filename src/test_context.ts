@@ -19,7 +19,6 @@ class TestContext {
   browserName: string | null = null;
   browserObject: any = null;
   initScripts: InitScripts | null = null;
-  abortedExecution = false;
   constructor() {}
 }
 export { TestContext };

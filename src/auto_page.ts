@@ -183,7 +183,7 @@ const getEnv = (envName: string | null) => {
   return null;
 };
 const closeContext = async () => {
-  if (process.env.TEMP_RUN || context?.abortedExecution) {
+  if (process.env.TEMP_RUN || context?.web?.abortedExecution) {
     return;
   }
   try {

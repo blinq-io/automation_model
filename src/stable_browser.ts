@@ -115,6 +115,7 @@ class StableBrowser {
   tags = null;
   isRecording = false;
   initSnapshotTaken = false;
+  abortedExecution = false;
   constructor(
     public browser: Browser,
     public page: Page,
