@@ -4,6 +4,26 @@ import { _stepNameToTemplate } from "./route.js";
 import crypto from "crypto";
 import { tmpdir } from "os";
 
+interface RequestEntry {
+  requestId: number;
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  postData: string | undefined;
+  requestTimestamp: number;
+  stepHash: string;
+  /* added later */
+  response?: {
+    status: number | null;
+    headers: Record<string, string>;
+    url: string;
+    timestamp: number;
+    body: unknown;
+    contentType: string | null;
+    error?: string;
+  };
+}
+
 function _getNetworkFile(world: any = null, web: any = null, context: any = null) {
   let networkFile = null;
   if (world && world.reportFolder) {
@@ -42,7 +62,9 @@ function registerDownloadEvent(page: any, world: any, context: any) {
     });
   }
 }
+
 function registerNetworkEvents(world: any, web: any, context: any, page: any) {
+  // Map to hold request start times and IDs
   const networkFile = _getNetworkFile(world, web, context);
   function saveNetworkData() {
     if (context && context.networkData) {
@@ -53,7 +75,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
     console.error("No context found to register network events");
     return;
   }
-  // Map to hold request start times and IDs
+
   const requestTimes = new Map();
   let requestIdCounter = 0;
 
@@ -63,6 +85,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
       const networkData = context.networkData;
       // Event listener for when a request is made
       page.on("request", (request: any) => {
+        // console.log("Request started:", request.url());
         const requestId = requestIdCounter++;
         request.requestId = requestId; // Assign a unique ID to the request
         handleRequest(request);
@@ -89,7 +112,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
         const request = response.request();
         const requestId = request.requestId;
         const receivedTime = Date.now();
-
+        // await handleRequestFinishedOrFailed(request, false);
         // Find the corresponding data object
         const data = networkData.find((item: any) => item.requestId === requestId);
 
@@ -98,7 +121,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
           data.responseReceived = receivedTime;
           saveNetworkData();
         } else {
-          console.error("No data found for request ID", requestId);
+          // console.error("No data found for request ID", requestId);
         }
       });
 
@@ -150,7 +173,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
             world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
           }
         } else {
-          console.error("No data found for request ID", requestId);
+          // console.error("No data found for request ID", requestId);
         }
       });
 
@@ -176,7 +199,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
               world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
             }
           } else {
-            console.error("No data found for request ID", requestId);
+            // console.error("No data found for request ID", requestId);
           }
         } catch (error) {
           // ignore
@@ -188,9 +211,26 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
   }
 }
 
+async function appendEntryToStepFile(stepHash: string, entry: RequestEntry) {
+  const file = path.join(detailedNetworkFolder, `${stepHash}.json`);
+
+  let data: RequestEntry[] = [];
+  try {
+    /* read if it already exists */
+    const txt = await fs.promises.readFile(file, "utf8");
+    data = JSON.parse(txt);
+  } catch {
+    /* ignore – file does not exist or cannot be parsed */
+  }
+
+  data.push(entry);
+  await fs.promises.writeFile(file, JSON.stringify(data, null, 2), "utf8");
+}
+
 interface ExecutionState {
   currentStepHash: string | null;
-  liveRequestsMap: Map<any, any>;
+  previousStepHash: string | null;
+  liveRequestsMap: Map<any, RequestEntry>;
 }
 const detailedNetworkFolder = path.join(tmpdir(), "blinq_network_events");
 
@@ -211,29 +251,43 @@ export function networkBeforeStep(stepName: string) {
   // const stepHash = stepNameToHash(stepName);
   let stepHash = "";
 
+  executionState.liveRequestsMap.clear();
+
   if (process.env.CURRENT_STEP_ID) {
-    console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
+    // console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
     // If CURRENT_STEP_ID is set, use it as the step hash
     stepHash = process.env.CURRENT_STEP_ID;
   } else {
     stepHash = stepNameToHash(stepName);
   }
-
+  executionState.currentStepHash = stepHash;
   // check if the file exists, if exists delete it
   const networkFile = path.join(detailedNetworkFolder, `${stepHash}.json`);
-  if (fs.existsSync(networkFile)) {
-    fs.unlinkSync(networkFile);
+  try {
+    fs.rmSync(path.join(networkFile), { force: true });
+  } catch (err) {
+    // Ignore error if file does not exist
   }
-  executionState.currentStepHash = stepHash;
 }
 
-export function networkAfterStep(stepName: string) {
+export async function networkAfterStep(stepName: string) {
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
+  await new Promise((r) => setTimeout(r, 20));
+
+  const entries = Array.from(executionState.liveRequestsMap.values());
+  const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
+
+  await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+
+  /* reset for next step */
+  executionState.liveRequestsMap.clear();
+  executionState.previousStepHash = executionState.currentStepHash; // ➋ NEW
   executionState.currentStepHash = null;
 }
+
 function stepNameToHash(stepName: string): string {
   const templateName = _stepNameToTemplate(stepName);
   // create hash from the template name
@@ -244,18 +298,20 @@ function handleRequest(request: any) {
   if (!storeDetailedNetworkData || !executionState.currentStepHash) {
     return;
   }
-  const requestId = request.requestId;
-  const requestData = {
-    requestId,
+  const entry: RequestEntry = {
+    requestId: request.requestId,
     url: request.url(),
     method: request.method(),
     headers: request.headers(),
     postData: request.postData(),
-    timestamp: Date.now(),
+    requestTimestamp: Date.now(),
     stepHash: executionState.currentStepHash,
   };
-  executionState.liveRequestsMap.set(request, requestData);
+
+  executionState.liveRequestsMap.set(request, entry);
+  // console.log("Request started:", entry);
 }
+
 function saveNetworkDataToFile(requestData: any) {
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
@@ -269,13 +325,13 @@ function saveNetworkDataToFile(requestData: any) {
     try {
       existingData = JSON.parse(data);
     } catch (e) {
-      console.error("Failed to parse existing network data:", e);
+      // console.error("Failed to parse existing network data:", e);
     }
   }
   // Add the live requests to the existing data
   existingData.push(requestData);
   // Save the updated data back to the file
-  console.log("Saving network data to file:", networkFile);
+  // console.log("Saving network data to file:", networkFile);
   fs.writeFileSync(networkFile, JSON.stringify(existingData, null, 2), "utf8");
 }
 async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
@@ -284,60 +340,111 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
     return;
   }
 
-  const response = await request.response(); // This may be null if the request failed
-  const requestData = executionState.liveRequestsMap.get(request);
-  if (!requestData) {
-    //console.warn("No request data found for request", request);
-    return;
+  // const response = await request.response(); // This may be null if the request failed
+  let entry = executionState.liveRequestsMap.get(request);
+
+  if (!entry) {
+    entry = {
+      requestId: request.requestId,
+      url: request.url(),
+      method: request.method?.() ?? "GET",
+      headers: request.headers?.() ?? {},
+      postData: request.postData?.() ?? undefined,
+      stepHash: executionState.previousStepHash ?? "unknown",
+      requestTimestamp: Date.now(),
+    } as RequestEntry;
   }
   // Remove the request from the live requests map
-  executionState.liveRequestsMap.delete(request);
+  let respData: RequestEntry["response"];
 
-  if (failed || !response) {
+  // executionState.liveRequestsMap.delete(request);
+
+  if (failed) {
     // Handle failed request
-    requestData.response = {
+    respData = {
       status: null,
       headers: {},
-      timing: null,
       url: request.url(),
       timestamp: Date.now(),
       body: null,
       contentType: null,
       error: "Request failed",
     };
-    saveNetworkDataToFile(requestData);
-    return;
-  }
-
-  // Handle successful request with a response
-  const headers = response.headers();
-  const contentType = headers["content-type"] || "";
-  let body = null;
-
-  try {
-    if (contentType.includes("application/json")) {
-      const text = await response.text();
-      body = JSON.parse(text);
-    } else if (contentType.includes("text")) {
-      body = await response.text();
-    } else {
-      // Optionally handle binary here
-      // const buffer = await response.body();
-      // body = buffer.toString("base64"); // if you want to store binary safely
+  } else {
+    const response = await request.response();
+    // console.log("Response received for request:", request.url());
+    const headers = response?.headers() || {};
+    const contentType = headers["content-type"] || null;
+    let body = null;
+    try {
+      if (contentType && contentType.includes("application/json")) {
+        const text = await response.text();
+        body = JSON.parse(text);
+        // console.log("Parsed JSON response body:", body);
+      } else if (contentType && contentType.includes("text")) {
+        body = await response.text();
+        // console.log("Parsed text response body:", body);
+      } else {
+        // Optionally handle binary here
+        // const buffer = await response.body();
+        // body = buffer.toString("base64"); // if you want to store binary safely
+      }
+    } catch (err) {
+      console.error("Error reading response body:", err);
     }
-  } catch (err) {
-    console.error("Error reading response body:", err);
+    respData = {
+      status: response.status(),
+      headers,
+      url: response.url(),
+      timestamp: Date.now(),
+      body,
+      contentType,
+    };
   }
 
-  requestData.response = {
-    status: response.status(),
-    headers,
-    url: response.url(),
-    timestamp: Date.now(),
-    body,
-    contentType,
-  };
-  saveNetworkDataToFile(requestData);
+  if (executionState.liveRequestsMap.has(request)) {
+    /* “normal” path – keep it in the buffer */
+    entry.response = respData;
+  } else {
+    /* orphan response – append directly to the previous step file */
+    entry.response = respData;
+    await appendEntryToStepFile(entry.stepHash, entry); // ➍ NEW
+  }
+
+  entry.response = respData;
+
+  return;
 }
+
+// Handle successful request with a response
+// const headers = response.headers();
+// const contentType = headers["content-type"] || "";
+// let body = null;
+
+// try {
+//   if (contentType.includes("application/json")) {
+//     const text = await response.text();
+//     body = JSON.parse(text);
+//   } else if (contentType.includes("text")) {
+//     body = await response.text();
+//   } else {
+//     // Optionally handle binary here
+//     // const buffer = await response.body();
+//     // body = buffer.toString("base64"); // if you want to store binary safely
+//   }
+// } catch (err) {
+//   console.error("Error reading response body:", err);
+// }
+
+//   requestData.response = {
+//     status: response.status(),
+//     headers,
+//     url: response.url(),
+//     timestamp: Date.now(),
+//     body,
+//     contentType,
+//   };
+//   saveNetworkDataToFile(requestData);
+// }
 
 export { registerNetworkEvents, registerDownloadEvent };
