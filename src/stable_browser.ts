@@ -2638,7 +2638,7 @@ class StableBrowser {
       } else if (isContains) {
         const containsValue = expectedValue.slice(9); // remove "contains:"
         matchPassed = val.includes(containsValue);
-      } else if(isExact) {
+      } else if (isExact) {
         const exactValue = expectedValue.slice(6); // remove "exact:"
         matchPassed = val === exactValue;
       } else if (property === "innerText") {
@@ -4308,6 +4308,9 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
+    if (this.abortedExecution) {
+      throw new Error("Aborted");
+    }
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
     }
@@ -4487,6 +4490,10 @@ class StableBrowser {
       }
     }
     networkAfterStep(this.stepName);
+    if (process.env.TEMP_RUN === "true") {
+      // Put a sleep for some time to allow the browser to finish processing
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
   }
 }
 
