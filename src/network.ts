@@ -275,7 +275,7 @@ export async function networkAfterStep(stepName: string) {
   if (!storeDetailedNetworkData) {
     return;
   }
-  await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 1000));
 
   const entries = Array.from(executionState.liveRequestsMap.values());
   const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
