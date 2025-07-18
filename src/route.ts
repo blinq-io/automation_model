@@ -163,7 +163,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
     let status = response.status();
     let headers = response.headers();
     const isBinary =
-      !headers["content-type"]?.includes("application/json") && !headers["content-type"]?.includes("text");
+      !headers["content-type"]?.includes("application/json") &&
+      !headers["content-type"]?.includes("text") &&
+      !headers["content-type"]?.includes("application/csv");
 
     let body;
     if (isBinary) {
@@ -232,10 +234,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           break;
 
         case "change_text":
-          if (!headers["content-type"]?.includes("text/html")) {
+          if (isBinary) {
             actionStatus = "fail";
             tracking.actionResults = actionResults;
-            message = "Change text action failed. Content-Type is not text/html";
+            message = "Change text action failed. Body is not a text";
           } else {
             body = action.config;
             console.log(`[change_text] HTML body replaced`);
