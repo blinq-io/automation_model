@@ -115,6 +115,7 @@ class StableBrowser {
   tags = null;
   isRecording = false;
   initSnapshotTaken = false;
+  abortedExecution = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -4312,6 +4313,9 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
+    if (this.abortedExecution) {
+      throw new Error("Aborted");
+    }
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
       this.context.loadedRoutes = null;
