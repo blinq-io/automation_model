@@ -374,7 +374,7 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
     const response = await request.response();
     // console.log("Response received for request:", request.url());
     const headers = response?.headers() || {};
-    const contentType = headers["content-type"] || null;
+    let contentType = headers["content-type"] || null;
     let body = null;
     try {
       if (contentType && contentType.includes("application/json")) {
@@ -384,6 +384,10 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
       } else if (contentType && contentType.includes("text")) {
         body = await response.text();
         // console.log("Parsed text response body:", body);
+      } else if (contentType && contentType.includes("application/csv")) {
+        body = await response.text();
+        contentType = "text/csv"; // Normalize content type for CSV
+        // console.log("Parsed CSV response body:", body);
       } else {
         // Optionally handle binary here
         // const buffer = await response.body();
