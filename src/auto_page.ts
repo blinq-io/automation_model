@@ -328,8 +328,8 @@ const getTestData = async (
       } catch (error) {
         console.log("Error reading data.json file: " + error);
       }
-    }
-    writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+      writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+    } 
   } catch (e) {
     console.log("Error reading data.json file: " + e);
   }
