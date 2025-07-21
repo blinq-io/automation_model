@@ -220,7 +220,7 @@ const getTestData = async (
     if (existsSync(path.join("data", "data.json"))) {
       const data = readFileSync(path.join("data", "data.json"), "utf8");
       jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
-    }
+    
     let testData: Record<string, any> = {};
     const allEnvData = jsonData["*"];
     const currentEnvData = jsonData[currentEnv];
@@ -328,8 +328,9 @@ const getTestData = async (
       } catch (error) {
         console.log("Error reading data.json file: " + error);
       }
-      writeFileSync(dataFile, JSON.stringify(testData, null, 2));
-    } 
+    }
+    writeFileSync(dataFile, JSON.stringify(testData, null, 2));
+  }
   } catch (e) {
     console.log("Error reading data.json file: " + e);
   }
