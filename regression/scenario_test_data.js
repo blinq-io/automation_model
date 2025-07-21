@@ -66,6 +66,7 @@ describe("scenario test data", function () {
     // login to the app
     const _params = {};
     const options = {};
+    await context.web.setTestData({"user1": "guy1"});
     await context.web.clickType(elements["textbox_username"], "{{user1}}", false, _params, options, null);
     // add verification for the username field should be guy1
     const info = await context.web.extractAttribute(elements["textbox_username"], "value", "result");
