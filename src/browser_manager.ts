@@ -13,6 +13,7 @@ import path from "path";
 import { InitScripts } from "./generation_scripts.js";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import os from "os"; // Import the os module
 // Get __filename and __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +96,23 @@ class Browser {
     this.page = null;
   }
 
+  returnWidthIfSpecified(){
+    try{
+    const tmpDir = os.tmpdir();
+    // check if file screen_size.json exists in tmpDir
+    const screenSizeFile = path.join(tmpDir, "screen_size.json");
+    console.log("Checking for screen size file at: " + screenSizeFile);
+    if (fs.existsSync(screenSizeFile)) {
+      const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
+      if (sizeInfo.width) {
+        return sizeInfo.width;
+      }
+    }} catch (error) {
+      console.error("Error reading screen size file:", error);
+    }
+    return -1;  
+  }
+
   async init(
     headless = false,
     storageState?: StorageState,
@@ -137,7 +155,7 @@ class Browser {
       viewport = { width: 1280, height: 800 };
     }
     const chromePosition = viewport ? viewport.width : 800;
-        const args = ["--ignore-https-errors", "--ignore-certificate-errors", `--window-position=${chromePosition},100`, "--use_ozone=false"];
+        const args = ["--ignore-https-errors", "--ignore-certificate-errors", `--window-position=${chromePosition},100`];
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
@@ -181,7 +199,7 @@ class Browser {
       } else if (channel) {
         {
           args.push('--use-gtk');
-          args.push(`--window-position=${chromePosition},100`);
+          args.push(`--window-position=${chromePosition},50`);
           args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
@@ -196,7 +214,7 @@ class Browser {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
         } else {
           args.push('--use-gtk');
-          args.push(`--window-position=${chromePosition},100`);
+          args.push(`--window-position=${chromePosition},50`);
           args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
