@@ -898,7 +898,6 @@ class StableBrowser {
     let locatorsCount = 0;
     let lazy_scroll = false;
     //let arrayMode = Array.isArray(selectors);
-    let scope = await this._findFrameScope(selectors, timeout, info);
     let selectorsLocators = null;
     selectorsLocators = selectors.locators;
     // group selectors by priority
@@ -925,6 +924,7 @@ class StableBrowser {
     let highPriorityOnly = true;
     let visibleOnly = true;
     while (true) {
+      let scope = await this._findFrameScope(selectors, timeout, info);
       locatorsCount = 0;
       let result = [];
       let popupResult = await this.closeUnexpectedPopups(info, _params);
