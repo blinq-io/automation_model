@@ -314,10 +314,14 @@ const getTestData = async (
         };
       }
     }
-    if (dataFile && !existsSync(path.dirname(dataFile))) {
+
+    if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+
+    // Always ensure directory exists before writing
+    if (!existsSync(path.dirname(dataFile))) {
       mkdirSync(path.dirname(dataFile), { recursive: true });
     }
-    if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+
     if (existsSync(dataFile)) {
       try {
         //const content = readFileSync(dataFile, "utf8");
