@@ -18,7 +18,6 @@ const measureAsync = async <T>(name: string, fn: () => Promise<T>): Promise<T> =
     performance.measure(name, `${name}-start`, `${name}-end`);
     const [entry] = performance.getEntriesByName(name);
     console.log(`⏱️ ${name}: ${entry.duration.toFixed(3)}ms`);
-    performance.clearMarks();
   }
 };
 const navigate = async (path = "") => {
