@@ -85,115 +85,98 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
       const networkData = context.networkData;
       // Event listener for when a request is made
       page.on("request", (request: any) => {
-        // console.log("Request started:", request.url());
-        const requestId = requestIdCounter++;
-        request.requestId = requestId; // Assign a unique ID to the request
-        handleRequest(request);
-        const startTime = Date.now();
-        requestTimes.set(requestId, startTime);
+        try {
+          // console.log("Request started:", request.url());
+          const requestId = requestIdCounter++;
+          request.requestId = requestId; // Assign a unique ID to the request
+          handleRequest(request);
+          const startTime = Date.now();
+          requestTimes.set(requestId, startTime);
 
-        // Initialize data for this request
-        networkData.push({
-          requestId,
-          requestStart: startTime,
-          requestUrl: request.url(),
-          method: request.method(),
-          status: "Pending",
-          responseTime: null,
-          responseReceived: null,
-          responseEnd: null,
-          size: null,
-        });
-        saveNetworkData();
+          // Initialize data for this request
+          networkData.push({
+            requestId,
+            requestStart: startTime,
+            requestUrl: request.url(),
+            method: request.method(),
+            status: "Pending",
+            responseTime: null,
+            responseReceived: null,
+            responseEnd: null,
+            size: null,
+          });
+          saveNetworkData();
+        } catch (error) {
+          // console.error("Error handling request:", error);
+        }
       });
 
       // Event listener for when a response is received
       page.on("response", async (response: any) => {
-        const request = response.request();
-        const requestId = request.requestId;
-        const receivedTime = Date.now();
-        // await handleRequestFinishedOrFailed(request, false);
-        // Find the corresponding data object
-        const data = networkData.find((item: any) => item.requestId === requestId);
+        try {
+          const request = response.request();
+          const requestId = request.requestId;
+          const receivedTime = Date.now();
+          // await handleRequestFinishedOrFailed(request, false);
+          // Find the corresponding data object
+          const data = networkData.find((item: any) => item.requestId === requestId);
 
-        if (data) {
-          data.status = response.status();
-          data.responseReceived = receivedTime;
-          saveNetworkData();
-        } else {
-          // console.error("No data found for request ID", requestId);
+          if (data) {
+            data.status = response.status();
+            data.responseReceived = receivedTime;
+            saveNetworkData();
+          } else {
+            // console.error("No data found for request ID", requestId);
+          }
+        } catch (error) {
+          // console.error("Error handling response:", error);
         }
       });
 
       // Event listener for when a request is finished
       page.on("requestfinished", async (request: any) => {
-        const requestId = request.requestId;
-        const endTime = Date.now();
-        const startTime = requestTimes.get(requestId);
-        await handleRequestFinishedOrFailed(request, false);
-
-        const response = await request.response();
-        const timing = request.timing();
-
-        // Find the corresponding data object
-        const data = networkData.find((item: any) => item.requestId === requestId);
-
-        if (data) {
-          data.responseEnd = endTime;
-          data.responseTime = endTime - startTime;
-          // Get response size
-          try {
-            const body = await response.body();
-            data.size = body.length;
-          } catch (e) {
-            data.size = 0;
-          }
-          const type = request.resourceType();
-          /*
-          domainLookupStart: 80.655,
-          domainLookupEnd: 80.668,
-          connectStart: 80.668,
-          secureConnectionStart: 106.688,
-          connectEnd: 129.69,
-          requestStart: 129.81,
-          responseStart: 187.006,
-          responseEnd: 188.209
-          */
-          data.type = type;
-          data.domainLookupStart = timing.domainLookupStart;
-          data.domainLookupEnd = timing.domainLookupEnd;
-          data.connectStart = timing.connectStart;
-          data.secureConnectionStart = timing.secureConnectionStart;
-          data.connectEnd = timing.connectEnd;
-          data.requestStart = timing.requestStart;
-          data.responseStart = timing.responseStart;
-          data.responseEnd = timing.responseEnd;
-          saveNetworkData();
-          if (world && world.attach) {
-            world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
-          }
-        } else {
-          // console.error("No data found for request ID", requestId);
-        }
-      });
-
-      // Event listener for when a request fails
-      page.on("requestfailed", async (request: any) => {
-        const requestId = request.requestId;
-        const endTime = Date.now();
-        const startTime = requestTimes.get(requestId);
-        await handleRequestFinishedOrFailed(request, true);
         try {
-          const res = await request.response();
-          const statusCode = res ? res.status() : request.failure().errorText;
+          const requestId = request.requestId;
+          const endTime = Date.now();
+          const startTime = requestTimes.get(requestId);
+          await handleRequestFinishedOrFailed(request, false);
+
+          const response = await request.response();
+          const timing = request.timing();
 
           // Find the corresponding data object
           const data = networkData.find((item: any) => item.requestId === requestId);
+
           if (data) {
             data.responseEnd = endTime;
             data.responseTime = endTime - startTime;
-            data.status = statusCode;
-            data.size = 0;
+            // Get response size
+            try {
+              const body = await response.body();
+              data.size = body.length;
+            } catch (e) {
+              data.size = 0;
+            }
+            const type = request.resourceType();
+            /*
+            domainLookupStart: 80.655,
+            domainLookupEnd: 80.668,
+            connectStart: 80.668,
+            secureConnectionStart: 106.688,
+            connectEnd: 129.69,
+            requestStart: 129.81,
+            responseStart: 187.006,
+            responseEnd: 188.209
+            */
+            data.type = type;
+            data.domainLookupStart = timing.domainLookupStart;
+            data.domainLookupEnd = timing.domainLookupEnd;
+            data.connectStart = timing.connectStart;
+            data.secureConnectionStart = timing.secureConnectionStart;
+            data.connectEnd = timing.connectEnd;
+            data.requestStart = timing.requestStart;
+            data.responseStart = timing.responseStart;
+            data.responseEnd = timing.responseEnd;
             saveNetworkData();
             if (world && world.attach) {
               world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
@@ -202,7 +185,40 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
             // console.error("No data found for request ID", requestId);
           }
         } catch (error) {
-          // ignore
+          // console.error("Error handling request finished:", error);
+        }
+      });
+
+      // Event listener for when a request fails
+      page.on("requestfailed", async (request: any) => {
+        try {
+          const requestId = request.requestId;
+          const endTime = Date.now();
+          const startTime = requestTimes.get(requestId);
+          await handleRequestFinishedOrFailed(request, true);
+          try {
+            const res = await request.response();
+            const statusCode = res ? res.status() : request.failure().errorText;
+
+            // Find the corresponding data object
+            const data = networkData.find((item: any) => item.requestId === requestId);
+            if (data) {
+              data.responseEnd = endTime;
+              data.responseTime = endTime - startTime;
+              data.status = statusCode;
+              data.size = 0;
+              saveNetworkData();
+              if (world && world.attach) {
+                world.attach(JSON.stringify(data), { mediaType: "application/json+network" });
+              }
+            } else {
+              // console.error("No data found for request ID", requestId);
+            }
+          } catch (error) {
+            // ignore
+          }
+        } catch (error) {
+          // console.error("Error handling request failed:", error);
         }
       });
     }
