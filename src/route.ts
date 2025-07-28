@@ -271,10 +271,16 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             message = "JSON assertion failed. Response is not JSON";
           } else {
             const actual = objectPath.get(json, action.config.path);
-            if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
+            if (typeof actual !== "object") {
+              if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
+                actionStatus = "fail";
+                tracking.actionResults = actionResults;
+                message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+              }
+            } else if (JSON.stringify(actual) !== action.config.expectedValue) {
               actionStatus = "fail";
               tracking.actionResults = actionResults;
-              message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+              message = `JSON assertion failed for path ${action.config.path}: expected ${action.config.expectedValue}, got ${JSON.stringify(actual)}`;
             } else {
               console.log(`[assert_json] Assertion passed for path ${action.config.path}`);
               message = `JSON assertion passed for path ${action.config.path}`;
