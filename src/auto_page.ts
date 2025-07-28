@@ -360,7 +360,7 @@ const resetTestData = async (envPath: string, world: any) => {
     if (dataFile && existsSync(dataFile)) {
       writeFileSync(dataFile, "{}");
     }
-    getTestData(envName, world);
+    getTestData(envName, world, undefined, undefined, undefined, context);
   }
 };
 
