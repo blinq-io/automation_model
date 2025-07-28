@@ -53,7 +53,6 @@ import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
-import { snapshotValidation } from "./snapshot_validation.js";
 
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 export const Types = {
@@ -74,6 +73,7 @@ export const Types = {
   VERIFY_PAGE_CONTAINS_NO_TEXT: "verify_page_contains_no_text",
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
+  VERIFY_PROPERTY: "verify_element_property",
   VERIFY_PAGE_PATH: "verify_page_path",
   VERIFY_PAGE_TITLE: "verify_page_title",
   TYPE_PRESS: "type_press",
@@ -82,6 +82,7 @@ export const Types = {
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
+  EXTRACT_PROPERTY: "extract_property",
   CLOSE_PAGE: "close_page",
   TABLE_OPERATION: "table_operation",
   SET_DATE_TIME: "set_date_time",
@@ -2637,7 +2638,7 @@ class StableBrowser {
       } else if (isContains) {
         const containsValue = expectedValue.slice(9); // remove "contains:"
         matchPassed = val.includes(containsValue);
-      } else if(isExact) {
+      } else if (isExact) {
         const exactValue = expectedValue.slice(6); // remove "exact:"
         matchPassed = val === exactValue;
       } else if (property === "innerText") {
