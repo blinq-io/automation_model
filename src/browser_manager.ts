@@ -114,6 +114,25 @@ class Browser {
     return -1;
   }
 
+
+  parseChromeDimensions(): { width: number, height: number } | null {
+    try {
+      const tmpDir = os.tmpdir();
+      // check if file screen_size.json exists in tmpDir
+      const screenSizeFile = path.join(tmpDir, "screen_size.json");
+      console.log("Checking for screen size file at: " + screenSizeFile);
+      if (fs.existsSync(screenSizeFile)) {
+        const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
+        if (sizeInfo.screenWidth && sizeInfo.screenHeight) {
+          return {width: sizeInfo.screenWidth, height: sizeInfo.screenHeight};
+        }
+      }
+    } catch (error) {
+      console.error("Error reading screen size file:", error);
+    }
+    return null;
+  }
+
   async init(
     headless = false,
     storageState?: StorageState,
@@ -156,9 +175,13 @@ class Browser {
       viewport = { width: 1280, height: 800 };
     }
     const chromePosition = this.returnWidthIfSpecified();
+    const chromeDimensions = this.parseChromeDimensions();
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
     if (chromePosition > 0) {
       args.push(`--window-position=${chromePosition},100`);
+    }
+    if(chromeDimensions) {
+      args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
     }
 
     if (process.env.CDP_LISTEN_PORT) {
@@ -213,6 +236,9 @@ class Browser {
           if (chromePosition > 0) {
             args.push(`--window-position=${chromePosition},50`);
           }
+          if(chromeDimensions) {
+            args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
+          }
           args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
@@ -229,6 +255,9 @@ class Browser {
           args.push("--use-gtk");
           if (chromePosition > 0) {
             args.push(`--window-position=${chromePosition},50`);
+          }
+          if(chromeDimensions) {
+            args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
           }
           args.push("--use_ozone=false");
           this.browser = await chromium.launch({
