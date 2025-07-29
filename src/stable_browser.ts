@@ -782,6 +782,9 @@ class StableBrowser {
     return null;
   }
   getFullElementLocators(selectors, filePath) {
+    if (!filePath || !existsSync(filePath)) {
+      return null;
+    }
     const content = fs.readFileSync(filePath, "utf8");
     try {
       const allElements = JSON.parse(content);
