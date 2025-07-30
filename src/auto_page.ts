@@ -5,21 +5,10 @@ import path from "path";
 import type { TestContext } from "./test_context.js";
 import { locate_element } from "./locate_element.js";
 import { InitScripts } from "./generation_scripts.js";
-import { _getDataFile, _getTestData, decrypt } from "./utils.js";
+import { _getDataFile, _getTestData, decrypt, measureAsync } from "./utils.js";
 let context: TestContext | null = null;
 let reportFolder = "";
 
-const measureAsync = async <T>(name: string, fn: () => Promise<T>): Promise<T> => {
-  performance.mark(`${name}-start`);
-  try {
-    return await fn();
-  } finally {
-    performance.mark(`${name}-end`);
-    performance.measure(name, `${name}-start`, `${name}-end`);
-    const [entry] = performance.getEntriesByName(name);
-    console.log(`${name}: ${entry.duration.toFixed(3)}ms`);
-  }
-};
 const navigate = async (path = "") => {
   if (path === null && context!.navigate === true) {
     return;
