@@ -4471,7 +4471,7 @@ class StableBrowser {
     if (this.context) {
       this.context.examplesRow = null;
     }
-    if (world && world.attach && !process.env.DISABLE_SNAPSHOT) {
+    if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
       const snapshot = await this.getAriaSnapshot();
       if (snapshot) {
         const obj = {};
