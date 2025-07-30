@@ -1,10 +1,24 @@
 import CryptoJS from "crypto-js";
-
 import path from "path";
 import { TOTP } from "totp-generator";
 import fs from "fs";
 import axios from "axios";
 import objectPath from "object-path";
+
+const measureAsync = async <T>(name: string, fn: () => Promise<T>): Promise<T> => {
+  performance.mark(`${name}-start`);
+  try {
+    return await fn();
+  } finally {
+    performance.mark(`${name}-end`);
+    performance.measure(name, `${name}-start`, `${name}-end`);
+    const [entry] = performance.getEntriesByName(name);
+    console.log(`${name}: ${entry.duration.toFixed(3)}ms`);
+    performance.clearMarks(`${name}-start`);
+    performance.clearMarks(`${name}-end`);
+  }
+};
+
 // Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
@@ -767,6 +781,7 @@ function tryParseJson(input: any): any {
 }
 
 export {
+  measureAsync,
   encrypt,
   decrypt,
   replaceWithLocalTestData,
