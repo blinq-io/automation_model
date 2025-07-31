@@ -12,6 +12,7 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
+import errorStackParser, { StackFrame } from "error-stack-parser";
 import {
   _convertToRegexQuery,
   _copyContext,
@@ -54,6 +55,7 @@ import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
+import { existsSync } from "node:fs";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -753,10 +755,83 @@ class StableBrowser {
     }
     return { rerun: false };
   }
+  getFilePath() {
+    const stackFrames = errorStackParser.parse(new Error());
+    const stackFrame = stackFrames.findLast((frame) => frame.fileName && frame.fileName.endsWith(".mjs"));
+    // return stackFrame?.fileName || null;
+    const filepath = stackFrame?.fileName;
+    if (filepath) {
+      let jsonFilePath = filepath.replace(".mjs", ".json");
+      if (existsSync(jsonFilePath)) {
+        return jsonFilePath;
+      }
+      const config = this.configuration ?? {};
+      if (!config?.locatorsMetadataDir) {
+        config.locatorsMetadataDir = "features/step_definitions/locators";
+      }
+      if (config && config.locatorsMetadataDir) {
+        jsonFilePath = path.join(config.locatorsMetadataDir, path.basename(jsonFilePath));
+      }
+      if (existsSync(jsonFilePath)) {
+        return jsonFilePath;
+      }
+      return null;
+    }
+
+    return null;
+  }
+  getFullElementLocators(selectors, filePath) {
+    if (!filePath || !existsSync(filePath)) {
+      return null;
+    }
+    const content = fs.readFileSync(filePath, "utf8");
+    try {
+      const allElements = JSON.parse(content);
+      const element_key = selectors?.element_key;
+      if (element_key && allElements[element_key]) {
+        return allElements[element_key];
+      }
+      for (const elementKey in allElements) {
+        const element = allElements[elementKey];
+        let foundStrategy = null;
+
+        for (const key in element) {
+          if (key === "strategy") {
+            continue;
+          }
+          const locators = element[key];
+          if (!locators || !locators.length) {
+            continue;
+          }
+          for (const locator of locators) {
+            delete locator.score;
+          }
+          if (JSON.stringify(locators) === JSON.stringify(selectors.locators)) {
+            foundStrategy = key;
+            break;
+          }
+        }
+        if (foundStrategy) {
+          return element;
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing locators from file: " + filePath, error);
+    }
+    return null;
+  }
   async _locate(selectors, info, _params?: Params, timeout, allowDisabled? = false) {
     if (!timeout) {
       timeout = 30000;
     }
+    let element = null;
+    let allStrategyLocators = null;
+    let selectedStrategy = null;
+    if (this.tryAllStrategies) {
+      allStrategyLocators = this.getFullElementLocators(selectors, this.getFilePath());
+      selectedStrategy = allStrategyLocators?.strategy;
+    }
+
     for (let i = 0; i < 3; i++) {
       info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
 
@@ -765,12 +840,51 @@ class StableBrowser {
 
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
-      let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
+      if (this.tryAllStrategies && selectedStrategy) {
+        const strategyLocators = allStrategyLocators[selectedStrategy];
+        let err;
+        if (strategyLocators && strategyLocators.length) {
+          try {
+            selectors.locators = strategyLocators;
+            element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+            info.selectedStrategy = selectedStrategy;
+            info.log += "element found using strategy " + selectedStrategy + "\n";
+          } catch (error) {
+            err = error;
+          }
+        }
+        if (!element) {
+          for (const key in allStrategyLocators) {
+            if (key === "strategy" || key === selectedStrategy) {
+              continue;
+            }
+            const strategyLocators = allStrategyLocators[key];
+            if (strategyLocators && strategyLocators.length) {
+              try {
+                info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
+                selectors.locators = strategyLocators;
+                element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+                info.selectedStrategy = key;
+                info.log += "element found using strategy " + key + "\n";
+                break;
+              } catch (error) {
+                err = error;
+              }
+            }
+          }
+          if (err) {
+            throw err;
+          }
+        }
+      } else {
+        element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
+      }
 
       if (!element.rerun) {
         const randomToken = Math.random().toString(36).substring(7);
         await element.evaluate((el, randomToken) => {
           el.setAttribute("data-blinq-id-" + randomToken, "");
+          console.log("set data-blinq-id-" + randomToken + " on element", el);
         }, randomToken);
         // if (element._frame) {
         //   return element;

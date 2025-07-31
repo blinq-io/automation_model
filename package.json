@@ -34,6 +34,7 @@
     "crypto-js": "^4.2.0",
     "csv-parser": "^3.0.0",
     "dayjs": "^1.11.10",
+    "error-stack-parser": "^2.1.4",
     "jimp": "^1.6.0",
     "object-path": "^0.11.8",
     "playwright": "1.52.0",
