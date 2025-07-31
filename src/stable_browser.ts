@@ -839,10 +839,12 @@ class StableBrowser {
       if (this.tryAllStrategies && selectedStrategy) {
         const strategyLocators = allStrategyLocators[selectedStrategy];
         if (strategyLocators && strategyLocators.length) {
-          selectors.locators = strategyLocators;
-          element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
-          info.selectedStrategy = selectedStrategy;
-          info.log += "element found using strategy " + selectedStrategy + "\n";
+          try {
+            selectors.locators = strategyLocators;
+            element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+            info.selectedStrategy = selectedStrategy;
+            info.log += "element found using strategy " + selectedStrategy + "\n";
+          } catch (error) {}
         }
         if (!element) {
           for (const key in allStrategyLocators) {
@@ -851,12 +853,14 @@ class StableBrowser {
             }
             const strategyLocators = allStrategyLocators[key];
             if (strategyLocators && strategyLocators.length) {
-              info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
-              selectors.locators = strategyLocators;
-              element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
-              info.selectedStrategy = key;
-              info.log += "element found using strategy " + key + "\n";
-              break;
+              try {
+                info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
+                selectors.locators = strategyLocators;
+                element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+                info.selectedStrategy = key;
+                info.log += "element found using strategy " + key + "\n";
+                break;
+              } catch (error) {}
             }
           }
         }
