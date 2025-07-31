@@ -861,6 +861,7 @@ class StableBrowser {
             const strategyLocators = allStrategyLocators[key];
             if (strategyLocators && strategyLocators.length) {
               try {
+                error = null;
                 info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
                 selectors.locators = strategyLocators;
                 element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
@@ -872,9 +873,9 @@ class StableBrowser {
               }
             }
           }
-          if (err) {
-            throw err;
-          }
+        }
+        if (err) {
+          throw err;
         }
       } else {
         element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
