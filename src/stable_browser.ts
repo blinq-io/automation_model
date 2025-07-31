@@ -861,10 +861,10 @@ class StableBrowser {
             const strategyLocators = allStrategyLocators[key];
             if (strategyLocators && strategyLocators.length) {
               try {
-                error = null;
                 info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
                 selectors.locators = strategyLocators;
                 element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+                error = null;
                 info.selectedStrategy = key;
                 info.log += "element found using strategy " + key + "\n";
                 break;
