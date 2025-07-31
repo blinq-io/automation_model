@@ -838,13 +838,16 @@ class StableBrowser {
       }
       if (this.tryAllStrategies && selectedStrategy) {
         const strategyLocators = allStrategyLocators[selectedStrategy];
+        let err;
         if (strategyLocators && strategyLocators.length) {
           try {
             selectors.locators = strategyLocators;
             element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
             info.selectedStrategy = selectedStrategy;
             info.log += "element found using strategy " + selectedStrategy + "\n";
-          } catch (error) {}
+          } catch (error) {
+            err = error;
+          }
         }
         if (!element) {
           for (const key in allStrategyLocators) {
@@ -860,8 +863,13 @@ class StableBrowser {
                 info.selectedStrategy = key;
                 info.log += "element found using strategy " + key + "\n";
                 break;
-              } catch (error) {}
+              } catch (error) {
+                err = error;
+              }
             }
+          }
+          if (err) {
+            throw err;
           }
         }
       } else {
