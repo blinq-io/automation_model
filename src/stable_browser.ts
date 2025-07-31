@@ -788,6 +788,10 @@ class StableBrowser {
     const content = fs.readFileSync(filePath, "utf8");
     try {
       const allElements = JSON.parse(content);
+      const element_key = selectors?.element_key;
+      if (element_key && allElements[element_key]) {
+        return allElements[element_key];
+      }
       for (const elementKey in allElements) {
         const element = allElements[elementKey];
         let foundStrategy = null;
