@@ -1371,7 +1371,7 @@ class StableBrowser {
       await _preCommand(state, this);
       await performAction("click", state.element, options, this, state, _params);
       if (!this.fastMode) {
-        await this.waitForPageLoad();
+        await this.waitForPageLoad({ noSleep: true });
       }
       return state.info;
     } catch (e) {
@@ -1465,7 +1465,7 @@ class StableBrowser {
           }
         }
       }
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1491,7 +1491,7 @@ class StableBrowser {
       await _preCommand(state, this);
       await performAction("hover", state.element, options, this, state, _params);
       await _screenshot(state, this);
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1526,7 +1526,7 @@ class StableBrowser {
         state.info.log += "selectOption failed, will try force" + "\n";
         await state.element.selectOption(values, { timeout: 10000, force: true });
       }
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1791,8 +1791,8 @@ class StableBrowser {
       if (enter) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
+        await this.waitForPageLoad();
       }
-      await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -4135,6 +4135,23 @@ class StableBrowser {
   }
 
   async waitForPageLoad(options = {}, world = null) {
+    // try {
+    //   let currentPagePath = null;
+    //   currentPagePath = new URL(this.page.url()).pathname;
+    //   if (this.latestPagePath) {
+    //     // get the currect page path and compare with the latest page path
+    //     if (this.latestPagePath === currentPagePath) {
+    //       // if the page path is the same, do not wait for page load
+    //       console.log("No page change: " + currentPagePath);
+    //       return;
+    //     }
+    //   }
+    //   this.latestPagePath = currentPagePath;
+    // } catch (e) {
+    //   console.debug("Error getting current page path: ", e);
+    // }
+    //console.log("Waiting for page load");
+
     let timeout = this._getLoadTimeout(options);
     const promiseArray = [];
     // let waitForNetworkIdle = true;
@@ -4172,7 +4189,10 @@ class StableBrowser {
         console.log("waited for the domcontent loaded timeout");
       }
     } finally {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (options && !options.noSleep) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
       _reportToWorld(world, {
