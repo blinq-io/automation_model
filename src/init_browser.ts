@@ -137,33 +137,29 @@ const getContext = async function (
     context.web = web;
   }
   context.api = new Api(logger);
+  if (moveToRight === -1) {
+    moveToRight = parseInt(process.env.CHROME_POSITION || "-1", 10);
+  }
+
   if (moveToRight > 0 && context.browserName === "chromium") {
-    // move the borwser to the top right corner of the screen
-    // create a cdp session
-    // Get CDP session
     const playContext: any = context.playContext;
     const client = await playContext.newCDPSession(context.page);
 
-    // Get window ID for the current target
     const { windowId } = await client.send("Browser.getWindowForTarget");
-    //console.log(windowId);
 
-    // get the window for the current target
     const window = await client.send("Browser.getWindowBounds", {
       windowId,
     });
-    //console.log(window);
     await client.send("Browser.setWindowBounds", {
       windowId,
       bounds: {
         left: window.bounds.left + moveToRight,
+        top: 0,
       },
     });
-    // close cdp
     await client.detach();
   }
 
-  // await _initCookies(context);
   return context;
 };
 const refreshBrowser = async function (web: any, sessionPath: string, world: any) {
@@ -191,7 +187,7 @@ const refreshBrowser = async function (web: any, sessionPath: string, world: any
     web.context.initScripts,
     storageState
   );
-  // clone all the new context properties to the old context
+
   web.context.browser = newContext.browser;
   web.context.browserObject = newContext.browserObject;
   web.context.playContext = newContext.playContext;
@@ -211,7 +207,6 @@ const closeBrowser = async function (browser?: Browser | PlaywrightBrowser) {
 };
 
 const initEnvironment = function () {
-  // if (environment === null) {
   const environment = new Environment();
   try {
     let envFile = "";
@@ -232,21 +227,16 @@ const initEnvironment = function () {
         }
       }
     }
-    // check if the envFile is not empty and exists
     if (!envFile || !fs.existsSync(envFile)) {
       throw new Error(envFile + " not found");
     }
     const data = fs.readFileSync(envFile, "utf8");
-    //console.log("data", data);
     const envObject = JSON.parse(data);
-    //console.log("envObject", envObject);
     Object.assign(environment, envObject);
-    //console.log("env", environment);
     console.log("Base url: " + environment.baseUrl);
   } catch (err) {
     console.error("Error reading env.json", err);
   }
-  // }
   return environment;
 };
 const checkForEnvArg = function () {
