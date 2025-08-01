@@ -227,6 +227,26 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           }
           break;
 
+        case "json_whole_modify":
+          if (!json) {
+            actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = "JSON modification failed. Response is not JSON";
+          } else {
+            try {
+              const parsedConfig = JSON.parse(action.config);
+              json = parsedConfig; // Replace whole JSON with new value
+            } catch (e: unknown) {
+              actionStatus = "fail";
+              tracking.actionResults = actionResults;
+              message = `JSON modification failed. Invalid JSON: ${e instanceof Error ? e.message : String(e)}`;
+              console.error(`[json_whole_modify] Invalid JSON:`, e);
+              break;
+            }
+            console.log(`[json_whole_modify] Whole JSON replaced`);
+            message = `JSON replaced successfully`;
+          }
+          break;
         case "status_code_change":
           status = Number(action.config);
           console.log(`[status_code_change] Status changed to ${status}`);
@@ -251,10 +271,16 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             message = "JSON assertion failed. Response is not JSON";
           } else {
             const actual = objectPath.get(json, action.config.path);
-            if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
+            if (typeof actual !== "object") {
+              if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
+                actionStatus = "fail";
+                tracking.actionResults = actionResults;
+                message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+              }
+            } else if (JSON.stringify(actual) !== action.config.expectedValue) {
               actionStatus = "fail";
               tracking.actionResults = actionResults;
-              message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+              message = `JSON assertion failed for path ${action.config.path}: expected ${action.config.expectedValue}, got ${JSON.stringify(actual)}`;
             } else {
               console.log(`[assert_json] Assertion passed for path ${action.config.path}`);
               message = `JSON assertion passed for path ${action.config.path}`;
@@ -262,6 +288,32 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           }
           break;
 
+        case "assert_whole_json":
+          if (!json) {
+            actionStatus = "fail";
+            tracking.actionResults = actionResults;
+            message = "Whole JSON assertion failed. Response is not JSON";
+          } else {
+            if (action.config.contains) {
+              const originalJSON = JSON.stringify(json, null, 2);
+              if (!originalJSON.includes(action.config.contains)) {
+                actionStatus = "fail";
+                tracking.actionResults = actionResults;
+                message = `Whole JSON assertion failed. Expected to contain: "${action.config.contains}", actual: "${body}"`;
+              }
+            } else if (action.config.equals) {
+              const originalJSON = JSON.stringify(json, null, 2);
+              if (originalJSON !== action.config.equals) {
+                actionStatus = "fail";
+                tracking.actionResults = actionResults;
+                message = `Whole JSON assertion failed. Expected exact match: "${action.config.equals}", actual: "${body}"`;
+              }
+            } else {
+              console.log(`[assert_whole_json] Assertion passed`);
+              message = `Whole JSON assertion passed.`;
+            }
+          }
+          break;
         case "assert_text":
           if (typeof body !== "string") {
             console.error(`[assert_text] Body is not text`);

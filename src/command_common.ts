@@ -27,6 +27,9 @@ type JsonCommandReport = {
 };
 
 export async function _preCommand(state: any, web: any) {
+  if (web.abortedExecution) {
+    return new Error("Aborted");
+  }
   if (web && web.getCmdId) {
     state.cmdId = web.getCmdId();
   }
@@ -106,6 +109,10 @@ export async function _preCommand(state: any, web: any) {
   state.info.failCause.operationFailed = true;
 }
 export async function _commandError(state: any, error: any, web: any) {
+  if (web.abortedExecution) {
+    return;
+  }
+
   if (!state.info) {
     state.info = {};
   }
@@ -162,6 +169,10 @@ export async function _screenshot(state: any, web: any, specificElement?: any) {
 }
 
 export async function _commandFinally(state: any, web: any) {
+  if (web.abortedExecution) {
+    return;
+  }
+
   if (state && !state.commandError === true) {
     state.info.failCause = {};
   }

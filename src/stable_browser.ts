@@ -12,6 +12,7 @@ import drawRectangle from "./drawRect.js";
 //import { closeUnexpectedPopups } from "./popups.js";
 import { getTableCells, getTableData } from "./table_analyze.js";
 import objectPath from "object-path";
+import errorStackParser, { StackFrame } from "error-stack-parser";
 import {
   _convertToRegexQuery,
   _copyContext,
@@ -53,9 +54,9 @@ import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
-import { snapshotValidation } from "./snapshot_validation.js";
 
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
+import { existsSync } from "node:fs";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -74,6 +75,7 @@ export const Types = {
   VERIFY_PAGE_CONTAINS_NO_TEXT: "verify_page_contains_no_text",
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
+  VERIFY_PROPERTY: "verify_element_property",
   VERIFY_PAGE_PATH: "verify_page_path",
   VERIFY_PAGE_TITLE: "verify_page_title",
   TYPE_PRESS: "type_press",
@@ -82,6 +84,7 @@ export const Types = {
   CHECK: "check_element",
   UNCHECK: "uncheck_element",
   EXTRACT: "extract_attribute",
+  EXTRACT_PROPERTY: "extract_property",
   CLOSE_PAGE: "close_page",
   TABLE_OPERATION: "table_operation",
   SET_DATE_TIME: "set_date_time",
@@ -115,6 +118,7 @@ class StableBrowser {
   tags = null;
   isRecording = false;
   initSnapshotTaken = false;
+  abortedExecution = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -752,22 +756,136 @@ class StableBrowser {
     }
     return { rerun: false };
   }
+  getFilePath() {
+    const stackFrames = errorStackParser.parse(new Error());
+    const stackFrame = stackFrames.findLast((frame) => frame.fileName && frame.fileName.endsWith(".mjs"));
+    // return stackFrame?.fileName || null;
+    const filepath = stackFrame?.fileName;
+    if (filepath) {
+      let jsonFilePath = filepath.replace(".mjs", ".json");
+      if (existsSync(jsonFilePath)) {
+        return jsonFilePath;
+      }
+      const config = this.configuration ?? {};
+      if (!config?.locatorsMetadataDir) {
+        config.locatorsMetadataDir = "features/step_definitions/locators";
+      }
+      if (config && config.locatorsMetadataDir) {
+        jsonFilePath = path.join(config.locatorsMetadataDir, path.basename(jsonFilePath));
+      }
+      if (existsSync(jsonFilePath)) {
+        return jsonFilePath;
+      }
+      return null;
+    }
+
+    return null;
+  }
+  getFullElementLocators(selectors, filePath) {
+    if (!filePath || !existsSync(filePath)) {
+      return null;
+    }
+    const content = fs.readFileSync(filePath, "utf8");
+    try {
+      const allElements = JSON.parse(content);
+      const element_key = selectors?.element_key;
+      if (element_key && allElements[element_key]) {
+        return allElements[element_key];
+      }
+      for (const elementKey in allElements) {
+        const element = allElements[elementKey];
+        let foundStrategy = null;
+
+        for (const key in element) {
+          if (key === "strategy") {
+            continue;
+          }
+          const locators = element[key];
+          if (!locators || !locators.length) {
+            continue;
+          }
+          for (const locator of locators) {
+            delete locator.score;
+          }
+          if (JSON.stringify(locators) === JSON.stringify(selectors.locators)) {
+            foundStrategy = key;
+            break;
+          }
+        }
+        if (foundStrategy) {
+          return element;
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing locators from file: " + filePath, error);
+    }
+    return null;
+  }
   async _locate(selectors, info, _params?: Params, timeout, allowDisabled? = false) {
     if (!timeout) {
       timeout = 30000;
     }
+    let element = null;
+    let allStrategyLocators = null;
+    let selectedStrategy = null;
+    if (this.tryAllStrategies) {
+      allStrategyLocators = this.getFullElementLocators(selectors, this.getFilePath());
+      selectedStrategy = allStrategyLocators?.strategy;
+    }
+
     for (let i = 0; i < 3; i++) {
       info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
+
       for (let j = 0; j < selectors.locators.length; j++) {
         let selector = selectors.locators[j];
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
-      let element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
+      if (this.tryAllStrategies && selectedStrategy) {
+        const strategyLocators = allStrategyLocators[selectedStrategy];
+        let err;
+        if (strategyLocators && strategyLocators.length) {
+          try {
+            selectors.locators = strategyLocators;
+            element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+            info.selectedStrategy = selectedStrategy;
+            info.log += "element found using strategy " + selectedStrategy + "\n";
+          } catch (error) {
+            err = error;
+          }
+        }
+        if (!element) {
+          for (const key in allStrategyLocators) {
+            if (key === "strategy" || key === selectedStrategy) {
+              continue;
+            }
+            const strategyLocators = allStrategyLocators[key];
+            if (strategyLocators && strategyLocators.length) {
+              try {
+                info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
+                selectors.locators = strategyLocators;
+                element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+                err = null;
+                info.selectedStrategy = key;
+                info.log += "element found using strategy " + key + "\n";
+                break;
+              } catch (error) {
+                err = error;
+              }
+            }
+          }
+        }
+        if (err) {
+          throw err;
+        }
+      } else {
+        element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
+      }
 
       if (!element.rerun) {
         const randomToken = Math.random().toString(36).substring(7);
         await element.evaluate((el, randomToken) => {
           el.setAttribute("data-blinq-id-" + randomToken, "");
+          console.log("set data-blinq-id-" + randomToken + " on element", el);
         }, randomToken);
         // if (element._frame) {
         //   return element;
@@ -2611,48 +2729,54 @@ class StableBrowser {
 
       state.info.value = val;
       let regex;
-      if (expectedValue.startsWith("/") && expectedValue.endsWith("/")) {
-        const patternBody = expectedValue.slice(1, -1);
-        const processedPattern = patternBody.replace(/\n/g, ".*");
-        regex = new RegExp(processedPattern, "gs");
-        state.info.regex = true;
-      } else {
-        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        regex = new RegExp(escapedPattern, "g");
-      }
-      if (property === "innerText") {
-        if (state.info.regex) {
-          if (!regex.test(val)) {
-            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
-            state.info.failCause.assertionFailed = true;
-            state.info.failCause.lastError = errorMessage;
-            throw new Error(errorMessage);
-          }
+      state.info.value = val;
+
+      const isRegex = expectedValue.startsWith("regex:");
+      const isContains = expectedValue.startsWith("contains:");
+      const isExact = expectedValue.startsWith("exact:");
+      let matchPassed = false;
+
+      if (isRegex) {
+        const rawPattern = expectedValue.slice(6); // remove "regex:"
+        const lastSlashIndex = rawPattern.lastIndexOf("/");
+        if (rawPattern.startsWith("/") && lastSlashIndex > 0) {
+          const patternBody = rawPattern.slice(1, lastSlashIndex).replace(/\n/g, ".*");
+          const flags = rawPattern.slice(lastSlashIndex + 1) || "gs";
+          const regex = new RegExp(patternBody, flags);
+          state.info.regex = true;
+          matchPassed = regex.test(val);
         } else {
-          // Fix: Replace escaped newlines with actual newlines before splitting
-          const normalizedExpectedValue = expectedValue.replace(/\\n/g, "\n");
-          const valLines = val.split("\n");
-          const expectedLines = normalizedExpectedValue.split("\n");
-
-          // Check if all expected lines are present in the actual lines
-          const isPart = expectedLines.every((expectedLine) =>
-            valLines.some((valLine) => valLine.trim() === expectedLine.trim())
-          );
-
-          if (!isPart) {
-            let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
-            state.info.failCause.assertionFailed = true;
-            state.info.failCause.lastError = errorMessage;
-            throw new Error(errorMessage);
-          }
+          // Fallback: treat as literal
+          const escapedPattern = rawPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(escapedPattern, "g");
+          matchPassed = regex.test(val);
         }
+      } else if (isContains) {
+        const containsValue = expectedValue.slice(9); // remove "contains:"
+        matchPassed = val.includes(containsValue);
+      } else if (isExact) {
+        const exactValue = expectedValue.slice(6); // remove "exact:"
+        matchPassed = val === exactValue;
+      } else if (property === "innerText") {
+        // Default innerText logic
+        const normalizedExpectedValue = expectedValue.replace(/\\n/g, "\n");
+        const valLines = val.split("\n");
+        const expectedLines = normalizedExpectedValue.split("\n");
+        matchPassed = expectedLines.every((expectedLine) =>
+          valLines.some((valLine) => valLine.trim() === expectedLine.trim())
+        );
       } else {
-        if (!val.match(regex)) {
-          let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
-          state.info.failCause.assertionFailed = true;
-          state.info.failCause.lastError = errorMessage;
-          throw new Error(errorMessage);
-        }
+        // Fallback exact or loose match
+        const escapedPattern = expectedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escapedPattern, "g");
+        matchPassed = regex.test(val);
+      }
+
+      if (!matchPassed) {
+        let errorMessage = `The ${property} property has a value of "${val}", but the expected value is "${expectedValue}"`;
+        state.info.failCause.assertionFailed = true;
+        state.info.failCause.lastError = errorMessage;
+        throw new Error(errorMessage);
       }
       return state.info;
     } catch (e) {
@@ -4312,6 +4436,9 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
+    if (this.abortedExecution) {
+      throw new Error("Aborted");
+    }
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
       this.context.loadedRoutes = null;

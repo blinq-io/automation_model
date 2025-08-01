@@ -186,7 +186,7 @@ const getEnv = (envName: string | null) => {
   return null;
 };
 const closeContext = async () => {
-  if (process.env.TEMP_RUN) {
+  if (process.env.TEMP_RUN || context?.web?.abortedExecution) {
     return;
   }
   try {
@@ -317,10 +317,14 @@ const getTestData = async (
         };
       }
     }
-    if (dataFile && !existsSync(path.dirname(dataFile))) {
+
+    if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+
+    // Always ensure directory exists before writing
+    if (!existsSync(path.dirname(dataFile))) {
       mkdirSync(path.dirname(dataFile), { recursive: true });
     }
-    if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
+
     if (existsSync(dataFile)) {
       try {
         //const content = readFileSync(dataFile, "utf8");
@@ -345,7 +349,7 @@ const resetTestData = async (envPath: string, world: any) => {
     if (dataFile && existsSync(dataFile)) {
       writeFileSync(dataFile, "{}");
     }
-    getTestData(envName, world);
+    getTestData(envName, world, undefined, undefined, undefined, context);
   }
 };
 
