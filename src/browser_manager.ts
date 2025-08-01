@@ -101,7 +101,7 @@ class Browser {
       const tmpDir = os.tmpdir();
       // check if file screen_size.json exists in tmpDir
       const screenSizeFile = path.join(tmpDir, "screen_size.json");
-      console.log("Checking for screen size file at: " + screenSizeFile);
+      //console.log("Checking for screen size file at: " + screenSizeFile);
       if (fs.existsSync(screenSizeFile)) {
         const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
         if (sizeInfo.width) {
@@ -114,17 +114,16 @@ class Browser {
     return -1;
   }
 
-
-  parseChromeDimensions(): { width: number, height: number } | null {
+  parseChromeDimensions(): { width: number; height: number } | null {
     try {
       const tmpDir = os.tmpdir();
       // check if file screen_size.json exists in tmpDir
       const screenSizeFile = path.join(tmpDir, "screen_size.json");
-      console.log("Checking for screen size file at: " + screenSizeFile);
+      //console.log("Checking for screen size file at: " + screenSizeFile);
       if (fs.existsSync(screenSizeFile)) {
         const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
         if (sizeInfo.screenWidth && sizeInfo.screenHeight) {
-          return {width: sizeInfo.screenWidth, height: sizeInfo.screenHeight};
+          return { width: sizeInfo.screenWidth, height: sizeInfo.screenHeight };
         }
       }
     } catch (error) {
@@ -180,7 +179,7 @@ class Browser {
     if (chromePosition > 0) {
       args.push(`--window-position=${chromePosition},100`);
     }
-    if(chromeDimensions) {
+    if (chromeDimensions) {
       args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
     }
 
@@ -236,7 +235,7 @@ class Browser {
           if (chromePosition > 0) {
             args.push(`--window-position=${chromePosition},50`);
           }
-          if(chromeDimensions) {
+          if (chromeDimensions) {
             args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
           }
           args.push("--use_ozone=false");
@@ -256,7 +255,7 @@ class Browser {
           if (chromePosition > 0) {
             args.push(`--window-position=${chromePosition},50`);
           }
-          if(chromeDimensions) {
+          if (chromeDimensions) {
             args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
           }
           args.push("--use_ozone=false");
