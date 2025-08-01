@@ -96,21 +96,41 @@ class Browser {
     this.page = null;
   }
 
-  returnWidthIfSpecified(){
-    try{
-    const tmpDir = os.tmpdir();
-    // check if file screen_size.json exists in tmpDir
-    const screenSizeFile = path.join(tmpDir, "screen_size.json");
-    console.log("Checking for screen size file at: " + screenSizeFile);
-    if (fs.existsSync(screenSizeFile)) {
-      const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
-      if (sizeInfo.width) {
-        return sizeInfo.width;
+  returnWidthIfSpecified() {
+    try {
+      const tmpDir = os.tmpdir();
+      // check if file screen_size.json exists in tmpDir
+      const screenSizeFile = path.join(tmpDir, "screen_size.json");
+      console.log("Checking for screen size file at: " + screenSizeFile);
+      if (fs.existsSync(screenSizeFile)) {
+        const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
+        if (sizeInfo.width) {
+          return sizeInfo.width;
+        }
       }
-    }} catch (error) {
+    } catch (error) {
       console.error("Error reading screen size file:", error);
     }
-    return -1;  
+    return -1;
+  }
+
+
+  parseChromeDimensions(): { width: number, height: number } | null {
+    try {
+      const tmpDir = os.tmpdir();
+      // check if file screen_size.json exists in tmpDir
+      const screenSizeFile = path.join(tmpDir, "screen_size.json");
+      console.log("Checking for screen size file at: " + screenSizeFile);
+      if (fs.existsSync(screenSizeFile)) {
+        const sizeInfo = JSON.parse(fs.readFileSync(screenSizeFile, "utf-8"));
+        if (sizeInfo.screenWidth && sizeInfo.screenHeight) {
+          return {width: sizeInfo.screenWidth, height: sizeInfo.screenHeight};
+        }
+      }
+    } catch (error) {
+      console.error("Error reading screen size file:", error);
+    }
+    return null;
   }
 
   async init(
@@ -154,8 +174,16 @@ class Browser {
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
-    const chromePosition = viewport ? viewport.width : 800;
-        const args = ["--ignore-https-errors", "--ignore-certificate-errors", `--window-position=${chromePosition},100`];
+    const chromePosition = this.returnWidthIfSpecified();
+    const chromeDimensions = this.parseChromeDimensions();
+    const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
+    if (chromePosition > 0) {
+      args.push(`--window-position=${chromePosition},100`);
+    }
+    if(chromeDimensions) {
+      args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
+    }
+
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
@@ -164,7 +192,13 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk", "--use_ozone=false"],
+        args: [
+          "--ignore-https-errors",
+          "--no-incognito",
+          "--ignore-certificate-errors",
+          "--use-gtk",
+          "--use_ozone=false",
+        ],
       });
     } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
@@ -198,8 +232,13 @@ class Browser {
         });
       } else if (channel) {
         {
-          args.push('--use-gtk');
-          args.push(`--window-position=${chromePosition},50`);
+          args.push("--use-gtk");
+          if (chromePosition > 0) {
+            args.push(`--window-position=${chromePosition},50`);
+          }
+          if(chromeDimensions) {
+            args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
+          }
           args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
@@ -213,8 +252,13 @@ class Browser {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
         } else {
-          args.push('--use-gtk');
-          args.push(`--window-position=${chromePosition},50`);
+          args.push("--use-gtk");
+          if (chromePosition > 0) {
+            args.push(`--window-position=${chromePosition},50`);
+          }
+          if(chromeDimensions) {
+            args.push(`--window-size=${chromeDimensions.width},${chromeDimensions.height}`);
+          }
           args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
