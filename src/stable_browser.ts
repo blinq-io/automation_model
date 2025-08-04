@@ -118,6 +118,7 @@ class StableBrowser {
   isRecording = false;
   initSnapshotTaken = false;
   abortedExecution = false;
+  onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
   constructor(
     public browser: Browser,
     public page: Page,
@@ -1209,9 +1210,13 @@ class StableBrowser {
         }
       }
       if (foundLocators.length === 1) {
+        let box = null;
+        if (!this.onlyFailuresScreenshot) {
+          box = await foundLocators[0].boundingBox();
+        }
         result.foundElements.push({
           locator: foundLocators[0],
-          box: await foundLocators[0].boundingBox(),
+          box: box,
           unique: true,
         });
         result.locatorIndex = i;
