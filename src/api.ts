@@ -221,42 +221,43 @@ class Api {
       if (res.status != config.status) {
         throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${config.status}`);
       }
-      if (info.tests) {
-        info.tests?.forEach((test) => {
-          test.fail = true;
-          const receivedValue = getValue(res.data, test.pattern);
-          test.receivedValue = receivedValue;
-          switch (test.operator) {
-            case "eq":
-              test.fail = receivedValue !== test.value;
-              break;
-            case "ne":
-              test.fail = receivedValue === test.value;
-              break;
-            case "gt":
-              test.fail = receivedValue <= test.value;
-              break;
-            case "lt":
-              test.fail = receivedValue >= test.value;
-              break;
-            case "gte":
-              test.fail = receivedValue < test.value;
-              break;
-            case "lte":
-              test.fail = receivedValue > test.value;
-              break;
-            case "mat":
-              test.fail = !new RegExp(test.value as string).test(receivedValue);
-              break;
-            default:
-              test.fail = true;
-              break;
-          }
-        });
-
+      if (info.tests && Array.isArray(info.tests) && info.tests.length > 0) {
+        await Promise.all(
+          info.tests.map(async (test) => {
+            test.fail = true;
+            const receivedValue = getValue(res.data, test.pattern);
+            test.receivedValue = receivedValue;
+            test.value = await repStrWParamTData(String(test.value), params, testData, world);
+            switch (test.operator) {
+              case "eq":
+                test.fail = receivedValue !== test.value;
+                break;
+              case "ne":
+                test.fail = receivedValue === test.value;
+                break;
+              case "gt":
+                test.fail = receivedValue <= test.value;
+                break;
+              case "lt":
+                test.fail = receivedValue >= test.value;
+                break;
+              case "gte":
+                test.fail = receivedValue < test.value;
+                break;
+              case "lte":
+                test.fail = receivedValue > test.value;
+                break;
+              case "mat":
+                test.fail = !new RegExp(test.value).test(receivedValue);
+                break;
+              default:
+                test.fail = true;
+                break;
+            }
+          })
+        );
         const testsFailed = info.tests.filter((test) => test.fail);
         info.testsPassed = info.tests.length - testsFailed.length;
-
         state.info.headers = res.headers;
         state.info.status = res.status;
         state.info.data = res.data;

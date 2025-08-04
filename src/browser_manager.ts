@@ -13,7 +13,6 @@ import path from "path";
 import { InitScripts } from "./generation_scripts.js";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
-// Get __filename and __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -74,12 +73,6 @@ class BrowserManager {
     this.browsers.push(browser);
     return browser;
   }
-  // async getBrowser(headless = false, storageState?: StorageState, extensionPath?: string, userDataDirPath?: string) {
-  //   if (this.browsers.length === 0) {
-  //     return await this.createBrowser(headless, storageState, extensionPath, userDataDirPath);
-  //   }
-  //   return this.browsers[0];
-  // }
 }
 class Browser {
   browser: PlaywrightBrowser | null;
@@ -109,13 +102,7 @@ class Browser {
     if (!aiConfig) {
       aiConfig = {};
     }
-    // if (!downloadsPath) {
-    //   downloadsPath = "downloads";
-    // }
-    // // check if downloads path exists
-    // if (!fs.existsSync(downloadsPath)) {
-    //   fs.mkdirSync(downloadsPath, { recursive: true });
-    // }
+
     this.headless = headless;
     if (reportFolder) {
       this.reportFolder = reportFolder;
@@ -136,7 +123,9 @@ class Browser {
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
+
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
+
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
@@ -145,7 +134,13 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
-        args: ["--ignore-https-errors", "--no-incognito", "--ignore-certificate-errors", "--use-gtk"],
+        args: [
+          "--ignore-https-errors",
+          "--no-incognito",
+          "--ignore-certificate-errors",
+          "--use-gtk",
+          "--use_ozone=false",
+        ],
       });
     } else if (extensionPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath ?? "", {
@@ -159,6 +154,7 @@ class Browser {
           "--no-incognito",
           "--ignore-certificate-errors",
           "--use-gtk",
+          "--use_ozone=false",
         ],
       });
     } else {
@@ -167,40 +163,36 @@ class Browser {
           headless: headless,
           timeout: 0,
           args,
-          //downloadsPath: downloadsPath,
         });
       } else if (process.env.BROWSER === "webkit") {
         this.browser = await webkit.launch({
           headless: headless,
           timeout: 0,
           args,
-          //downloadsPath: downloadsPath,
         });
       } else if (channel) {
-        {
-          args.push("--use-gtk");
-          this.browser = await chromium.launch({
-            headless: headless,
-            timeout: 0,
-            args,
-            channel: channel,
-            //downloadsPath: downloadsPath,
-          });
-        }
+        args.push("--use-gtk");
+        args.push("--use_ozone=false");
+        this.browser = await chromium.launch({
+          headless: headless,
+          timeout: 0,
+          args,
+          channel: channel,
+        });
       } else {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
         } else {
           args.push("--use-gtk");
+          args.push("--use_ozone=false");
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
             args,
-            //downloadsPath: downloadsPath,
           });
         }
       }
-      // downloadsPath
+
       let contextOptions: any = {};
       if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
@@ -237,7 +229,6 @@ class Browser {
     if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
       this.trace = true;
       const traceFolder = path.join(this.reportFolder!, "trace");
-      //const traceFile = path.join(traceFolder, "trace.zip");
       if (!fs.existsSync(traceFolder)) {
         fs.mkdirSync(traceFolder, { recursive: true });
       }
@@ -290,11 +281,9 @@ class Browser {
       }
     }
     let axeMinJsPath = path.join(__dirname, "..", "scripts", "axe.mini.js");
-    // Check if the file exists
     if (!fs.existsSync(axeMinJsPath)) {
       axeMinJsPath = path.join(__dirname, "scripts", "axe.mini.js");
     }
-    // Read the content of axe.min.js synchronously
     const axeMinJsContent = fs.readFileSync(axeMinJsPath, "utf-8");
     await this.context?.addInitScript({
       content: axeMinJsContent,
