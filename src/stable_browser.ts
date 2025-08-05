@@ -1395,6 +1395,9 @@ class StableBrowser {
       await _commandFinally(state, this);
       check_performance("click_commandFinally", this.context, false);
       check_performance("click_all ***", this.context, false);
+      if (this.context.profile) {
+        console.log(JSON.stringify(this.context.profile, null, 2));
+      }
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
