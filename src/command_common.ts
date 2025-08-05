@@ -1,3 +1,4 @@
+import { profile } from "./profile.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { _fixUsingParams, maskValue, replaceWithLocalTestData } from "./utils.js";
@@ -99,7 +100,9 @@ export async function _preCommand(state: any, web: any) {
   }
   if (state.screenshot === true /*&& !web.fastMode*/) {
     if (!state.onlyFailuresScreenshot) {
+      profile("screenshot", web.context, true);
       await _screenshot(state, web);
+      profile("screenshot", web.context, false);
     }
   }
   if (state.highlight === true) {

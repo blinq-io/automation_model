@@ -56,6 +56,7 @@ import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js"
 import { loadBrunoParams } from "./bruno.js";
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
+import { profile } from "./profile.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -554,12 +555,6 @@ class StableBrowser {
             if (!el.setAttribute) {
               el = el.parentElement;
             }
-            // remove any attributes start with data-blinq-id
-            // for (let i = 0; i < el.attributes.length; i++) {
-            //   if (el.attributes[i].name.startsWith("data-blinq-id")) {
-            //     el.removeAttribute(el.attributes[i].name);
-            //   }
-            // }
             el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
@@ -883,16 +878,24 @@ class StableBrowser {
       }
 
       if (!element.rerun) {
-        const randomToken = Math.random().toString(36).substring(7);
-        await element.evaluate((el, randomToken) => {
-          el.setAttribute("data-blinq-id-" + randomToken, "");
-          console.log("set data-blinq-id-" + randomToken + " on element", el);
+        const randomToken = "blinq_" + Math.random().toString(36).substring(7);
+        const id = await element.evaluate((el, randomToken) => {
+          // check if the element has id attribute
+          if (el.id) {
+            return el.id;
+          }
+          el.setAttribute("id", randomToken);
+          console.log("set id=" + randomToken + " on element", el);
+          return randomToken;
         }, randomToken);
-        // if (element._frame) {
-        //   return element;
-        // }
+
         const scope = element._frame ?? element.page();
-        let newElementSelector = "[data-blinq-id-" + randomToken + "]";
+        let newElementSelector = "#" + id;
+        // check if the id contains :
+        if (id.includes(":")) {
+          // //*[@id="radix-:r0:"]
+          newElementSelector = `//*[@id="${id}"]`;
+        }
         let prefixSelector = "";
         const frameControlSelector = " >> internal:control=enter-frame";
         const frameSelectorIndex = element._selector.lastIndexOf(frameControlSelector);
@@ -1372,17 +1375,25 @@ class StableBrowser {
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
     };
+    profile("click_all ***", this.context, true);
     try {
+      profile("click_preCommand", this.context, true);
       await _preCommand(state, this);
+      profile("click_preCommand", this.context, false);
       await performAction("click", state.element, options, this, state, _params);
       if (!this.fastMode) {
+        profile("click_waitForPageLoad", this.context, true);
         await this.waitForPageLoad({ noSleep: true });
+        profile("click_waitForPageLoad", this.context, false);
       }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
+      profile("click_commandFinally", this.context, true);
       await _commandFinally(state, this);
+      profile("click_commandFinally", this.context, false);
+      profile("click_all ***", this.context, false);
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
