@@ -1375,25 +1375,25 @@ class StableBrowser {
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
     };
-    profile("click_all ***", this.context, true);
+    //profile("click_all ***", this.context, true);
     try {
-      profile("click_preCommand", this.context, true);
+      //profile("click_preCommand", this.context, true);
       await _preCommand(state, this);
-      profile("click_preCommand", this.context, false);
+      //profile("click_preCommand", this.context, false);
       await performAction("click", state.element, options, this, state, _params);
       if (!this.fastMode) {
-        profile("click_waitForPageLoad", this.context, true);
+        //profile("click_waitForPageLoad", this.context, true);
         await this.waitForPageLoad({ noSleep: true });
-        profile("click_waitForPageLoad", this.context, false);
+        //profile("click_waitForPageLoad", this.context, false);
       }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      profile("click_commandFinally", this.context, true);
+      //profile("click_commandFinally", this.context, true);
       await _commandFinally(state, this);
-      profile("click_commandFinally", this.context, false);
-      profile("click_all ***", this.context, false);
+      //profile("click_commandFinally", this.context, false);
+      //profile("click_all ***", this.context, false);
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
