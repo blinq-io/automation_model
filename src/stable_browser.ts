@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { check_performance } from "./check_performance.js";
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
@@ -56,7 +57,7 @@ import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js"
 import { loadBrunoParams } from "./bruno.js";
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
-import { profile } from "./profile.js";
+import { profile } from "./check_performance.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -1375,25 +1376,28 @@ class StableBrowser {
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
     };
-    //profile("click_all ***", this.context, true);
+    check_performance("click_all ***", this.context, true);
     try {
-      //profile("click_preCommand", this.context, true);
+      check_performance("click_preCommand", this.context, true);
       await _preCommand(state, this);
-      //profile("click_preCommand", this.context, false);
+      check_performance("click_preCommand", this.context, false);
       await performAction("click", state.element, options, this, state, _params);
       if (!this.fastMode) {
-        //profile("click_waitForPageLoad", this.context, true);
+        check_performance("click_waitForPageLoad", this.context, true);
         await this.waitForPageLoad({ noSleep: true });
-        //profile("click_waitForPageLoad", this.context, false);
+        check_performance("click_waitForPageLoad", this.context, false);
       }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
-      //profile("click_commandFinally", this.context, true);
+      check_performance("click_commandFinally", this.context, true);
       await _commandFinally(state, this);
-      //profile("click_commandFinally", this.context, false);
-      //profile("click_all ***", this.context, false);
+      check_performance("click_commandFinally", this.context, false);
+      check_performance("click_all ***", this.context, false);
+      if (this.context.profile) {
+        console.log(JSON.stringify(this.context.profile, null, 2));
+      }
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
