@@ -8,8 +8,7 @@ import { Browser as PlaywrightBrowser } from "playwright";
 import { Browser } from "./browser_manager.js";
 import { Api } from "./api.js";
 import { InitScripts } from "./generation_scripts.js";
-
-// let environment = null;
+import { measureAsync } from "./utils.js";
 
 // init browser create context and page, if context and page are not null
 const getContext = async function (
@@ -25,142 +24,144 @@ const getContext = async function (
   initScripts: InitScripts | null = null,
   storageState: any | null = null
 ) {
-  if (environment === null) {
-    environment = initEnvironment();
-  }
-  if (appName && !environment.apps && !environment.apps[appName]) {
-    throw new Error(`App ${appName} not found in environment`);
-  }
-  if (appName) {
-    environment = environment.apps[appName];
-  }
-  const { cookies, origins } = environment;
-  if (cookies) {
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i];
-      if (cookie.expires === "undefined") {
-        delete cookie.expires;
+  return measureAsync("browser Launch", async () => {
+    if (environment === null) {
+      environment = initEnvironment();
+    }
+    if (appName && !environment.apps && !environment.apps[appName]) {
+      throw new Error(`App ${appName} not found in environment`);
+    }
+    if (appName) {
+      environment = environment.apps[appName];
+    }
+    const { cookies, origins } = environment;
+    if (cookies) {
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        if (cookie.expires === "undefined") {
+          delete cookie.expires;
+        }
       }
     }
-  }
-  let extensionPath = undefined;
-  let userDataDirPath = undefined;
-  let userAgent = undefined;
-  let aiConfigFile = "ai_config.json";
-  let channel = undefined;
-  if (process.env.PROJECT_PATH) {
-    aiConfigFile = path.join(process.env.PROJECT_PATH, "ai_config.json");
-  }
-  let configuration: any = {};
-  if (fs.existsSync(aiConfigFile)) {
-    configuration = JSON.parse(fs.readFileSync(aiConfigFile, "utf8"));
-    if (configuration.userDataDirPath) {
-      userDataDirPath = configuration.userDataDirPath;
+    let extensionPath = undefined;
+    let userDataDirPath = undefined;
+    let userAgent = undefined;
+    let aiConfigFile = "ai_config.json";
+    let channel = undefined;
+    if (process.env.PROJECT_PATH) {
+      aiConfigFile = path.join(process.env.PROJECT_PATH, "ai_config.json");
     }
-    if (configuration.extensionPath) {
-      extensionPath = configuration.extensionPath;
-    }
+    let configuration: any = {};
+    if (fs.existsSync(aiConfigFile)) {
+      configuration = JSON.parse(fs.readFileSync(aiConfigFile, "utf8"));
+      if (configuration.userDataDirPath) {
+        userDataDirPath = configuration.userDataDirPath;
+      }
+      if (configuration.extensionPath) {
+        extensionPath = configuration.extensionPath;
+      }
 
-    if (configuration.useGoogleChrome === true) {
-      channel = "chrome";
-    } else if (configuration.useMicrosoftEdge === true) {
-      channel = "msedge";
-    }
+      if (configuration.useGoogleChrome === true) {
+        channel = "chrome";
+      } else if (configuration.useMicrosoftEdge === true) {
+        channel = "msedge";
+      }
 
-    if (configuration.overrideUserAgent) {
-      userAgent = configuration.overrideUserAgent;
-    }
-  }
-  let usedStorageState = null;
-  usedStorageState = { cookies, origins };
-  let downloadsPath = "downloads";
-  if (reportFolder) {
-    downloadsPath = path.join(reportFolder, "downloads");
-  } else if (web && web.context && web.context.reportFolder) {
-    reportFolder = web.context.reportFolder;
-    downloadsPath = path.join(web.context.reportFolder, "downloads");
-  }
-  if (world) {
-    world.downloadsPath = downloadsPath;
-  }
-  if (web && web.context) {
-    web.context.downloadsPath = downloadsPath;
-  }
-  // check if data.json exists in the report folder
-  // and if it contain storageState field, if so, use it
-  if (reportFolder) {
-    const dataFile = path.join(reportFolder, "data.json");
-    if (fs.existsSync(dataFile)) {
-      const data = fs.readFileSync(dataFile, "utf8");
-      const dataObject = JSON.parse(data);
-      if (dataObject.storageState) {
-        console.log("Init browser with storage state");
-        usedStorageState = dataObject.storageState;
+      if (configuration.overrideUserAgent) {
+        userAgent = configuration.overrideUserAgent;
       }
     }
-  }
-  if (storageState) {
-    usedStorageState = storageState;
-  }
-  let browser = await browserManager.createBrowser(
-    headless,
-    usedStorageState,
-    extensionPath,
-    userDataDirPath,
-    reportFolder ? reportFolder : ".",
-    userAgent,
-    channel,
-    configuration,
-    initScripts
-  );
-  let context = new TestContext();
-  context.browser = browser.browser;
-  context.browserObject = browser;
-  context.playContext = browser.context;
-  context.page = browser.page;
-  context.headless = headless;
-  context.environment = environment;
-  context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
-  context.reportFolder = reportFolder;
-  context.initScripts = initScripts;
+    let usedStorageState = null;
+    usedStorageState = { cookies, origins };
+    let downloadsPath = "downloads";
+    if (reportFolder) {
+      downloadsPath = path.join(reportFolder, "downloads");
+    } else if (web && web.context && web.context.reportFolder) {
+      reportFolder = web.context.reportFolder;
+      downloadsPath = path.join(web.context.reportFolder, "downloads");
+    }
+    if (world) {
+      world.downloadsPath = downloadsPath;
+    }
+    if (web && web.context) {
+      web.context.downloadsPath = downloadsPath;
+    }
+    // check if data.json exists in the report folder
+    // and if it contain storageState field, if so, use it
+    if (reportFolder) {
+      const dataFile = path.join(reportFolder, "data.json");
+      if (fs.existsSync(dataFile)) {
+        const data = fs.readFileSync(dataFile, "utf8");
+        const dataObject = JSON.parse(data);
+        if (dataObject.storageState) {
+          console.log("Init browser with storage state");
+          usedStorageState = dataObject.storageState;
+        }
+      }
+    }
+    if (storageState) {
+      usedStorageState = storageState;
+    }
+    let browser = await browserManager.createBrowser(
+      headless,
+      usedStorageState,
+      extensionPath,
+      userDataDirPath,
+      reportFolder ? reportFolder : ".",
+      userAgent,
+      channel,
+      configuration,
+      initScripts
+    );
+    let context = new TestContext();
+    context.browser = browser.browser;
+    context.browserObject = browser;
+    context.playContext = browser.context;
+    context.page = browser.page;
+    context.headless = headless;
+    context.environment = environment;
+    context.browserName = browser.browser ? browser.browser.browserType().name() : "unknown";
+    context.reportFolder = reportFolder;
+    context.initScripts = initScripts;
 
-  if (process.env.CDP_CONNECT_URL) {
-    // settin it to true will not navigate
-    context.navigate = true;
-  }
+    if (process.env.CDP_CONNECT_URL) {
+      // settin it to true will not navigate
+      context.navigate = true;
+    }
 
-  if (createStable) {
-    context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
-    context.web = context.stable;
-  } else {
-    context.stable = web;
-    context.web = web;
-  }
-  context.api = new Api(logger);
-  if (moveToRight === -1) {
-    moveToRight = parseInt(process.env.CHROME_POSITION || "-1", 10);
-  }
+    if (createStable) {
+      context.stable = new StableBrowser(context.browser!, context.page!, logger, context, world);
+      context.web = context.stable;
+    } else {
+      context.stable = web;
+      context.web = web;
+    }
+    context.api = new Api(logger);
+    if (moveToRight === -1) {
+      moveToRight = parseInt(process.env.CHROME_POSITION || "-1", 10);
+    }
 
-  if (moveToRight > 0 && context.browserName === "chromium") {
-    const playContext: any = context.playContext;
-    const client = await playContext.newCDPSession(context.page);
+    if (moveToRight > 0 && context.browserName === "chromium") {
+      const playContext: any = context.playContext;
+      const client = await playContext.newCDPSession(context.page);
 
-    const { windowId } = await client.send("Browser.getWindowForTarget");
+      const { windowId } = await client.send("Browser.getWindowForTarget");
 
-    const window = await client.send("Browser.getWindowBounds", {
-      windowId,
-    });
-    await client.send("Browser.setWindowBounds", {
-      windowId,
-      bounds: {
-        left: window.bounds.left + moveToRight,
-        top: 0,
-      },
-    });
-    await client.detach();
-  }
+      const window = await client.send("Browser.getWindowBounds", {
+        windowId,
+      });
+      await client.send("Browser.setWindowBounds", {
+        windowId,
+        bounds: {
+          left: window.bounds.left + moveToRight,
+          top: 0,
+        },
+      });
+      await client.detach();
+    }
 
-  return context;
+    return context;
+  });
 };
 const refreshBrowser = async function (web: any, sessionPath: string, world: any) {
   await web.context.browserObject.close();
