@@ -1,3 +1,4 @@
+import { check_performance } from "./check_performance.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { _fixUsingParams, maskValue, replaceWithLocalTestData } from "./utils.js";
@@ -86,6 +87,7 @@ export async function _preCommand(state: any, web: any) {
   state.error = null;
   state.screenshotId = null;
   state.screenshotPath = null;
+  state.onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
   if (state.locate === true) {
     let timeout = null;
     if (state.options && state.options.timeout) {
@@ -97,7 +99,11 @@ export async function _preCommand(state: any, web: any) {
     await web.scrollIfNeeded(state.element, state.info);
   }
   if (state.screenshot === true /*&& !web.fastMode*/) {
-    await _screenshot(state, web);
+    if (!state.onlyFailuresScreenshot) {
+      check_performance("screenshot", web.context, true);
+      await _screenshot(state, web);
+      check_performance("screenshot", web.context, false);
+    }
   }
   if (state.highlight === true) {
     try {

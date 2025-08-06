@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { check_performance } from "./check_performance.js";
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
@@ -57,6 +58,7 @@ import { loadBrunoParams } from "./bruno.js";
 
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
+import { profile } from "./check_performance.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -119,6 +121,7 @@ class StableBrowser {
   isRecording = false;
   initSnapshotTaken = false;
   abortedExecution = false;
+  onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
   constructor(
     public browser: Browser,
     public page: Page,
@@ -554,12 +557,6 @@ class StableBrowser {
             if (!el.setAttribute) {
               el = el.parentElement;
             }
-            // remove any attributes start with data-blinq-id
-            // for (let i = 0; i < el.attributes.length; i++) {
-            //   if (el.attributes[i].name.startsWith("data-blinq-id")) {
-            //     el.removeAttribute(el.attributes[i].name);
-            //   }
-            // }
             el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
@@ -882,16 +879,24 @@ class StableBrowser {
       }
 
       if (!element.rerun) {
-        const randomToken = Math.random().toString(36).substring(7);
-        await element.evaluate((el, randomToken) => {
-          el.setAttribute("data-blinq-id-" + randomToken, "");
-          console.log("set data-blinq-id-" + randomToken + " on element", el);
+        const randomToken = "blinq_" + Math.random().toString(36).substring(7);
+        const id = await element.evaluate((el, randomToken) => {
+          // check if the element has id attribute
+          if (el.id) {
+            return el.id;
+          }
+          el.setAttribute("id", randomToken);
+          console.log("set id=" + randomToken + " on element", el);
+          return randomToken;
         }, randomToken);
-        // if (element._frame) {
-        //   return element;
-        // }
+
         const scope = element._frame ?? element.page();
-        let newElementSelector = "[data-blinq-id-" + randomToken + "]";
+        let newElementSelector = "#" + id;
+        // check if the id contains :
+        if (id.includes(":")) {
+          // //*[@id="radix-:r0:"]
+          newElementSelector = `//*[@id="${id}"]`;
+        }
         let prefixSelector = "";
         const frameControlSelector = " >> internal:control=enter-frame";
         const frameSelectorIndex = element._selector.lastIndexOf(frameControlSelector);
@@ -1209,9 +1214,13 @@ class StableBrowser {
         }
       }
       if (foundLocators.length === 1) {
+        let box = null;
+        if (!this.onlyFailuresScreenshot) {
+          box = await foundLocators[0].boundingBox();
+        }
         result.foundElements.push({
           locator: foundLocators[0],
-          box: await foundLocators[0].boundingBox(),
+          box: box,
           unique: true,
         });
         result.locatorIndex = i;
@@ -1367,17 +1376,28 @@ class StableBrowser {
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
     };
+    check_performance("click_all ***", this.context, true);
     try {
+      check_performance("click_preCommand", this.context, true);
       await _preCommand(state, this);
+      check_performance("click_preCommand", this.context, false);
       await performAction("click", state.element, options, this, state, _params);
       if (!this.fastMode) {
-        await this.waitForPageLoad();
+        check_performance("click_waitForPageLoad", this.context, true);
+        await this.waitForPageLoad({ noSleep: true });
+        check_performance("click_waitForPageLoad", this.context, false);
       }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
+      check_performance("click_commandFinally", this.context, true);
       await _commandFinally(state, this);
+      check_performance("click_commandFinally", this.context, false);
+      check_performance("click_all ***", this.context, false);
+      if (this.context.profile) {
+        console.log(JSON.stringify(this.context.profile, null, 2));
+      }
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
@@ -1465,7 +1485,7 @@ class StableBrowser {
           }
         }
       }
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1491,7 +1511,7 @@ class StableBrowser {
       await _preCommand(state, this);
       await performAction("hover", state.element, options, this, state, _params);
       await _screenshot(state, this);
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1526,7 +1546,7 @@ class StableBrowser {
         state.info.log += "selectOption failed, will try force" + "\n";
         await state.element.selectOption(values, { timeout: 10000, force: true });
       }
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1791,8 +1811,8 @@ class StableBrowser {
       if (enter) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
+        await this.waitForPageLoad();
       }
-      await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -4135,6 +4155,23 @@ class StableBrowser {
   }
 
   async waitForPageLoad(options = {}, world = null) {
+    // try {
+    //   let currentPagePath = null;
+    //   currentPagePath = new URL(this.page.url()).pathname;
+    //   if (this.latestPagePath) {
+    //     // get the currect page path and compare with the latest page path
+    //     if (this.latestPagePath === currentPagePath) {
+    //       // if the page path is the same, do not wait for page load
+    //       console.log("No page change: " + currentPagePath);
+    //       return;
+    //     }
+    //   }
+    //   this.latestPagePath = currentPagePath;
+    // } catch (e) {
+    //   console.debug("Error getting current page path: ", e);
+    // }
+    //console.log("Waiting for page load");
+
     let timeout = this._getLoadTimeout(options);
     const promiseArray = [];
     // let waitForNetworkIdle = true;
@@ -4172,7 +4209,10 @@ class StableBrowser {
         console.log("waited for the domcontent loaded timeout");
       }
     } finally {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (options && !options.noSleep) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
       _reportToWorld(world, {
