@@ -3,7 +3,6 @@ import { getContext } from "./init_browser.js";
 import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import type { TestContext } from "./test_context.js";
-import { locate_element } from "./locate_element.js";
 import { InitScripts } from "./generation_scripts.js";
 import { _getDataFile, _getTestData, decrypt, measureAsync } from "./utils.js";
 let context: TestContext | null = null;
