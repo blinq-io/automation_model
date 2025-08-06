@@ -1,4 +1,4 @@
-export function check_performance(context: any, name: string, start: boolean = false): void {
+export function check_performance(name: string, context: any, start: boolean = false): void {
   if (!context) {
     return;
   }
