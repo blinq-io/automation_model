@@ -206,6 +206,11 @@ class StableBrowser {
         registerNetworkEvents(this.world, this, context, this.page);
         registerDownloadEvent(this.page, this.world, context);
         page.on("close", async () => {
+          // return if browser context is already closed
+          const browserContext = page.context();
+          if (browserContext && browserContext.isClosed()) {
+            return;
+          }
           if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
             this.page = this.context.pages[this.context.pages.length - 1];
@@ -214,7 +219,11 @@ class StableBrowser {
               let title = await this.page.title();
               console.log("Switched to page " + title);
             } catch (error) {
-              console.error("Error on page close", error);
+              if (error?.message?.includes("Target page, context or browser has been closed")) {
+                // Ignore this error
+              } else {
+                console.error("Error on page close", error);
+              }
             }
           }
         });
@@ -879,31 +888,61 @@ class StableBrowser {
       }
 
       if (!element.rerun) {
-        const randomToken = "blinq_" + Math.random().toString(36).substring(7);
-        const id = await element.evaluate((el, randomToken) => {
-          // check if the element has id attribute
-          if (el.id) {
-            return el.id;
-          }
-          el.setAttribute("id", randomToken);
-          console.log("set id=" + randomToken + " on element", el);
-          return randomToken;
-        }, randomToken);
+        let newElementSelector = "";
+        if (this.configuration && this.configuration.stableLocatorStrategy === "csschain") {
+          const cssSelector = await element.evaluate((el) => {
+            function getCssSelector(el) {
+              if (!el || el.nodeType !== 1 || el === document.body) return el.tagName.toLowerCase();
 
-        const scope = element._frame ?? element.page();
-        let newElementSelector = "#" + id;
-        // check if the id contains :
-        if (id.includes(":")) {
-          // //*[@id="radix-:r0:"]
-          newElementSelector = `//*[@id="${id}"]`;
+              const parent = el.parentElement;
+              const tag = el.tagName.toLowerCase();
+
+              // Find the index of the element among its siblings of the same tag
+              let index = 1;
+              for (let sibling = el.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+                if (sibling.tagName === el.tagName) {
+                  index++;
+                }
+              }
+
+              // Use nth-child if necessary (i.e., if there's more than one of the same tag)
+              const siblings = Array.from(parent.children).filter((child) => child.tagName === el.tagName);
+              const needsNthChild = siblings.length > 1;
+
+              const selector = needsNthChild ? `${tag}:nth-child(${[...parent.children].indexOf(el) + 1})` : tag;
+
+              return getCssSelector(parent) + " > " + selector;
+            }
+            const cssSelector = getCssSelector(el);
+            return cssSelector;
+          });
+          newElementSelector = cssSelector;
+        } else {
+          const randomToken = "blinq_" + Math.random().toString(36).substring(7);
+          const id = await element.evaluate((el, randomToken) => {
+            // check if the element has id attribute
+            if (el.id) {
+              return el.id;
+            }
+            el.setAttribute("id", randomToken);
+            console.log("set id=" + randomToken + " on element", el);
+            return randomToken;
+          }, randomToken);
+          newElementSelector = "#" + id;
+          // check if the id contains :
+          if (id.includes(":")) {
+            // //*[@id="radix-:r0:"]
+            newElementSelector = `//*[@id="${id}"]`;
+          }
         }
+        const scope = element._frame ?? element.page();
         let prefixSelector = "";
         const frameControlSelector = " >> internal:control=enter-frame";
         const frameSelectorIndex = element._selector.lastIndexOf(frameControlSelector);
         if (frameSelectorIndex !== -1) {
           // remove everything after the >> internal:control=enter-frame
           const frameSelector = element._selector.substring(0, frameSelectorIndex);
-          prefixSelector = frameSelector + " >> internal:control=enter-frame >>";
+          prefixSelector = frameSelector + " >> internal:control=enter-frame >> ";
         }
         // if (element?._frame?._selector) {
         //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
