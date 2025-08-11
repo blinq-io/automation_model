@@ -120,7 +120,6 @@ class StableBrowser {
   tags = null;
   isRecording = false;
   initSnapshotTaken = false;
-  abortedExecution = false;
   onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
   constructor(
     public browser: Browser,
@@ -4476,9 +4475,6 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
-    if (this.abortedExecution) {
-      throw new Error("Aborted");
-    }
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
       this.context.loadedRoutes = null;
