@@ -164,6 +164,10 @@ const initContext = async (
       context.snapshotFolder = _createSnapshotsFolder("data");
     }
 
+    if (context && !context.fixturesF) {
+      context.snapshotFolder = _createSnapshotsFolder("data");
+    }
+
     return context;
   });
 };
@@ -363,6 +367,14 @@ const _createSnapshotsFolder = (folder: string) => {
     mkdirSync(specificPath, { recursive: true });
   }
   return specificPath;
+};
+
+const _createFixturesFolder = () => {
+  const fixturesFolderPath = path.join("data", "fixtures");
+  if (!existsSync(fixturesFolderPath)) {
+    mkdirSync(fixturesFolderPath, { recursive: true });
+  }
+  return fixturesFolderPath;
 };
 
 export { initContext, navigate, closeContext, resetTestData, getTestData, context as TestContext };
