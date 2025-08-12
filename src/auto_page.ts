@@ -368,7 +368,7 @@ const _createSnapshotsFolder = (folder: string) => {
 };
 
 const _createFixturesFolder = () => {
-  const fixturesFolderPath = path.join("data", "routes", "fixtures");
+  const fixturesFolderPath = path.join("data", "fixtures");
   if (!existsSync(fixturesFolderPath)) {
     mkdirSync(fixturesFolderPath, { recursive: true });
   }
