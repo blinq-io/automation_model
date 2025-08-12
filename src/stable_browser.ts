@@ -4303,7 +4303,7 @@ class StableBrowser {
     }
     operation = options.operation;
     // validate operation is one of the supported operations
-    if (operation != "click" && operation != "hover+click") {
+    if (operation != "click" && operation != "hover+click" && operation != "hover") {
       throw new Error("operation is not supported");
     }
     const state = {
