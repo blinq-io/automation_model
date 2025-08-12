@@ -5,7 +5,8 @@ import objectPath from "object-path";
 import { tmpdir } from "os";
 import createDebug from "debug";
 import { existsSync } from "fs";
-const debug = createDebug("blinq:route");
+const debug = createDebug("automation_model:route");
+// const debug = console.debug;
 
 export interface Route {
   template: string;
@@ -155,11 +156,11 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       const fullFillConfig: FulfillOptions = {};
 
       if (stubAction.config.path) {
-        const filePath = path.join(process.cwd(), stubAction.config.path);
-        console.log(`Using stub file path: ${filePath}`);
+        const filePath = path.join(process.cwd(), "data", "routes", "fixtures", stubAction.config.path);
+        debug(`Stub action file path: ${filePath}`);
         if (existsSync(filePath)) {
           fullFillConfig.path = filePath;
-          console.log(`Stub action fulfilled with file: ${filePath}`);
+          debug(`Stub action fulfilled with file: ${filePath}`);
         } else {
           actionStatus = "fail";
           tracking.actionResults.push({
@@ -186,7 +187,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                   `Invalid JSON in stub action body: ${stubAction.config.body}, `,
                   e instanceof Error ? e.message : String(e)
                 );
-                console.error("Invalid JSON, defaulting to empty object");
+                debug("Invalid JSON, defaulting to empty object");
                 fullFillConfig.json = {};
               }
             }
@@ -259,6 +260,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       const actionResults: InterceptedRoute["actionResults"] = [];
 
       let abortActionPerformed = false;
+      let finalBody = body;
 
       for (const action of matchedItem.actions) {
         let actionStatus: "success" | "fail" = "success";
@@ -287,7 +289,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
           case "json_modify":
             if (!json) {
-              // console.error(`[json_modify] Response is not JSON`);
               actionStatus = "fail";
               tracking.actionResults = actionResults;
               message = "JSON modification failed. Response is not JSON";
@@ -297,6 +298,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                 console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
                 console.log(`[json_modify] Modified JSON`);
                 message = `JSON modified successfully`;
+                finalBody = json;
               }
             }
             break;
@@ -309,7 +311,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             } else {
               try {
                 const parsedConfig = JSON.parse(action.config);
-                json = parsedConfig; // Replace whole JSON with new value
+                json = parsedConfig;
+                finalBody = json;
               } catch (e: unknown) {
                 actionStatus = "fail";
                 tracking.actionResults = actionResults;
@@ -336,6 +339,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               body = action.config;
               console.log(`[change_text] HTML body replaced`);
               message = `HTML body replaced successfully`;
+              finalBody = body;
             }
             break;
           case "assert_json":
@@ -421,9 +425,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
       if (tracking.timer) clearTimeout(tracking.timer);
 
-      const responseBody = isBinary ? body : json ? JSON.stringify(json) : body;
       if (!abortActionPerformed) {
-        await route.fulfill({ status, body: responseBody, headers });
+        await route.fulfill({ status, body: finalBody, headers });
       }
     }
   });
@@ -455,9 +458,6 @@ export async function registerAfterStepRoutes(context: any, world: any) {
         const elapsed = now - startTime;
         if (!r.completed && elapsed >= r.routeItem.timeout) {
           mandatoryRouteReached[mandatoryRoutes.indexOf(r)] = false;
-          // console.error(
-          //   `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms (elapsed: ${elapsed})`
-          // );
         }
       }
 
@@ -562,6 +562,7 @@ export function _stepNameToTemplate(stepName: string): string {
   });
   return result;
 }
+
 async function folderExists(path: string): Promise<boolean> {
   try {
     const stat = await fs.stat(path);
