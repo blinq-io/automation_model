@@ -242,6 +242,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         !headers["content-type"]?.includes("text") &&
         !headers["content-type"]?.includes("application/csv");
 
+      const isJSON = headers["content-type"]?.includes("application/json");
+
       let body;
       if (isBinary) {
         body = await response.body(); // returns a Buffer
@@ -260,7 +262,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       const actionResults: InterceptedRoute["actionResults"] = [];
 
       let abortActionPerformed = false;
-
+      let finalBody = body;
+      
       for (const action of matchedItem.actions) {
         let actionStatus: "success" | "fail" = "success";
         const description = JSON.stringify(action.config);
@@ -298,6 +301,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                 console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
                 console.log(`[json_modify] Modified JSON`);
                 message = `JSON modified successfully`;
+                finalBody = JSON.parse(JSON.stringify(json));
               }
             }
             break;
@@ -310,7 +314,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             } else {
               try {
                 const parsedConfig = JSON.parse(action.config);
-                json = parsedConfig; // Replace whole JSON with new value
+                json = parsedConfig;
+                finalBody = JSON.parse(JSON.stringify(json));
               } catch (e: unknown) {
                 actionStatus = "fail";
                 tracking.actionResults = actionResults;
@@ -424,7 +429,16 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
       const responseBody = isBinary ? body : json ? JSON.stringify(json) : body;
       if (!abortActionPerformed) {
-        await route.fulfill({ status, body: responseBody, headers });
+        try {
+          if (isJSON) {
+            await route.fulfill({ status, json: finalBody, headers });
+          } else {
+            await route.fulfill({ status, body: finalBody, headers });
+          }
+          // await route.fulfill({ status, body: finalBody, headers });
+        } catch (e) {
+          console.error("Failed to fulfill route:", e);
+        }
       }
     }
   });

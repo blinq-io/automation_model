@@ -160,13 +160,13 @@ const initContext = async (
       }
     }
 
-    if (context && !context.snapshotFolder) {
-      context.snapshotFolder = _createSnapshotsFolder("data");
-    }
+  if (context && !context.snapshotFolder) {
+    context.snapshotFolder = _createSnapshotsFolder("data");
+  }
 
-    if (context && !context.fixturesF) {
-      context.snapshotFolder = _createSnapshotsFolder("data");
-    }
+  if (context && !context.fixturesFolder) {
+    context.fixturesFolder = _createFixturesFolder();
+  }
 
     return context;
   });
