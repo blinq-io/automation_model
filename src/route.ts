@@ -242,6 +242,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         !headers["content-type"]?.includes("text") &&
         !headers["content-type"]?.includes("application/csv");
 
+      const isJSON = headers["content-type"]?.includes("application/json");
+
       let body;
       if (isBinary) {
         body = await response.body(); // returns a Buffer
@@ -298,7 +300,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                 console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
                 console.log(`[json_modify] Modified JSON`);
                 message = `JSON modified successfully`;
-                finalBody = json;
+                finalBody = JSON.parse(JSON.stringify(json));
               }
             }
             break;
@@ -312,7 +314,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               try {
                 const parsedConfig = JSON.parse(action.config);
                 json = parsedConfig;
-                finalBody = json;
+                finalBody = JSON.parse(JSON.stringify(json));
               } catch (e: unknown) {
                 actionStatus = "fail";
                 tracking.actionResults = actionResults;
@@ -426,7 +428,16 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       if (tracking.timer) clearTimeout(tracking.timer);
 
       if (!abortActionPerformed) {
-        await route.fulfill({ status, body: finalBody, headers });
+        try {
+          if (isJSON) {
+            await route.fulfill({ status, json: finalBody, headers });
+          } else {
+            await route.fulfill({ status, body: finalBody, headers });
+          }
+          // await route.fulfill({ status, body: finalBody, headers });
+        } catch (e) {
+          console.error("Failed to fulfill route:", e);
+        }
       }
     }
   });
