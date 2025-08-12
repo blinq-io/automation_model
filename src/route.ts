@@ -154,7 +154,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       if (tracking.timer) clearTimeout(tracking.timer);
       const fullFillConfig: FulfillOptions = {};
 
-      if (stubAction.config.path) {
+      if (stubAction.config.path !== "") {
         const filePath = path.join(process.cwd(), "data", "fixtures", stubAction.config.path);
         debug(`Stub action file path: ${filePath}`);
         if (existsSync(filePath)) {
