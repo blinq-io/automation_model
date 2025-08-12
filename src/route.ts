@@ -5,7 +5,8 @@ import objectPath from "object-path";
 import { tmpdir } from "os";
 import createDebug from "debug";
 import { existsSync } from "fs";
-const debug = createDebug("blinq:route");
+const debug = createDebug("automation_model:route");
+// const debug = console.debug;
 
 export interface Route {
   template: string;
@@ -159,7 +160,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         debug(`Stub action file path: ${filePath}`);
         if (existsSync(filePath)) {
           fullFillConfig.path = filePath;
-          console.log(`Stub action fulfilled with file: ${filePath}`);
+          debug(`Stub action fulfilled with file: ${filePath}`);
         } else {
           actionStatus = "fail";
           tracking.actionResults.push({
@@ -187,7 +188,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                   `Invalid JSON in stub action body: ${stubAction.config.body}, `,
                   e instanceof Error ? e.message : String(e)
                 );
-                console.error("Invalid JSON, defaulting to empty object");
+                debug("Invalid JSON, defaulting to empty object");
                 fullFillConfig.json = {};
               }
             }
@@ -291,7 +292,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
           case "json_modify":
             if (!json) {
-              // console.error(`[json_modify] Response is not JSON`);
               actionStatus = "fail";
               tracking.actionResults = actionResults;
               message = "JSON modification failed. Response is not JSON";
@@ -301,7 +301,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                 console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
                 console.log(`[json_modify] Modified JSON`);
                 message = `JSON modified successfully`;
-                finalBody = JSON.parse(JSON.stringify(json));
+                finalBody = json;
               }
             }
             break;
@@ -315,7 +315,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               try {
                 const parsedConfig = JSON.parse(action.config);
                 json = parsedConfig;
-                finalBody = JSON.parse(JSON.stringify(json));
+                finalBody = json;
               } catch (e: unknown) {
                 actionStatus = "fail";
                 tracking.actionResults = actionResults;
@@ -342,6 +342,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               body = action.config;
               console.log(`[change_text] HTML body replaced`);
               message = `HTML body replaced successfully`;
+              finalBody = body;
             }
             break;
           case "assert_json":
@@ -427,7 +428,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
       if (tracking.timer) clearTimeout(tracking.timer);
 
-      const responseBody = isBinary ? body : json ? JSON.stringify(json) : body;
       if (!abortActionPerformed) {
         try {
           if (isJSON) {
@@ -470,9 +470,6 @@ export async function registerAfterStepRoutes(context: any, world: any) {
         const elapsed = now - startTime;
         if (!r.completed && elapsed >= r.routeItem.timeout) {
           mandatoryRouteReached[mandatoryRoutes.indexOf(r)] = false;
-          // console.error(
-          //   `[MANDATORY] Request to ${r.routeItem.filters.path} did not complete within ${r.routeItem.timeout}ms (elapsed: ${elapsed})`
-          // );
         }
       }
 
@@ -577,6 +574,7 @@ export function _stepNameToTemplate(stepName: string): string {
   });
   return result;
 }
+
 async function folderExists(path: string): Promise<boolean> {
   try {
     const stat = await fs.stat(path);
