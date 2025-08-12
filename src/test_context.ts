@@ -13,6 +13,7 @@ class TestContext {
   environment: Environment | null = null;
   reportFolder: string | null = null;
   snapshotFolder: string | null = null;
+  fixturesFolder: string | null = null;
   api: Api | null = null;
   navigate = false;
   headless = false;
