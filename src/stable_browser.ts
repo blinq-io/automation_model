@@ -206,10 +206,6 @@ class StableBrowser {
         registerDownloadEvent(this.page, this.world, context);
         page.on("close", async () => {
           // return if browser context is already closed
-          const browserContext = page.context();
-          if (browserContext && browserContext.isClosed()) {
-            return;
-          }
           if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
             this.page = this.context.pages[this.context.pages.length - 1];
@@ -230,7 +226,11 @@ class StableBrowser {
           await this.waitForPageLoad();
           console.log("Switch page: " + (await page.title()));
         } catch (e) {
-          this.logger.error("error on page load " + e);
+          if (e?.message?.includes("Target page, context or browser has been closed")) {
+            // Ignore this error
+          } else {
+            this.logger.error("error on page load " + e);
+          }
         }
         context.pageLoading.status = false;
       }.bind(this)
