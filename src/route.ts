@@ -155,8 +155,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       if (tracking.timer) clearTimeout(tracking.timer);
       const fullFillConfig: FulfillOptions = {};
 
-      if (stubAction.config.path) {
-        const filePath = path.join(process.cwd(), "data", "routes", "fixtures", stubAction.config.path);
+      if (stubAction.config.path !== "") {
+        const filePath = path.join(process.cwd(), "data", "fixtures", stubAction.config.path);
         debug(`Stub action file path: ${filePath}`);
         if (existsSync(filePath)) {
           fullFillConfig.path = filePath;
@@ -169,6 +169,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             status: actionStatus,
             message: `Stub action failed for ${tracking.url}: File not found at ${filePath}`,
           });
+          stubActionPerformed = true;
         }
       }
 
