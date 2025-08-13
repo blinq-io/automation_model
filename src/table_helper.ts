@@ -76,6 +76,20 @@ export async function _findCellArea(headerText: string, rowText: string, web: an
   return await findCellRectangle(headerResult, rowResult, web, state.info);
 }
 export async function findElementsInArea(cssSelector: string, area: any, web: any, options: any) {
+  let results = null;
+  try {
+    results = await _findElementsInArea(cssSelector, area, web, options);
+  } catch (e) {
+    // ignore
+  }
+  if (!results || results.length === 0) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    results = await _findElementsInArea(cssSelector, area, web, options);
+  }
+  return results;
+}
+
+async function _findElementsInArea(cssSelector: string, area: any, web: any, options: any) {
   if (!cssSelector) {
     cssSelector = "*";
   }
