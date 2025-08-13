@@ -4367,10 +4367,10 @@ class StableBrowser {
             throw new Error("css is not defined");
           }
           const result1 = await findElementsInArea(options.css, cellArea, this, options);
-          if (results1.length === 0) {
+          if (result1.length === 0) {
             throw new Error(`Element not found in cell area`);
           }
-          state.element = results1[0];
+          state.element = result1[0];
           await performAction("hover", state.element, options, this, state, _params);
           break;
         default:
