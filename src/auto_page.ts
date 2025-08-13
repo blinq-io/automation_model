@@ -142,12 +142,11 @@ const initContext = async (
   if (world) {
     world.context = context;
     if (world.attach) {
-      world.attach(JSON.stringify(context.environment), {
+      world.attach(JSON.stringify(context!.environment), {
         mediaType: "application/json+env",
       });
     }
   }
-  context.reportFolder = reportFolder;
 
   if (doNavigate) {
     await navigate(path);
@@ -158,6 +157,7 @@ const initContext = async (
       await getTestData(env, world, undefined, undefined, undefined, context);
     }
   }
+  if (context) context.reportFolder = reportFolder;
 
   if (context && !context.snapshotFolder) {
     context.snapshotFolder = _createSnapshotsFolder("data");
