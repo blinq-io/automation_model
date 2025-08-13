@@ -5,23 +5,31 @@ import { TOTP } from "totp-generator";
 import fs from "fs";
 import axios from "axios";
 import objectPath from "object-path";
-//import { profile } from "./profile";
 
-const measureAsync = async <T>(name: string, fn: () => Promise<T>): Promise<T> => {
-  performance.mark(`${name}-start`);
+const measureAsync = async (name: string, fn: () => Promise<any>) => {
+  const id = `${name}-${Math.random().toString(36).slice(2, 9)}`;
+  const startMark = `${id}-start`;
+  const endMark = `${id}-end`;
+
   try {
-    return await fn();
-  } finally {
-    performance.mark(`${name}-end`);
-    performance.measure(name, `${name}-start`, `${name}-end`);
-    const [entry] = performance.getEntriesByName(name);
-    console.log(`${name}: ${entry.duration.toFixed(3)}ms`);
-    performance.clearMarks(`${name}-start`);
-    performance.clearMarks(`${name}-end`);
+    performance.mark(startMark);
+    try {
+      return await fn();
+    } finally {
+      performance.mark(endMark);
+      const measure = performance.measure(id, startMark, endMark);
+      console.log(`${name}: ${measure.duration.toFixed(3)}ms`);
+      performance.clearMarks(startMark);
+      performance.clearMarks(endMark);
+      performance.clearMeasures(id);
+    }
+  } catch (error) {
+    if (!(error instanceof DOMException) || !error.message.includes("performance mark")) {
+      throw error;
+    }
   }
 };
 
-// Function to encrypt a string
 function encrypt(text: string, key: string | null = null) {
   if (!key) {
     key = _findKey();
@@ -35,7 +43,6 @@ function getTestDataValue(key: string, environment = "*") {
   const envJson = JSON.parse(fs.readFileSync(envPath, "utf-8"));
   const dataArray = envJson[environment];
   const item = dataArray.find((item: any) => item.key === key);
-  // if the item is not found in the specific env, check if it exists in the default environment
   if (!item && environment !== "*") {
     return getTestDataValue(key, "*");
   }
@@ -50,7 +57,6 @@ function getTestDataValue(key: string, environment = "*") {
   throw new Error(`Unsupported data type for key ${key}`);
 }
 
-// Function to decrypt a string
 function decrypt(encryptedText: string, key: string | null = null, totpWait: boolean = true) {
   if (!key) {
     key = _findKey();
