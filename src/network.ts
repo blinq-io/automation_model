@@ -152,9 +152,13 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
             data.responseTime = endTime - startTime;
             // Get response size
             try {
-              const body = await response.body();
-              data.size = body.length;
-            } catch (e) {
+              let size = 0;
+              if (responseHasBody(response)) {
+                const buf = await response.body();
+                size = buf?.length ?? 0;
+              }
+              data.size = size;
+            } catch {
               data.size = 0;
             }
             const type = request.resourceType();
@@ -388,30 +392,34 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
     };
   } else {
     const response = await request.response();
-    // console.log("Response received for request:", request.url());
-    const headers = response?.headers() || {};
+    const headers = response?.headers?.() || {};
     let contentType = headers["content-type"] || null;
     let body = null;
+
     try {
-      if (contentType && contentType.includes("application/json")) {
-        const text = await response.text();
-        body = JSON.parse(text);
-        // console.log("Parsed JSON response body:", body);
-      } else if (contentType && contentType.includes("text")) {
-        body = await response.text();
-        // console.log("Parsed text response body:", body);
-      } else if (contentType && contentType.includes("application/csv")) {
-        body = await response.text();
-        contentType = "text/csv"; // Normalize content type for CSV
-        // console.log("Parsed CSV response body:", body);
+      if (responseHasBody(response)) {
+        if (contentType && contentType.includes("application/json")) {
+          body = JSON.parse(await response.text());
+        } else if (
+          (contentType && contentType.includes("text")) ||
+          (contentType && contentType.includes("application/csv"))
+        ) {
+          body = await response.text();
+          if (contentType.includes("application/csv")) contentType = "text/csv";
+        } else {
+          // If you want binary, you could read it here—but only when responseHasBody(response) is true
+          // const buffer = await response.body();
+          // body = buffer.toString("base64");
+        }
       } else {
-        // Optionally handle binary here
-        // const buffer = await response.body();
-        // body = buffer.toString("base64"); // if you want to store binary safely
+        // For redirects / no-body statuses, it's useful to keep redirect info
+        // e.g., include Location header if present
+        // body stays null
       }
     } catch (err) {
       console.error("Error reading response body:", err);
     }
+
     respData = {
       status: response.status(),
       headers,
@@ -435,7 +443,16 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
 
   return;
 }
-
+function responseHasBody(response: any): boolean {
+  if (!response) return false;
+  const s = response.status?.() ?? 0;
+  // RFC 7231: 1xx, 204, 205, 304 have no body. Playwright: 3xx (redirect) body is unavailable.
+  if ((s >= 100 && s < 200) || s === 204 || s === 205 || s === 304 || (s >= 300 && s < 400)) return false;
+  // HEAD responses have no body by definition
+  const method = response.request?.().method?.() ?? "GET";
+  if (method === "HEAD") return false;
+  return true;
+}
 // Handle successful request with a response
 // const headers = response.headers();
 // const contentType = headers["content-type"] || "";
