@@ -234,6 +234,12 @@ const initEnvironment = function () {
     const data = fs.readFileSync(envFile, "utf8");
     const envObject = JSON.parse(data);
     Object.assign(environment, envObject);
+    if (process.env.FAST_MODE === "true") {
+      console.log("Fast mode enabled");
+    }
+    if (process.env.SCREENSHOT_ON_FAILURE_ONLY === "true") {
+      console.log("Screenshot on failure only mode enabled");
+    }
     console.log("Base url: " + environment.baseUrl);
   } catch (err) {
     console.error("Error reading env.json", err);
