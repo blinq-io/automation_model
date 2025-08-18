@@ -4536,7 +4536,14 @@ class StableBrowser {
     }
     if (step && step.pickleStep && step.pickleStep.text) {
       this.stepName = step.pickleStep.text;
-      this.logger.info("step: " + this.stepName);
+
+      let printableStepName = this.stepName;
+      // take the printableStepName and replace quated value with \x1b[33m and \x1b[0m
+      printableStepName = printableStepName.replace(/"([^"]*)"/g, (match, p1) => {
+        return `\x1b[33m"${p1}"\x1b[0m`;
+      });
+
+      this.logger.info("\x1b[38;5;208mstep:\x1b[0m " + printableStepName);
     } else if (step && step.text) {
       this.stepName = step.text;
     } else {
