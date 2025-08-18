@@ -251,15 +251,19 @@ interface ExecutionState {
   currentStepHash: string | null;
   previousStepHash: string | null;
   liveRequestsMap: Map<any, RequestEntry>;
+  liveRequestsMapPrevious: Map<any, RequestEntry>;
 }
 const detailedNetworkFolder = path.join(tmpdir(), "blinq_network_events");
-
+let outOfStep = true;
 const executionState = {
   currentStepHash: null,
+  previousStepHash: null,
   liveRequestsMap: new Map<any, any>(),
+  liveRequestsMapPrevious: new Map<any, any>(),
 } as ExecutionState;
 
 export function networkBeforeStep(stepName: string) {
+  outOfStep = false;
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
@@ -271,7 +275,8 @@ export function networkBeforeStep(stepName: string) {
   // const stepHash = stepNameToHash(stepName);
   let stepHash = "";
 
-  executionState.liveRequestsMap.clear();
+  executionState.liveRequestsMapPrevious = executionState.liveRequestsMap;
+  executionState.liveRequestsMap = new Map<any, any>();
 
   if (process.env.CURRENT_STEP_ID) {
     // console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
@@ -280,6 +285,7 @@ export function networkBeforeStep(stepName: string) {
   } else {
     stepHash = stepNameToHash(stepName);
   }
+  executionState.previousStepHash = executionState.currentStepHash; // ➊ NEW
   executionState.currentStepHash = stepHash;
   // check if the file exists, if exists delete it
   const networkFile = path.join(detailedNetworkFolder, `${stepHash}.json`);
@@ -289,23 +295,32 @@ export function networkBeforeStep(stepName: string) {
     // Ignore error if file does not exist
   }
 }
+async function saveMap(current: boolean) {
+  if (current) {
+    const entries = Array.from(executionState.liveRequestsMap.values());
+    const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
 
+    await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+  } else {
+    const entries = Array.from(executionState.liveRequestsMapPrevious.values());
+    const file = path.join(detailedNetworkFolder, `${executionState.previousStepHash}.json`);
+
+    await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+  }
+}
 export async function networkAfterStep(stepName: string) {
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
-  await new Promise((r) => setTimeout(r, 1000));
+  //await new Promise((r) => setTimeout(r, 1000));
 
-  const entries = Array.from(executionState.liveRequestsMap.values());
-  const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
-
-  await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+  await saveMap(true);
 
   /* reset for next step */
-  executionState.liveRequestsMap.clear();
-  executionState.previousStepHash = executionState.currentStepHash; // ➋ NEW
-  executionState.currentStepHash = null;
+  //executionState.previousStepHash = executionState.currentStepHash; // ➋ NEW
+  //executionState.liveRequestsMap.clear();
+  outOfStep = true;
 }
 
 function stepNameToHash(stepName: string): string {
@@ -362,17 +377,20 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
 
   // const response = await request.response(); // This may be null if the request failed
   let entry = executionState.liveRequestsMap.get(request);
-
   if (!entry) {
-    entry = {
-      requestId: request.requestId,
-      url: request.url(),
-      method: request.method?.() ?? "GET",
-      headers: request.headers?.() ?? {},
-      postData: request.postData?.() ?? undefined,
-      stepHash: executionState.previousStepHash ?? "unknown",
-      requestTimestamp: Date.now(),
-    } as RequestEntry;
+    // check if the request is in the previous step's map
+    entry = executionState.liveRequestsMapPrevious.get(request);
+    if (!entry) {
+      entry = {
+        requestId: request.requestId,
+        url: request.url(),
+        method: request.method?.() ?? "GET",
+        headers: request.headers?.() ?? {},
+        postData: request.postData?.() ?? undefined,
+        stepHash: executionState.previousStepHash ?? "unknown",
+        requestTimestamp: Date.now(),
+      } as RequestEntry;
+    }
   }
   // Remove the request from the live requests map
   let respData: RequestEntry["response"];
@@ -433,10 +451,18 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
   if (executionState.liveRequestsMap.has(request)) {
     /* “normal” path – keep it in the buffer */
     entry.response = respData;
+    if (outOfStep && executionState.currentStepHash) {
+      await saveMap(true);
+    }
   } else {
-    /* orphan response – append directly to the previous step file */
-    entry.response = respData;
-    await appendEntryToStepFile(entry.stepHash, entry); // ➍ NEW
+    if (executionState.liveRequestsMapPrevious.has(request)) {
+      entry.response = respData;
+      await saveMap(false);
+    } else {
+      /* orphan response – append directly to the previous step file */
+      entry.response = respData;
+      await appendEntryToStepFile(entry.stepHash, entry); // ➍ NEW
+    }
   }
 
   entry.response = respData;
