@@ -110,7 +110,7 @@ export async function _preCommand(state: any, web: any) {
     }
   }
   state.info.failCause.operationFailed = true;
-  if (web.pausedCmd) {
+  if (web.pausedCmd && web.pausedCmd.id === state.cmdId) {
     await new Promise((resolve, reject) => {
       web.pausedCmd.resolve = resolve;
       web.pausedCmd.reject = reject;
