@@ -126,7 +126,8 @@ class StableBrowser {
     public logger: any = null,
     public context: any = null,
     public world?: any = null,
-    public fastMode: boolean = false
+    public fastMode: boolean = false,
+    public stepTags: string[] = []
   ) {
     if (!this.logger) {
       this.logger = console;
@@ -269,7 +270,7 @@ class StableBrowser {
     if (newContextCreated) {
       this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
-      if (!this.fastMode) {
+      if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
         await this.waitForPageLoad();
       }
     }
@@ -1420,7 +1421,7 @@ class StableBrowser {
       await _preCommand(state, this);
       check_performance("click_preCommand", this.context, false);
       await performAction("click", state.element, options, this, state, _params);
-      if (!this.fastMode) {
+      if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
         check_performance("click_waitForPageLoad", this.context, true);
         await this.waitForPageLoad({ noSleep: true });
         check_performance("click_waitForPageLoad", this.context, false);
@@ -4513,6 +4514,7 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
+    this.stepTags = [];
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
     }
@@ -4544,7 +4546,12 @@ class StableBrowser {
 
     if (this.initSnapshotTaken === false) {
       this.initSnapshotTaken = true;
-      if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
+      if (
+        world &&
+        world.attach &&
+        !process.env.DISABLE_SNAPSHOT &&
+        (!this.fastMode || this.stepTags.includes("fast-mode"))
+      ) {
         const snapshot = await this.getAriaSnapshot();
         if (snapshot) {
           await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
@@ -4555,6 +4562,9 @@ class StableBrowser {
     this.context.loadedRoutes = null;
     await registerBeforeStepRoutes(this.context, this.stepName, world);
     networkBeforeStep(this.stepName);
+  }
+  setStepTags(tags: string[]) {
+    this.stepTags = tags;
   }
   async getAriaSnapshot() {
     try {
@@ -4668,7 +4678,13 @@ class StableBrowser {
     if (this.context) {
       this.context.examplesRow = null;
     }
-    if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
+    if (
+      world &&
+      world.attach &&
+      !process.env.DISABLE_SNAPSHOT &&
+      !this.fastMode &&
+      !this.stepTags.includes("fast-mode")
+    ) {
       const snapshot = await this.getAriaSnapshot();
       if (snapshot) {
         const obj = {};
@@ -4701,7 +4717,9 @@ class StableBrowser {
     networkAfterStep(this.stepName);
     if (process.env.TEMP_RUN === "true") {
       // Put a sleep for some time to allow the browser to finish processing
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      if (!this.stepTags.includes("fast-mode")) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
     }
   }
 }
