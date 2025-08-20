@@ -172,7 +172,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           stubActionPerformed = true;
         }
       }
-
       if (!fullFillConfig.path) {
         if (stubAction.config.statusCode) {
           fullFillConfig.status = Number(stubAction.config.statusCode);
@@ -345,6 +344,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               finalBody = body;
             }
             break;
+            
           case "assert_json":
             if (!json) {
               actionStatus = "fail";
@@ -368,7 +368,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               }
             }
             break;
-
           case "assert_whole_json":
             if (!json) {
               actionStatus = "fail";
