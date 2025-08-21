@@ -5,6 +5,7 @@ import objectPath from "object-path";
 import { tmpdir } from "os";
 import createDebug from "debug";
 import { existsSync } from "fs";
+import { replaceWithLocalTestData } from "./utils.js";
 const debug = createDebug("automation_model:route");
 // const debug = console.debug;
 
@@ -67,7 +68,9 @@ async function loadRoutes(context: any): Promise<Route[]> {
 
     const allRoutes: Route[] = [];
     for (const file of jsonFiles) {
-      const content = await fs.readFile(path.join(dir, file), "utf-8");
+      let content = await fs.readFile(path.join(dir, file), "utf-8");
+      // replace test data
+      content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
       const routeObj: Route = JSON.parse(content);
       allRoutes.push(routeObj);
     }
