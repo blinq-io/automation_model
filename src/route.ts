@@ -243,7 +243,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         !headers["content-type"]?.includes("text") &&
         !headers["content-type"]?.includes("application/csv");
 
-      const isJSON = headers["content-type"]?.includes("application/json");
+      const isJSON =
+        headers["content-type"]?.includes("application/json") || headers["content-type"]?.includes("json")
+          ? true
+          : false;
 
       let body;
       if (isBinary) {
@@ -263,7 +266,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       const actionResults: InterceptedRoute["actionResults"] = [];
 
       let abortActionPerformed = false;
-      let finalBody = body;
+      let finalBody = isJSON && json ? json : body;
 
       for (const action of matchedItem.actions) {
         let actionStatus: "success" | "fail" = "success";
