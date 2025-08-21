@@ -1,3 +1,4 @@
+import { check_performance } from "./check_performance.js";
 import CryptoJS from "crypto-js";
 import path from "path";
 import { TOTP } from "totp-generator";
@@ -562,7 +563,9 @@ export async function performAction(action: string, element: any, options: any, 
       }
 
       try {
+        check_performance("click_action", web.context, true);
         await element.click(usedOptions);
+        check_performance("click_action", web.context, false);
       } catch (e) {
         if (usedOptions.position) {
           // find the element bounding box

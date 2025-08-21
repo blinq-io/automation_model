@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { check_performance } from "./check_performance.js";
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
@@ -57,6 +58,7 @@ import { loadBrunoParams } from "./bruno.js";
 
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
+import { profile } from "./check_performance.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -118,14 +120,15 @@ class StableBrowser {
   tags = null;
   isRecording = false;
   initSnapshotTaken = false;
-  abortedExecution = false;
+  onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
   constructor(
     public browser: Browser,
     public page: Page,
     public logger: any = null,
     public context: any = null,
     public world?: any = null,
-    public fastMode: boolean = false
+    public fastMode: boolean = false,
+    public stepTags: string[] = []
   ) {
     if (!this.logger) {
       this.logger = console;
@@ -203,6 +206,7 @@ class StableBrowser {
         registerNetworkEvents(this.world, this, context, this.page);
         registerDownloadEvent(this.page, this.world, context);
         page.on("close", async () => {
+          // return if browser context is already closed
           if (this.context && this.context.pages && this.context.pages.length > 1) {
             this.context.pages.pop();
             this.page = this.context.pages[this.context.pages.length - 1];
@@ -211,7 +215,11 @@ class StableBrowser {
               let title = await this.page.title();
               console.log("Switched to page " + title);
             } catch (error) {
-              console.error("Error on page close", error);
+              if (error?.message?.includes("Target page, context or browser has been closed")) {
+                // Ignore this error
+              } else {
+                console.error("Error on page close", error);
+              }
             }
           }
         });
@@ -219,7 +227,11 @@ class StableBrowser {
           await this.waitForPageLoad();
           console.log("Switch page: " + (await page.title()));
         } catch (e) {
-          this.logger.error("error on page load " + e);
+          if (e?.message?.includes("Target page, context or browser has been closed")) {
+            // Ignore this error
+          } else {
+            this.logger.error("error on page load " + e);
+          }
         }
         context.pageLoading.status = false;
       }.bind(this)
@@ -259,7 +271,7 @@ class StableBrowser {
     if (newContextCreated) {
       this.registerEventListeners(this.context);
       await this.goto(this.context.environment.baseUrl);
-      if (!this.fastMode) {
+      if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
         await this.waitForPageLoad();
       }
     }
@@ -554,12 +566,6 @@ class StableBrowser {
             if (!el.setAttribute) {
               el = el.parentElement;
             }
-            // remove any attributes start with data-blinq-id
-            // for (let i = 0; i < el.attributes.length; i++) {
-            //   if (el.attributes[i].name.startsWith("data-blinq-id")) {
-            //     el.removeAttribute(el.attributes[i].name);
-            //   }
-            // }
             el.setAttribute("data-blinq-id-" + randomToken, "");
             return true;
           },
@@ -882,23 +888,61 @@ class StableBrowser {
       }
 
       if (!element.rerun) {
-        const randomToken = Math.random().toString(36).substring(7);
-        await element.evaluate((el, randomToken) => {
-          el.setAttribute("data-blinq-id-" + randomToken, "");
-          console.log("set data-blinq-id-" + randomToken + " on element", el);
-        }, randomToken);
-        // if (element._frame) {
-        //   return element;
-        // }
+        let newElementSelector = "";
+        if (this.configuration && this.configuration.stableLocatorStrategy === "csschain") {
+          const cssSelector = await element.evaluate((el) => {
+            function getCssSelector(el) {
+              if (!el || el.nodeType !== 1 || el === document.body) return el.tagName.toLowerCase();
+
+              const parent = el.parentElement;
+              const tag = el.tagName.toLowerCase();
+
+              // Find the index of the element among its siblings of the same tag
+              let index = 1;
+              for (let sibling = el.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+                if (sibling.tagName === el.tagName) {
+                  index++;
+                }
+              }
+
+              // Use nth-child if necessary (i.e., if there's more than one of the same tag)
+              const siblings = Array.from(parent.children).filter((child) => child.tagName === el.tagName);
+              const needsNthChild = siblings.length > 1;
+
+              const selector = needsNthChild ? `${tag}:nth-child(${[...parent.children].indexOf(el) + 1})` : tag;
+
+              return getCssSelector(parent) + " > " + selector;
+            }
+            const cssSelector = getCssSelector(el);
+            return cssSelector;
+          });
+          newElementSelector = cssSelector;
+        } else {
+          const randomToken = "blinq_" + Math.random().toString(36).substring(7);
+          const id = await element.evaluate((el, randomToken) => {
+            // check if the element has id attribute
+            if (el.id) {
+              return el.id;
+            }
+            el.setAttribute("id", randomToken);
+            console.log("set id=" + randomToken + " on element", el);
+            return randomToken;
+          }, randomToken);
+          newElementSelector = "#" + id;
+          // check if the id contains :
+          if (id.includes(":")) {
+            // //*[@id="radix-:r0:"]
+            newElementSelector = `//*[@id="${id}"]`;
+          }
+        }
         const scope = element._frame ?? element.page();
-        let newElementSelector = "[data-blinq-id-" + randomToken + "]";
         let prefixSelector = "";
         const frameControlSelector = " >> internal:control=enter-frame";
         const frameSelectorIndex = element._selector.lastIndexOf(frameControlSelector);
         if (frameSelectorIndex !== -1) {
           // remove everything after the >> internal:control=enter-frame
           const frameSelector = element._selector.substring(0, frameSelectorIndex);
-          prefixSelector = frameSelector + " >> internal:control=enter-frame >>";
+          prefixSelector = frameSelector + " >> internal:control=enter-frame >> ";
         }
         // if (element?._frame?._selector) {
         //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
@@ -1209,9 +1253,13 @@ class StableBrowser {
         }
       }
       if (foundLocators.length === 1) {
+        let box = null;
+        if (!this.onlyFailuresScreenshot) {
+          box = await foundLocators[0].boundingBox();
+        }
         result.foundElements.push({
           locator: foundLocators[0],
-          box: await foundLocators[0].boundingBox(),
+          box: box,
           unique: true,
         });
         result.locatorIndex = i;
@@ -1367,17 +1415,28 @@ class StableBrowser {
       operation: "click",
       log: "***** click on " + selectors.element_name + " *****\n",
     };
+    check_performance("click_all ***", this.context, true);
     try {
+      check_performance("click_preCommand", this.context, true);
       await _preCommand(state, this);
+      check_performance("click_preCommand", this.context, false);
       await performAction("click", state.element, options, this, state, _params);
-      if (!this.fastMode) {
-        await this.waitForPageLoad();
+      if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
+        check_performance("click_waitForPageLoad", this.context, true);
+        await this.waitForPageLoad({ noSleep: true });
+        check_performance("click_waitForPageLoad", this.context, false);
       }
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
     } finally {
+      check_performance("click_commandFinally", this.context, true);
       await _commandFinally(state, this);
+      check_performance("click_commandFinally", this.context, false);
+      check_performance("click_all ***", this.context, false);
+      if (this.context.profile) {
+        console.log(JSON.stringify(this.context.profile, null, 2));
+      }
     }
   }
   async waitForElement(selectors, _params?: Params, options = {}, world = null) {
@@ -1465,7 +1524,7 @@ class StableBrowser {
           }
         }
       }
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1491,7 +1550,7 @@ class StableBrowser {
       await _preCommand(state, this);
       await performAction("hover", state.element, options, this, state, _params);
       await _screenshot(state, this);
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1526,7 +1585,7 @@ class StableBrowser {
         state.info.log += "selectOption failed, will try force" + "\n";
         await state.element.selectOption(values, { timeout: 10000, force: true });
       }
-      await this.waitForPageLoad();
+      //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -1791,8 +1850,8 @@ class StableBrowser {
       if (enter) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.page.keyboard.press("Enter");
+        await this.waitForPageLoad();
       }
-      await this.waitForPageLoad();
       return state.info;
     } catch (e) {
       await _commandError(state, e, this);
@@ -2806,6 +2865,7 @@ class StableBrowser {
       allowDisabled: true,
       info: {},
     };
+    state.options ??= { timeout: timeoutMs };
 
     // Initialize startTime outside try block to ensure it's always accessible
     const startTime = Date.now();
@@ -4135,6 +4195,23 @@ class StableBrowser {
   }
 
   async waitForPageLoad(options = {}, world = null) {
+    // try {
+    //   let currentPagePath = null;
+    //   currentPagePath = new URL(this.page.url()).pathname;
+    //   if (this.latestPagePath) {
+    //     // get the currect page path and compare with the latest page path
+    //     if (this.latestPagePath === currentPagePath) {
+    //       // if the page path is the same, do not wait for page load
+    //       console.log("No page change: " + currentPagePath);
+    //       return;
+    //     }
+    //   }
+    //   this.latestPagePath = currentPagePath;
+    // } catch (e) {
+    //   console.debug("Error getting current page path: ", e);
+    // }
+    //console.log("Waiting for page load");
+
     let timeout = this._getLoadTimeout(options);
     const promiseArray = [];
     // let waitForNetworkIdle = true;
@@ -4172,7 +4249,10 @@ class StableBrowser {
         console.log("waited for the domcontent loaded timeout");
       }
     } finally {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (options && !options.noSleep) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -4447,9 +4527,7 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {}
   async beforeStep(world, step) {
-    if (this.abortedExecution) {
-      throw new Error("Aborted");
-    }
+    this.stepTags = [];
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
       this.context.loadedRoutes = null;
@@ -4461,7 +4539,14 @@ class StableBrowser {
     }
     if (step && step.pickleStep && step.pickleStep.text) {
       this.stepName = step.pickleStep.text;
-      this.logger.info("step: " + this.stepName);
+
+      let printableStepName = this.stepName;
+      // take the printableStepName and replace quated value with \x1b[33m and \x1b[0m
+      printableStepName = printableStepName.replace(/"([^"]*)"/g, (match, p1) => {
+        return `\x1b[33m"${p1}"\x1b[0m`;
+      });
+
+      this.logger.info("\x1b[38;5;208mstep:\x1b[0m " + printableStepName);
     } else if (step && step.text) {
       this.stepName = step.text;
     } else {
@@ -4475,7 +4560,12 @@ class StableBrowser {
 
     if (this.initSnapshotTaken === false) {
       this.initSnapshotTaken = true;
-      if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
+      if (
+        world &&
+        world.attach &&
+        !process.env.DISABLE_SNAPSHOT &&
+        (!this.fastMode || this.stepTags.includes("fast-mode"))
+      ) {
         const snapshot = await this.getAriaSnapshot();
         if (snapshot) {
           await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
@@ -4485,6 +4575,9 @@ class StableBrowser {
     this.context.routeResults = null;
     await registerBeforeStepRoutes(this.context, this.stepName);
     networkBeforeStep(this.stepName);
+  }
+  setStepTags(tags: string[]) {
+    this.stepTags = tags;
   }
   async getAriaSnapshot() {
     try {
@@ -4598,7 +4691,13 @@ class StableBrowser {
     if (this.context) {
       this.context.examplesRow = null;
     }
-    if (world && world.attach && !process.env.DISABLE_SNAPSHOT && !this.fastMode) {
+    if (
+      world &&
+      world.attach &&
+      !process.env.DISABLE_SNAPSHOT &&
+      !this.fastMode &&
+      !this.stepTags.includes("fast-mode")
+    ) {
       const snapshot = await this.getAriaSnapshot();
       if (snapshot) {
         const obj = {};
@@ -4635,6 +4734,12 @@ class StableBrowser {
       }
     }
     networkAfterStep(this.stepName);
+    if (process.env.TEMP_RUN === "true") {
+      // Put a sleep for some time to allow the browser to finish processing
+      if (!this.stepTags.includes("fast-mode")) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+    }
   }
 }
 

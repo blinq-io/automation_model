@@ -172,7 +172,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           stubActionPerformed = true;
         }
       }
-
       if (!fullFillConfig.path) {
         if (stubAction.config.statusCode) {
           fullFillConfig.status = Number(stubAction.config.statusCode);
@@ -243,7 +242,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         !headers["content-type"]?.includes("text") &&
         !headers["content-type"]?.includes("application/csv");
 
-      const isJSON = headers["content-type"]?.includes("application/json");
+      const isJSON =
+        headers["content-type"]?.includes("application/json") || headers["content-type"]?.includes("json")
+          ? true
+          : false;
 
       let body;
       if (isBinary) {
@@ -263,8 +265,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       const actionResults: InterceptedRoute["actionResults"] = [];
 
       let abortActionPerformed = false;
-      let finalBody = body;
-      
+      let finalBody = isJSON && json ? json : body;
+
       for (const action of matchedItem.actions) {
         let actionStatus: "success" | "fail" = "success";
         const description = JSON.stringify(action.config);
@@ -301,7 +303,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                 console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
                 console.log(`[json_modify] Modified JSON`);
                 message = `JSON modified successfully`;
-                finalBody = json;
+                finalBody = JSON.parse(JSON.stringify(json));
               }
             }
             break;
@@ -315,7 +317,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               try {
                 const parsedConfig = JSON.parse(action.config);
                 json = parsedConfig;
-                finalBody = json;
+                finalBody = JSON.parse(JSON.stringify(json));
               } catch (e: unknown) {
                 actionStatus = "fail";
                 tracking.actionResults = actionResults;
@@ -345,6 +347,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               finalBody = body;
             }
             break;
+            
           case "assert_json":
             if (!json) {
               actionStatus = "fail";
@@ -368,7 +371,6 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               }
             }
             break;
-
           case "assert_whole_json":
             if (!json) {
               actionStatus = "fail";

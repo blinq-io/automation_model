@@ -1,3 +1,4 @@
+import { check_performance } from "./check_performance.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { _fixUsingParams, maskValue, replaceWithLocalTestData } from "./utils.js";
@@ -27,9 +28,6 @@ type JsonCommandReport = {
 };
 
 export async function _preCommand(state: any, web: any) {
-  if (web.abortedExecution) {
-    return new Error("Aborted");
-  }
   if (web && web.getCmdId) {
     state.cmdId = web.getCmdId();
   }
@@ -86,6 +84,7 @@ export async function _preCommand(state: any, web: any) {
   state.error = null;
   state.screenshotId = null;
   state.screenshotPath = null;
+  state.onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
   if (state.locate === true) {
     let timeout = null;
     if (state.options && state.options.timeout) {
@@ -97,7 +96,11 @@ export async function _preCommand(state: any, web: any) {
     await web.scrollIfNeeded(state.element, state.info);
   }
   if (state.screenshot === true /*&& !web.fastMode*/) {
-    await _screenshot(state, web);
+    if (!state.onlyFailuresScreenshot) {
+      check_performance("screenshot", web.context, true);
+      await _screenshot(state, web);
+      check_performance("screenshot", web.context, false);
+    }
   }
   if (state.highlight === true) {
     try {
@@ -107,12 +110,14 @@ export async function _preCommand(state: any, web: any) {
     }
   }
   state.info.failCause.operationFailed = true;
+  if (web.pausedCmd && web.pausedCmd.id === state.cmdId) {
+    await new Promise((resolve, reject) => {
+      web.pausedCmd.resolve = resolve;
+      web.pausedCmd.reject = reject;
+    });
+  }
 }
 export async function _commandError(state: any, error: any, web: any) {
-  if (web.abortedExecution) {
-    return;
-  }
-
   if (!state.info) {
     state.info = {};
   }
@@ -169,10 +174,6 @@ export async function _screenshot(state: any, web: any, specificElement?: any) {
 }
 
 export async function _commandFinally(state: any, web: any) {
-  if (web.abortedExecution) {
-    return;
-  }
-
   if (state && !state.commandError === true) {
     state.info.failCause = {};
   }

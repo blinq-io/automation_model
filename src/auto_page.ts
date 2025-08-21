@@ -109,56 +109,55 @@ const initContext = async (
   if (world && world.context && world.context.playContext && world.context.playContext.isClosed !== true) {
     return world.context;
   }
-  return measureAsync("browser Launch", async () => {
-    if (!reportFolder) {
-      reportFolder = _findEmptyFolder();
-      if (world && world.attach) {
-        world.attach(reportFolder, { mediaType: "text/plain" });
+  if (!reportFolder) {
+    reportFolder = _findEmptyFolder();
+    if (world && world.attach) {
+      world.attach(reportFolder, { mediaType: "text/plain" });
+    }
+  }
+  const globalTestDataFile = process.env.GLOBAL_TEST_DATA_FILE;
+  if (globalTestDataFile) {
+    // check if file exists
+    if (!existsSync(globalTestDataFile)) {
+      console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.GLOBAL_TEST_DATA_FILE);
+    } else {
+      // if report folder does not exist, create it
+      if (!existsSync(reportFolder)) {
+        mkdirSync(reportFolder, { recursive: true });
       }
+      // copy the test data file to the report folder as data.json
+      copyFileSync(globalTestDataFile, reportFolder + "/data.json");
     }
-    const globalTestDataFile = process.env.GLOBAL_TEST_DATA_FILE;
-    if (globalTestDataFile) {
-      // check if file exists
-      if (!existsSync(globalTestDataFile)) {
-        console.log("GLOBAL_TEST_DATA_FILE not found: " + process.env.GLOBAL_TEST_DATA_FILE);
-      } else {
-        // if report folder does not exist, create it
-        if (!existsSync(reportFolder)) {
-          mkdirSync(reportFolder, { recursive: true });
-        }
-        // copy the test data file to the report folder as data.json
-        copyFileSync(globalTestDataFile, reportFolder + "/data.json");
-      }
+  }
+  const screenshotPath = reportFolder + "/screenshots/";
+  if (!existsSync(screenshotPath)) {
+    mkdirSync(screenshotPath, { recursive: true });
+  }
+  if (world) {
+    world.reportFolder = reportFolder;
+    world.screenshotPath = screenshotPath;
+    world.screenshot = true;
+  }
+  context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder, initScript);
+  if (world) {
+    world.context = context;
+    if (world.attach) {
+      world.attach(JSON.stringify(context!.environment), {
+        mediaType: "application/json+env",
+      });
     }
-    const screenshotPath = reportFolder + "/screenshots/";
-    if (!existsSync(screenshotPath)) {
-      mkdirSync(screenshotPath, { recursive: true });
-    }
-    if (world) {
-      world.reportFolder = reportFolder;
-      world.screenshotPath = screenshotPath;
-      world.screenshot = true;
-    }
-    context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder, initScript);
-    if (world) {
-      world.context = context;
-      if (world.attach) {
-        world.attach(JSON.stringify(context.environment), {
-          mediaType: "application/json+env",
-        });
-      }
-    }
-    context.reportFolder = reportFolder;
+  }
 
-    if (doNavigate) {
-      await navigate(path);
+  if (doNavigate) {
+    await navigate(path);
+  }
+  if (context) context.reportFolder = reportFolder;
+  if (context) {
+    const env = getEnv(envName);
+    if (env && !process.env.TEMP_RUN) {
+      await getTestData(env, world, undefined, undefined, undefined, context);
     }
-    if (context) {
-      const env = getEnv(envName);
-      if (env && !process.env.TEMP_RUN) {
-        await getTestData(env, world, undefined, undefined, undefined, context);
-      }
-    }
+  }
 
   if (context && !context.snapshotFolder) {
     context.snapshotFolder = _createSnapshotsFolder("data");
@@ -168,8 +167,7 @@ const initContext = async (
     context.fixturesFolder = _createFixturesFolder();
   }
 
-    return context;
-  });
+  return context;
 };
 
 const getEnv = (envName: string | null) => {
@@ -189,7 +187,7 @@ const getEnv = (envName: string | null) => {
   return null;
 };
 const closeContext = async () => {
-  if (process.env.TEMP_RUN || context?.web?.abortedExecution) {
+  if (process.env.TEMP_RUN) {
     return;
   }
   try {

@@ -277,14 +277,7 @@ export function networkBeforeStep(stepName: string) {
 
   executionState.liveRequestsMapPrevious = executionState.liveRequestsMap;
   executionState.liveRequestsMap = new Map<any, any>();
-
-  if (process.env.CURRENT_STEP_ID) {
-    // console.log("Using CURRENT_STEP_ID from environment variables:", process.env.CURRENT_STEP_ID);
-    // If CURRENT_STEP_ID is set, use it as the step hash
-    stepHash = process.env.CURRENT_STEP_ID;
-  } else {
-    stepHash = stepNameToHash(stepName);
-  }
+  stepHash = stepNameToHash(stepName);
   executionState.previousStepHash = executionState.currentStepHash; // ➊ NEW
   executionState.currentStepHash = stepHash;
   // check if the file exists, if exists delete it
@@ -299,7 +292,6 @@ async function saveMap(current: boolean) {
   if (current) {
     const entries = Array.from(executionState.liveRequestsMap.values());
     const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
-
     await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
   } else {
     const entries = Array.from(executionState.liveRequestsMapPrevious.values());
