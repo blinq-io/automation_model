@@ -151,13 +151,13 @@ const initContext = async (
   if (doNavigate) {
     await navigate(path);
   }
+  if (context) context.reportFolder = reportFolder;
   if (context) {
     const env = getEnv(envName);
     if (env && !process.env.TEMP_RUN) {
       await getTestData(env, world, undefined, undefined, undefined, context);
     }
   }
-  if (context) context.reportFolder = reportFolder;
 
   if (context && !context.snapshotFolder) {
     context.snapshotFolder = _createSnapshotsFolder("data");
