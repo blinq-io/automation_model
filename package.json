@@ -18,7 +18,7 @@
     "test": "npm run build && cross-env HEADLESS=true npx mocha --parallel --jobs=8 ./regression/ --timeout 180000",
     "debug": "node tests/debug.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
-    "regression": "cross-env HEADLESS=true npx mocha --bail --parallel --jobs=12 ./regressions/ --timeout 120000",
+    "regression": "cross-env HEADLESS=true npx mocha --bail --parallel --jobs=12 ./regression/ --timeout 120000",
     "reg": "npm run build && npm run compile && npm run regression"
   },
   "author": "",
