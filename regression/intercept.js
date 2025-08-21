@@ -210,6 +210,21 @@ Route to  failed with status: timeout`);
     // expect(result.filters.method).to.equal("GET");
     // expect(result.overallStatus).to.equal("success");
   });
+  it("route test data", async function () {
+    const stepObject = {
+      pickleStep: { text: 'login with "user_name" and "password" 7', keyword: "Given" },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "Login scenario",
+      },
+    };
+    context.web.setTestData({ status_code: 200 });
+    await context.web.beforeStep(context, stepObject);
+    await context.web.page.reload();
+    await context.web.waitForPageLoad();
+    await context.web.afterStep(context, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+  });
 
   // https://weatherapi.pelmorex.com/api/v1/observation?locale=en-CA&lat=40.712&long=-74.005&unit=metric
 });
