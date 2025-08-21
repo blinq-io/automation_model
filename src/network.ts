@@ -292,7 +292,6 @@ async function saveMap(current: boolean) {
   if (current) {
     const entries = Array.from(executionState.liveRequestsMap.values());
     const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
-
     await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
   } else {
     const entries = Array.from(executionState.liveRequestsMapPrevious.values());
