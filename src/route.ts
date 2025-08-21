@@ -69,8 +69,13 @@ async function loadRoutes(context: any): Promise<Route[]> {
     const allRoutes: Route[] = [];
     for (const file of jsonFiles) {
       let content = await fs.readFile(path.join(dir, file), "utf-8");
+      let originalContent = content;
       // replace test data
-      content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
+      try {
+        content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
+      } catch (e) {
+        content = originalContent;
+      }
       const routeObj: Route = JSON.parse(content);
       allRoutes.push(routeObj);
     }
@@ -350,7 +355,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
               finalBody = body;
             }
             break;
-            
+
           case "assert_json":
             if (!json) {
               actionStatus = "fail";
