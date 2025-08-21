@@ -1,0 +1,20 @@
+{
+    "template": "login with {string} and {string} 2",
+    "routes": [
+        {
+            "filters": {
+                "path": "/assets/index-_1_OQ1og.css",
+                "queryParams": {},
+                "method": "GET"
+            },
+            "actions": [
+                {
+                    "type": "status_code_verification",
+                    "config":{{status_code}}
+                }
+            ],
+            "mandatory": true,
+            "timeout": 20000
+        }
+    ]
+}
