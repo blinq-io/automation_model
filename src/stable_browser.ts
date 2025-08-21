@@ -2865,6 +2865,7 @@ class StableBrowser {
       allowDisabled: true,
       info: {},
     };
+    state.options ??= { timeout: timeoutMs };
 
     // Initialize startTime outside try block to ensure it's always accessible
     const startTime = Date.now();
