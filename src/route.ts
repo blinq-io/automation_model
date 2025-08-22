@@ -70,9 +70,14 @@ async function loadRoutes(context: any): Promise<Route[]> {
     for (const file of jsonFiles) {
       let content = await fs.readFile(path.join(dir, file), "utf-8");
       // replace test data
-      content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
-      const routeObj: Route = JSON.parse(content);
-      allRoutes.push(routeObj);
+      try {
+        content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
+        const routeObj: Route = JSON.parse(content);
+        allRoutes.push(routeObj);
+      } catch (error) {
+        console.debug("Error replacing test data:", error);
+        continue;
+      }
     }
 
     context.loadedRoutes = allRoutes;
