@@ -1,5 +1,5 @@
 {
-    "template": "login with {string} and {string} 2",
+    "template": "login with {string} and {string} 7",
     "routes": [
         {
             "filters": {
@@ -10,7 +10,7 @@
             "actions": [
                 {
                     "type": "status_code_verification",
-                    "config":{{status_code}}
+                    "config": {{status_code}}
                 }
             ],
             "mandatory": true,
