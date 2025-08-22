@@ -73,11 +73,12 @@ async function loadRoutes(context: any): Promise<Route[]> {
       // replace test data
       try {
         content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
-      } catch (e) {
-        content = originalContent;
+        const routeObj: Route = JSON.parse(content);
+        allRoutes.push(routeObj);
+      } catch (error) {
+        console.debug("Error replacing test data:", error);
+        continue;
       }
-      const routeObj: Route = JSON.parse(content);
-      allRoutes.push(routeObj);
     }
 
     context.loadedRoutes = allRoutes;
