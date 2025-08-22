@@ -313,6 +313,10 @@ export async function networkAfterStep(stepName: string) {
   //executionState.previousStepHash = executionState.currentStepHash; // ➋ NEW
   //executionState.liveRequestsMap.clear();
   outOfStep = true;
+  // set a timer of 60 seconds to the outOfStep, after that it will be set to false so no network collection will happen
+  setTimeout(() => {
+    outOfStep = false;
+  }, 60000);
 }
 
 function stepNameToHash(stepName: string): string {
