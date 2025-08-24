@@ -255,6 +255,7 @@ interface ExecutionState {
 }
 const detailedNetworkFolder = path.join(tmpdir(), "blinq_network_events");
 let outOfStep = true;
+let timeoutId: NodeJS.Timeout | null = null;
 const executionState = {
   currentStepHash: null,
   previousStepHash: null,
@@ -263,6 +264,10 @@ const executionState = {
 } as ExecutionState;
 
 export function networkBeforeStep(stepName: string) {
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    timeoutId = null;
+  }
   outOfStep = false;
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
@@ -315,7 +320,7 @@ export async function networkAfterStep(stepName: string) {
   //executionState.liveRequestsMap.clear();
   outOfStep = true;
   // set a timer of 60 seconds to the outOfStep, after that it will be set to false so no network collection will happen
-  setTimeout(() => {
+  timeoutId = setTimeout(() => {
     outOfStep = false;
   }, 60000);
 }
