@@ -344,8 +344,9 @@ function handleRequest(request: any) {
     requestTimestamp: Date.now(),
     stepHash: executionState.currentStepHash,
   };
-
-  executionState.liveRequestsMap.set(request, entry);
+  if (!outOfStep) {
+    executionState.liveRequestsMap.set(request, entry);
+  }
   // console.log("Request started:", entry);
 }
 
