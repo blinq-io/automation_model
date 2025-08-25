@@ -53,25 +53,9 @@ type FulfillOptions = Parameters<PWRoute["fulfill"]>[0];
 async function loadRoutes(
   context: { loadedRoutes?: Map<string, Route[]> | null; web?: any },
   template: string
-): Promise<Route[]>;
-
-async function loadRoutes(context: {
-  loadedRoutes?: Map<string, Route[]> | null;
-  web?: any;
-}): Promise<Map<string, Route[]>>;
-
-async function loadRoutes(
-  context: { loadedRoutes?: Map<string, Route[]> | null; web?: any },
-  template?: string
-): Promise<Map<string, Route[]> | Route[]> {
-  if (template) {
-    if (context.loadedRoutes instanceof Map && context.loadedRoutes.has(template)) {
-      return context.loadedRoutes.get(template) || [];
-    }
-  }
-
-  if (context.loadedRoutes !== null && context.loadedRoutes instanceof Map) {
-    return context.loadedRoutes;
+): Promise<Route[]> {
+  if (context.loadedRoutes instanceof Map && context.loadedRoutes.has(template)) {
+    return context.loadedRoutes.get(template) || [];
   }
 
   try {
@@ -82,7 +66,8 @@ async function loadRoutes(
 
     if (!(await folderExists(dir))) {
       context.loadedRoutes = new Map();
-      return context.loadedRoutes;
+      context.loadedRoutes.set(template, []);
+      return context.loadedRoutes.get(template) || [];
     }
 
     const files = await fs.readdir(dir);
@@ -111,10 +96,7 @@ async function loadRoutes(
     context.loadedRoutes = new Map();
   }
 
-  if (template) {
-    return context.loadedRoutes.get(template) || [];
-  }
-  return context.loadedRoutes;
+  return context.loadedRoutes.get(template) || [];
 }
 
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
@@ -141,28 +123,22 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
     context.__routeState = { matched: [] } as RouteContextState;
   }
 
-  for (let item of allRouteItems) {
+  for (let i = 0; i < allRouteItems.length; i++) {
+    const item = allRouteItems[i];
     if (item.mandatory) {
       debug(`Setting up mandatory route with timeout ${item.timeout}ms: ${JSON.stringify(item.filters)}`);
       let content = JSON.stringify(item);
       try {
         content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
-        item = JSON.parse(content);
-        debug(`After replacing test data: ${JSON.stringify(item)}`);
+        allRouteItems[i] = JSON.parse(content); // Modify the original array
+        debug(`After replacing test data: ${JSON.stringify(allRouteItems[i])}`);
       } catch (error) {
         debug("Error replacing test data:", error);
       }
-
-      //   const tracking: InterceptedRoute = {
-      //     routeItem: item,
-      //     url: "",
-      //     completed: false,
-      //     startedAt: Date.now(),
-      //     actionResults: [],
-      //   };
-      //   context.__routeState.matched.push(tracking);
     }
   }
+
+  debug("New allrouteItems", JSON.stringify(allRouteItems));
 
   let message: string | null = null;
 
