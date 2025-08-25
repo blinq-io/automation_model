@@ -276,6 +276,7 @@ const executionState = {
 } as ExecutionState;
 
 export function networkBeforeStep(stepName: string) {
+  const debug = createDebug("network:beforeStep");
   if (timeoutId) {
     clearTimeout(timeoutId);
     timeoutId = null;
