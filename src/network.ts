@@ -3,6 +3,8 @@ import fs from "fs";
 import { _stepNameToTemplate } from "./route.js";
 import crypto from "crypto";
 import { tmpdir } from "os";
+import createDebug from "debug";
+const debug = createDebug("automation_model:network");
 
 interface RequestEntry {
   requestId: number;
@@ -330,7 +332,9 @@ function stepNameToHash(stepName: string): string {
   // create hash from the template name
   return crypto.createHash("sha256").update(templateName).digest("hex");
 }
+
 function handleRequest(request: any) {
+  const debug = createDebug("automation_model:network:handleRequest");
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData || !executionState.currentStepHash) {
     return;
@@ -346,8 +350,10 @@ function handleRequest(request: any) {
   };
   if (!outOfStep) {
     executionState.liveRequestsMap.set(request, entry);
+    debug("Request to", request.url(), "with", request.requestId, "added to current step map at", Date.now());
+  } else {
+    debug("Request to", request.url(), "ignored as outOfStep");
   }
-  // console.log("Request started:", entry);
 }
 
 function saveNetworkDataToFile(requestData: any) {
@@ -373,17 +379,24 @@ function saveNetworkDataToFile(requestData: any) {
   fs.writeFileSync(networkFile, JSON.stringify(existingData, null, 2), "utf8");
 }
 async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
+  const debug = createDebug("automation_model:network:handleRequestFinishedOrFailed");
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
 
+  const requestId = request.requestId;
+  debug("Request id in handleRequestFinishedOrFailed:", requestId, "at", Date.now());
+
   // const response = await request.response(); // This may be null if the request failed
   let entry = executionState.liveRequestsMap.get(request);
+  debug("Request entry found in current map:", entry?.requestId || false);
   if (!entry) {
     // check if the request is in the previous step's map
     entry = executionState.liveRequestsMapPrevious.get(request);
+    debug("Request entry found in previous map:", entry?.requestId || false);
     if (!entry) {
+      debug("No entry, creating fallback! for url:", request.url());
       entry = {
         requestId: request.requestId,
         url: request.url(),

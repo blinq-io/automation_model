@@ -4,7 +4,7 @@ import path from "path";
 import objectPath from "object-path";
 import { tmpdir } from "os";
 import createDebug from "debug";
-import { existsSync } from "fs";
+import { existsSync, writeFile } from "fs";
 import { replaceWithLocalTestData } from "./utils.js";
 const debug = createDebug("automation_model:route");
 // const debug = console.debug;
@@ -50,8 +50,29 @@ interface RouteContextState {
 
 type FulfillOptions = Parameters<PWRoute["fulfill"]>[0];
 
-async function loadRoutes(context: any): Promise<Route[]> {
-  if (context.loadedRoutes !== null) return context.loadedRoutes;
+async function loadRoutes(
+  context: { loadedRoutes?: Map<string, Route[]> | null; web?: any },
+  template: string
+): Promise<Route[]>;
+
+async function loadRoutes(context: {
+  loadedRoutes?: Map<string, Route[]> | null;
+  web?: any;
+}): Promise<Map<string, Route[]>>;
+
+async function loadRoutes(
+  context: { loadedRoutes?: Map<string, Route[]> | null; web?: any },
+  template?: string
+): Promise<Map<string, Route[]> | Route[]> {
+  if (template) {
+    if (context.loadedRoutes instanceof Map && context.loadedRoutes.has(template)) {
+      return context.loadedRoutes.get(template) || [];
+    }
+  }
+
+  if (context.loadedRoutes !== null && context.loadedRoutes instanceof Map) {
+    return context.loadedRoutes;
+  }
 
   try {
     let dir = path.join(process.cwd(), "data", "routes");
@@ -60,38 +81,44 @@ async function loadRoutes(context: any): Promise<Route[]> {
     }
 
     if (!(await folderExists(dir))) {
-      context.loadedRoutes = [];
+      context.loadedRoutes = new Map();
       return context.loadedRoutes;
     }
+
     const files = await fs.readdir(dir);
     const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
-    const allRoutes: Route[] = [];
+    const allRoutes = new Map<string, Route[]>();
     for (const file of jsonFiles) {
       let content = await fs.readFile(path.join(dir, file), "utf-8");
-      // replace test data
       try {
-        content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
         const routeObj: Route = JSON.parse(content);
-        allRoutes.push(routeObj);
+        const template = routeObj.template;
+        if (!allRoutes.has(template)) {
+          allRoutes.set(template, []);
+        }
+        allRoutes.get(template)?.push(routeObj);
       } catch (error) {
-        console.debug("Error replacing test data:", error);
+        debug("Error parsing route file:", error);
         continue;
       }
     }
 
     context.loadedRoutes = allRoutes;
-    debug(`Loaded ${allRoutes.length} route definitions from ${dir}`);
+    debug(`Loaded ${allRoutes.size} route definitions from ${dir}`);
   } catch (error) {
     console.error("Error loading routes:", error);
-    context.loadedRoutes = [];
+    context.loadedRoutes = new Map();
+  }
+
+  if (template) {
+    return context.loadedRoutes.get(template) || [];
   }
   return context.loadedRoutes;
 }
 
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
   const url = new URL(req.request().url());
-
   const methodMatch = !routeItem.filters.method || routeItem.filters.method === req.request().method();
   const pathMatch = routeItem.filters.path === url.pathname;
 
@@ -107,24 +134,33 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
   if (!page) throw new Error("context.web.page is missing");
 
   const stepTemplate = _stepNameToTemplate(stepName);
-  const routes = await loadRoutes(context);
-  const matchedRouteDefs = routes.filter((r) => r.template === stepTemplate);
-  const allRouteItems: RouteItem[] = matchedRouteDefs.flatMap((r) => r.routes);
+  const routes = await loadRoutes(context, stepTemplate);
+  const allRouteItems: RouteItem[] = routes.flatMap((r) => r.routes);
 
   if (!context.__routeState) {
     context.__routeState = { matched: [] } as RouteContextState;
   }
 
-  for (const item of allRouteItems) {
+  for (let item of allRouteItems) {
     if (item.mandatory) {
-      const tracking: InterceptedRoute = {
-        routeItem: item,
-        url: "",
-        completed: false,
-        startedAt: Date.now(),
-        actionResults: [],
-      };
-      context.__routeState.matched.push(tracking);
+      debug(`Setting up mandatory route with timeout ${item.timeout}ms: ${JSON.stringify(item.filters)}`);
+      let content = JSON.stringify(item);
+      try {
+        content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
+        item = JSON.parse(content);
+        debug(`After replacing test data: ${JSON.stringify(item)}`);
+      } catch (error) {
+        debug("Error replacing test data:", error);
+      }
+
+      //   const tracking: InterceptedRoute = {
+      //     routeItem: item,
+      //     url: "",
+      //     completed: false,
+      //     startedAt: Date.now(),
+      //     actionResults: [],
+      //   };
+      //   context.__routeState.matched.push(tracking);
     }
   }
 
@@ -136,13 +172,16 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
     if (!matchedItem) return route.continue();
     debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
+    debug("Initial context route state", context.__routeState);
     let tracking = context.__routeState.matched.find(
       (t: InterceptedRoute) => t.routeItem === matchedItem && !t.completed
     );
+    debug("Tracking", tracking);
 
     let stubActionPerformed = false;
 
     if (!tracking) {
+      debug("Tracking not found, creating tracking");
       tracking = {
         routeItem: matchedItem,
         url: request.url(),
@@ -150,9 +189,12 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         startedAt: Date.now(),
         actionResults: [],
       };
+      debug("Created tracking", tracking);
       context.__routeState.matched.push(tracking);
+      debug("Current route state", context.__routeState);
     } else {
       tracking.url = request.url();
+      debug("Updating tracking", tracking);
     }
 
     const stubAction = matchedItem.actions.find((a) => a.type === "stub_request");
@@ -238,6 +280,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       let response: APIResponse;
       try {
         response = await route.fetch();
+        // debug("Matched item response", response);
       } catch (e) {
         console.error("Fetch failed for", request.url(), e);
         if (tracking?.timer) clearTimeout(tracking.timer);
@@ -251,10 +294,14 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         !headers["content-type"]?.includes("text") &&
         !headers["content-type"]?.includes("application/csv");
 
+      // debug("Matched item isBinary", isBinary);
+
       const isJSON =
         headers["content-type"]?.includes("application/json") || headers["content-type"]?.includes("json")
           ? true
           : false;
+
+      // debug("Matched item isJSON", isJSON);
 
       let body;
       if (isBinary) {
@@ -276,6 +323,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       let abortActionPerformed = false;
       let finalBody = isJSON && json ? json : body;
 
+      // debug("Matched item actions", matchedItem.actions);
+
       for (const action of matchedItem.actions) {
         let actionStatus: "success" | "fail" = "success";
         const description = JSON.stringify(action.config);
@@ -293,8 +342,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           case "status_code_verification":
             if (String(status) !== String(action.config)) {
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = `Status code verification failed. Expected ${action.config}, got ${status}`;
+              debug(`[status_code_verification] Failed: ${message}`);
             } else {
               console.log(`[status_code_verification] Passed`);
               message = `Status code verification passed. Expected ${action.config}, got ${status}`;
@@ -304,8 +353,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           case "json_modify":
             if (!json) {
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = "JSON modification failed. Response is not JSON";
+              debug(`[json_modify] Failed: ${message}`);
             } else {
               if (action.config && action.config.path && action.config.modifyValue) {
                 objectPath.set(json, action.config.path, action.config.modifyValue);
@@ -320,8 +369,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           case "json_whole_modify":
             if (!json) {
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = "JSON modification failed. Response is not JSON";
+              debug(`[json_whole_modify] Failed: ${message}`);
             } else {
               try {
                 const parsedConfig = JSON.parse(action.config);
@@ -329,9 +378,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
                 finalBody = JSON.parse(JSON.stringify(json));
               } catch (e: unknown) {
                 actionStatus = "fail";
-                tracking.actionResults = actionResults;
                 message = `JSON modification failed. Invalid JSON: ${e instanceof Error ? e.message : String(e)}`;
-                console.error(`[json_whole_modify] Invalid JSON:`, e);
+                debug(`[json_whole_modify] Failed: ${message}`);
                 break;
               }
               console.log(`[json_whole_modify] Whole JSON replaced`);
@@ -347,8 +395,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           case "change_text":
             if (isBinary) {
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = "Change text action failed. Body is not a text";
+              debug(`[change_text] Failed: ${message}`);
             } else {
               body = action.config;
               console.log(`[change_text] HTML body replaced`);
@@ -359,20 +407,20 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           case "assert_json":
             if (!json) {
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = "JSON assertion failed. Response is not JSON";
+              debug(`[assert_json] Failed: ${message}`);
             } else {
               const actual = objectPath.get(json, action.config.path);
               if (typeof actual !== "object") {
                 if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
                   actionStatus = "fail";
-                  tracking.actionResults = actionResults;
                   message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
+                  debug(`[assert_json] Failed: ${message}`);
                 }
               } else if (JSON.stringify(actual) !== action.config.expectedValue) {
                 actionStatus = "fail";
-                tracking.actionResults = actionResults;
                 message = `JSON assertion failed for path ${action.config.path}: expected ${action.config.expectedValue}, got ${JSON.stringify(actual)}`;
+                debug(`[assert_json] Failed: ${message}`);
               } else {
                 console.log(`[assert_json] Assertion passed for path ${action.config.path}`);
                 message = `JSON assertion passed for path ${action.config.path}`;
@@ -383,22 +431,22 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           case "assert_whole_json":
             if (!json) {
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = "Whole JSON assertion failed. Response is not JSON";
+              debug(`[assert_whole_json] Failed: ${message}`);
             } else {
               if (action.config.contains) {
                 const originalJSON = JSON.stringify(json, null, 2);
                 if (!originalJSON.includes(action.config.contains)) {
                   actionStatus = "fail";
-                  tracking.actionResults = actionResults;
                   message = `Whole JSON assertion failed. Expected to contain: "${action.config.contains}", actual: "${body}"`;
+                  debug(`[assert_whole_json] Failed: ${message}`);
                 }
               } else if (action.config.equals) {
                 const originalJSON = JSON.stringify(json, null, 2);
                 if (originalJSON !== action.config.equals) {
                   actionStatus = "fail";
-                  tracking.actionResults = actionResults;
                   message = `Whole JSON assertion failed. Expected exact match: "${action.config.equals}", actual: "${body}"`;
+                  debug(`[assert_whole_json] Failed: ${message}`);
                 }
               } else {
                 console.log(`[assert_whole_json] Assertion passed`);
@@ -410,17 +458,17 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             if (typeof body !== "string") {
               console.error(`[assert_text] Body is not text`);
               actionStatus = "fail";
-              tracking.actionResults = actionResults;
               message = "Text assertion failed. Body is not text";
+              debug(`[assert_text] Failed: ${message}`);
             } else {
               if (action.config.contains && !body.includes(action.config.contains)) {
                 actionStatus = "fail";
-                tracking.actionResults = actionResults;
                 message = `Text assertion failed. Expected to contain: "${action.config.contains}", actual: "${body}"`;
+                debug(`[assert_text] Failed: ${message}`);
               } else if (action.config.equals && body !== action.config.equals) {
                 actionStatus = "fail";
-                tracking.actionResults = actionResults;
                 message = `Text assertion failed. Expected exact match: "${action.config.equals}", actual: "${body}"`;
+                debug(`[assert_text] Failed: ${message}`);
               } else {
                 console.log(`[assert_text] Assertion passed`);
                 message = `Text assertion passed.`;
@@ -432,6 +480,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
         }
 
         actionResults.push({ type: action.type, description, status: actionStatus, message: message });
+        debug("Action results:", actionResults);
       }
 
       tracking.completed = true;
@@ -457,9 +506,11 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
 export async function registerAfterStepRoutes(context: any, world: any) {
   const state: RouteContextState = context.__routeState;
+  debug("state in afterStepRoutes", JSON.stringify(state));
   if (!state) return [];
 
   const mandatoryRoutes = state.matched.filter((tracked) => tracked.routeItem.mandatory);
+  debug("mandatoryRoutes in afterStepRoutes", mandatoryRoutes);
   if (mandatoryRoutes.length === 0) {
     context.__routeState = null;
     return [];
@@ -469,22 +520,28 @@ export async function registerAfterStepRoutes(context: any, world: any) {
   const startTime = Date.now();
 
   const mandatoryRouteReached = mandatoryRoutes.map((r) => true);
+  debug("mandatoryRouteReached initialized to", mandatoryRouteReached);
 
   await new Promise<void>((resolve) => {
     const interval = setInterval(() => {
       const now = Date.now();
 
       const allCompleted = mandatoryRoutes.every((r) => r.completed);
+      debug("allCompleted in afterStepRoutes", allCompleted);
       const allTimedOut = mandatoryRoutes.every((r) => r.completed || now - startTime >= r.routeItem.timeout);
+      debug("allTimedOut in afterStepRoutes", allTimedOut);
 
       for (const r of mandatoryRoutes) {
         const elapsed = now - startTime;
+        // debug(`Elapsed time for route ${r.url}: ${elapsed}ms`);
         if (!r.completed && elapsed >= r.routeItem.timeout) {
           mandatoryRouteReached[mandatoryRoutes.indexOf(r)] = false;
+          debug(`Route ${r.url} timed out after ${elapsed}ms`);
         }
       }
 
       if (allCompleted || allTimedOut) {
+        debug("allCompleted", allCompleted, "allTimedOut", allTimedOut);
         clearInterval(interval);
         resolve();
       }
@@ -493,6 +550,11 @@ export async function registerAfterStepRoutes(context: any, world: any) {
 
   context.results = mandatoryRoutes.map((tracked) => {
     const { routeItem, url, completed, actionResults = [] } = tracked;
+    debug("tracked in afterStepRoutes", {
+      url,
+      completed,
+      actionResults,
+    });
 
     const actions = actionResults.map((ar) => {
       let status: "success" | "fail" | "timeout" = ar.status;
@@ -504,6 +566,8 @@ export async function registerAfterStepRoutes(context: any, world: any) {
         message: ar.message || null,
       };
     });
+
+    debug("actions in afterStepRoutes", actions);
 
     let overallStatus: "success" | "fail" | "timeout";
     if (!completed) {
