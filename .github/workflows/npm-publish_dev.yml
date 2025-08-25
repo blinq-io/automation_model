@@ -2,7 +2,7 @@ name: Javascript client CI
 
 on:
   push:
-    branches: ["dev", "AIC-4374"]
+    branches: ["dev"]
 
 permissions:
   contents: write
@@ -25,7 +25,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Install Playwright dependencies
-        run: npx playwright install --with-deps 
+        run: npx playwright install --with-deps
         working-directory: ${{ github.workspace }}
 
       - name: Fetch current version from npm with tag 'next'
@@ -52,7 +52,6 @@ jobs:
       - name: Update package-lock.json
         run: npm install --package-lock-only
         working-directory: ${{ github.workspace }}
-
 
       - run: npm run build
         working-directory: ${{ github.workspace }}
