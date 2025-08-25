@@ -3,6 +3,8 @@ import fs from "fs";
 import { _stepNameToTemplate } from "./route.js";
 import crypto from "crypto";
 import { tmpdir } from "os";
+import createDebug from "debug";
+const debug = createDebug("automation_model:network");
 
 interface RequestEntry {
   requestId: number;
@@ -255,6 +257,7 @@ interface ExecutionState {
 }
 const detailedNetworkFolder = path.join(tmpdir(), "blinq_network_events");
 let outOfStep = true;
+let timeoutId: NodeJS.Timeout | null = null;
 const executionState = {
   currentStepHash: null,
   previousStepHash: null,
@@ -263,6 +266,10 @@ const executionState = {
 } as ExecutionState;
 
 export function networkBeforeStep(stepName: string) {
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    timeoutId = null;
+  }
   outOfStep = false;
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
@@ -313,6 +320,10 @@ export async function networkAfterStep(stepName: string) {
   //executionState.previousStepHash = executionState.currentStepHash; // ➋ NEW
   //executionState.liveRequestsMap.clear();
   outOfStep = true;
+  // set a timer of 60 seconds to the outOfStep, after that it will be set to false so no network collection will happen
+  timeoutId = setTimeout(() => {
+    outOfStep = false;
+  }, 60000);
 }
 
 function stepNameToHash(stepName: string): string {
@@ -320,7 +331,9 @@ function stepNameToHash(stepName: string): string {
   // create hash from the template name
   return crypto.createHash("sha256").update(templateName).digest("hex");
 }
+
 function handleRequest(request: any) {
+  const debug = createDebug("automation_model:network:handleRequest");
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData || !executionState.currentStepHash) {
     return;
@@ -334,9 +347,12 @@ function handleRequest(request: any) {
     requestTimestamp: Date.now(),
     stepHash: executionState.currentStepHash,
   };
-
-  executionState.liveRequestsMap.set(request, entry);
-  // console.log("Request started:", entry);
+  if (!outOfStep) {
+    executionState.liveRequestsMap.set(request, entry);
+    debug("Request to", request.url(), "with", request.requestId, "added to current step map at", Date.now());
+  } else {
+    debug("Request to", request.url(), "ignored as outOfStep");
+  }
 }
 
 function saveNetworkDataToFile(requestData: any) {
@@ -362,17 +378,24 @@ function saveNetworkDataToFile(requestData: any) {
   fs.writeFileSync(networkFile, JSON.stringify(existingData, null, 2), "utf8");
 }
 async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
+  const debug = createDebug("automation_model:network:handleRequestFinishedOrFailed");
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
     return;
   }
 
+  const requestId = request.requestId;
+  debug("Request id in handleRequestFinishedOrFailed:", requestId, "at", Date.now());
+
   // const response = await request.response(); // This may be null if the request failed
   let entry = executionState.liveRequestsMap.get(request);
+  debug("Request entry found in current map:", entry?.requestId || false);
   if (!entry) {
     // check if the request is in the previous step's map
     entry = executionState.liveRequestsMapPrevious.get(request);
+    debug("Request entry found in previous map:", entry?.requestId || false);
     if (!entry) {
+      debug("No entry, creating fallback! for url:", request.url());
       entry = {
         requestId: request.requestId,
         url: request.url(),
