@@ -68,7 +68,11 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
   const networkFile = _getNetworkFile(world, web, context);
   function saveNetworkData() {
     if (context && context.networkData) {
-      fs.writeFileSync(networkFile, JSON.stringify(context.networkData, null, 2), "utf8");
+      try {
+        fs.writeFileSync(networkFile, JSON.stringify(context.networkData, null, 2), "utf8");
+      } catch (error) {
+        console.error("Error saving network data:", error);
+      }
     }
   }
   if (!context) {
@@ -244,7 +248,11 @@ async function appendEntryToStepFile(stepHash: string, entry: RequestEntry) {
   }
 
   data.push(entry);
-  await fs.promises.writeFile(file, JSON.stringify(data, null, 2), "utf8");
+  try {
+    await fs.promises.writeFile(file, JSON.stringify(data, null, 2), "utf8");
+  } catch (error) {
+    // Ignore error
+  }
 }
 
 interface ExecutionState {
@@ -289,16 +297,18 @@ export function networkBeforeStep(stepName: string) {
   }
 }
 async function saveMap(current: boolean) {
-  if (current) {
-    const entries = Array.from(executionState.liveRequestsMap.values());
-    const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
-
-    await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
-  } else {
-    const entries = Array.from(executionState.liveRequestsMapPrevious.values());
-    const file = path.join(detailedNetworkFolder, `${executionState.previousStepHash}.json`);
-
-    await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+  try {
+    if (current) {
+      const entries = Array.from(executionState.liveRequestsMap.values());
+      const file = path.join(detailedNetworkFolder, `${executionState.currentStepHash}.json`);
+      await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+    } else {
+      const entries = Array.from(executionState.liveRequestsMapPrevious.values());
+      const file = path.join(detailedNetworkFolder, `${executionState.previousStepHash}.json`);
+      await fs.promises.writeFile(file, JSON.stringify(entries, null, 2), "utf8");
+    }
+  } catch (error) {
+    console.error("Error saving map data:", error);
   }
 }
 export async function networkAfterStep(stepName: string) {
@@ -340,28 +350,6 @@ function handleRequest(request: any) {
   // console.log("Request started:", entry);
 }
 
-function saveNetworkDataToFile(requestData: any) {
-  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
-  if (!storeDetailedNetworkData) {
-    return;
-  }
-  const networkFile = path.join(detailedNetworkFolder, `${requestData.stepHash}.json`);
-  // read the existing data if it exists (should be an array)
-  let existingData = [];
-  if (fs.existsSync(networkFile)) {
-    const data = fs.readFileSync(networkFile, "utf8");
-    try {
-      existingData = JSON.parse(data);
-    } catch (e) {
-      // console.error("Failed to parse existing network data:", e);
-    }
-  }
-  // Add the live requests to the existing data
-  existingData.push(requestData);
-  // Save the updated data back to the file
-  // console.log("Saving network data to file:", networkFile);
-  fs.writeFileSync(networkFile, JSON.stringify(existingData, null, 2), "utf8");
-}
 async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
   const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
   if (!storeDetailedNetworkData) {
