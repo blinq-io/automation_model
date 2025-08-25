@@ -59,9 +59,17 @@ jobs:
       - run: npm run build
         working-directory: ${{ github.workspace }}
 
-
+      - name: pull and run HTTPBin Docker container
+        run: |
+            docker pull kennethreitz/httpbin
+            docker run --name httpbin-container -p 3000:80 kennethreitz/httpbin
       - run: npm test
         working-directory: ${{ github.workspace }}
+
+      - name: stop and remove HTTPBin Docker container
+        run: |
+            docker stop httpbin-container
+            docker rm httpbin-container
       - name: publish automation model to npm
 
         uses: cucumber/action-publish-npm@v1.1.0
