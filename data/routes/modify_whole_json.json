@@ -1,0 +1,20 @@
+{
+  "template": "The user navigates to GET response format and executes it",
+  "routes": [
+    {
+      "filters": {
+        "path": "/json",
+        "method": "GET",
+        "queryParams": {}
+      },
+      "actions": [
+        {
+          "type": "json_whole_modify",
+          "config": "{\n  \"slideshow\": {\n    \"author\": \"blinqio\",\n    \"date\": \"2025\",\n    \"title\": \"automation_model\",\n    \"type\":\"virtual tester\"\n  }\n}"
+        }
+      ],
+      "mandatory": true,
+      "timeout": 5000
+    }
+  ]
+}
