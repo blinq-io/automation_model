@@ -238,8 +238,9 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
 }
 
 async function appendEntryToStepFile(stepHash: string, entry: RequestEntry) {
+  const debug = createDebug("network:appendEntryToStepFile");
   const file = path.join(detailedNetworkFolder, `${stepHash}.json`);
-
+  debug("appending to step file:", file);
   let data: RequestEntry[] = [];
   try {
     /* read if it already exists */
@@ -251,9 +252,10 @@ async function appendEntryToStepFile(stepHash: string, entry: RequestEntry) {
 
   data.push(entry);
   try {
+    debug("writing to step file:", file);
     await fs.promises.writeFile(file, JSON.stringify(data, null, 2), "utf8");
   } catch (error) {
-    // Ignore error
+    debug("Error writing to step file:", error);
   }
 }
 
