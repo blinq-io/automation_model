@@ -4573,8 +4573,9 @@ class StableBrowser {
       }
     }
     this.context.routeResults = null;
-    await registerBeforeStepRoutes(this.context, this.stepName);
-    networkBeforeStep(this.stepName);
+    this.context.loadedRoutes = null;
+    await registerBeforeStepRoutes(this.context, this.stepName, world);
+    networkBeforeStep(this.stepName, this.context);
   }
   setStepTags(tags: string[]) {
     this.stepTags = tags;
@@ -4733,7 +4734,7 @@ class StableBrowser {
         await _commandFinally(state, this);
       }
     }
-    networkAfterStep(this.stepName);
+    networkAfterStep(this.stepName, this.context);
     if (process.env.TEMP_RUN === "true") {
       // Put a sleep for some time to allow the browser to finish processing
       if (!this.stepTags.includes("fast-mode")) {
