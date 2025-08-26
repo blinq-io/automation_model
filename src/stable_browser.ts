@@ -930,7 +930,7 @@ class StableBrowser {
           }, randomToken);
           newElementSelector = "#" + id;
           // check if the id contains :
-          if (id.includes(":")) {
+          if (id.includes(":") || id.includes(".") || id.includes("[") || id.includes("]")) {
             // //*[@id="radix-:r0:"]
             newElementSelector = `//*[@id="${id}"]`;
           }
