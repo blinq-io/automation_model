@@ -95,7 +95,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
           // console.log("Request started:", request.url());
           const requestId = requestIdCounter++;
           request.requestId = requestId; // Assign a unique ID to the request
-          handleRequest(request);
+          handleRequest(request, context);
           const startTime = Date.now();
           requestTimes.set(requestId, startTime);
 
@@ -145,7 +145,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
           const requestId = request.requestId;
           const endTime = Date.now();
           const startTime = requestTimes.get(requestId);
-          await handleRequestFinishedOrFailed(request, false);
+          await handleRequestFinishedOrFailed(request, false, context);
 
           const response = await request.response();
           const timing = request.timing();
@@ -205,7 +205,7 @@ function registerNetworkEvents(world: any, web: any, context: any, page: any) {
           const requestId = request.requestId;
           const endTime = Date.now();
           const startTime = requestTimes.get(requestId);
-          await handleRequestFinishedOrFailed(request, true);
+          await handleRequestFinishedOrFailed(request, true, context);
           try {
             const res = await request.response();
             const statusCode = res ? res.status() : request.failure().errorText;
@@ -275,14 +275,14 @@ const executionState = {
   liveRequestsMapPrevious: new Map<any, any>(),
 } as ExecutionState;
 
-export function networkBeforeStep(stepName: string) {
+const storeDetailedNetworkData = (context: any) => context && context.STORE_DETAILED_NETWORK_DATA === true;
+export function networkBeforeStep(stepName: string, context: any) {
   if (timeoutId) {
     clearTimeout(timeoutId);
     timeoutId = null;
   }
   outOfStep = false;
-  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
-  if (!storeDetailedNetworkData) {
+  if (!storeDetailedNetworkData(context)) {
     return;
   }
   // check if the folder exists, if not create it
@@ -320,9 +320,8 @@ async function saveMap(current: boolean) {
     console.error("Error saving map data:", error);
   }
 }
-export async function networkAfterStep(stepName: string) {
-  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
-  if (!storeDetailedNetworkData) {
+export async function networkAfterStep(stepName: string, context: any) {
+  if (!storeDetailedNetworkData(context)) {
     return;
   }
   //await new Promise((r) => setTimeout(r, 1000));
@@ -336,6 +335,7 @@ export async function networkAfterStep(stepName: string) {
   // set a timer of 60 seconds to the outOfStep, after that it will be set to false so no network collection will happen
   timeoutId = setTimeout(() => {
     outOfStep = false;
+    context.STORE_DETAILED_NETWORK_DATA = false;
   }, 60000);
 }
 
@@ -345,12 +345,9 @@ function stepNameToHash(stepName: string): string {
   return crypto.createHash("sha256").update(templateName).digest("hex");
 }
 
-function handleRequest(request: any) {
+function handleRequest(request: any, context: any) {
   const debug = createDebug("automation_model:network:handleRequest");
-  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
-  if (!storeDetailedNetworkData || !executionState.currentStepHash) {
-    return;
-  }
+  if (!storeDetailedNetworkData(context)) return;
   const entry: RequestEntry = {
     requestId: request.requestId,
     url: request.url(),
@@ -360,20 +357,13 @@ function handleRequest(request: any) {
     requestTimestamp: Date.now(),
     stepHash: executionState.currentStepHash,
   };
-  if (!outOfStep) {
-    executionState.liveRequestsMap.set(request, entry);
-    debug("Request to", request.url(), "with", request.requestId, "added to current step map at", Date.now());
-  } else {
-    debug("Request to", request.url(), "ignored as outOfStep");
-  }
+  executionState.liveRequestsMap.set(request, entry);
+  debug("Request to", request.url(), "with", request.requestId, "added to current step map at", Date.now());
 }
 
-async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
+async function handleRequestFinishedOrFailed(request: any, failed: boolean, context: any) {
   const debug = createDebug("automation_model:network:handleRequestFinishedOrFailed");
-  const storeDetailedNetworkData = process.env.STORE_DETAILED_NETWORK_DATA === "true";
-  if (!storeDetailedNetworkData) {
-    return;
-  }
+  if (!storeDetailedNetworkData(context)) return;
 
   const requestId = request.requestId;
   debug("Request id in handleRequestFinishedOrFailed:", requestId, "at", Date.now());
@@ -442,6 +432,7 @@ async function handleRequestFinishedOrFailed(request: any, failed: boolean) {
       }
     } catch (err) {
       console.error("Error reading response body:", err);
+      body = await response.text();
     }
 
     respData = {
