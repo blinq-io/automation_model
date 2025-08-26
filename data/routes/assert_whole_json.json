@@ -1,0 +1,20 @@
+{
+  "template": "The user navigates to GET response format and executes it and verifies json body",
+  "routes": [
+    {
+      "filters": {
+        "path": "/json",
+        "method": "GET",
+        "queryParams": {}
+      },
+      "actions": [
+        {
+          "type": "assert_whole_json",
+          "config": "{\n  \"slideshow\": {\n    \"author\": \"Yours Truly\",\n    \"date\": \"date of publication\",\n    \"slides\": [\n      {\n        \"title\": \"Wake up to WonderWidgets!\",\n        \"type\": \"all\"\n      },\n      {\n        \"items\": [\n          \"Why <em>WonderWidgets</em> are great\",\n          \"Who <em>buys</em> WonderWidgets\"\n        ],\n        \"title\": \"Overview\",\n        \"type\": \"all\"\n      }\n    ],\n    \"title\": \"Sample Slide Show\"\n  }\n}"
+        }
+      ],
+      "mandatory": true,
+      "timeout": 5000
+    }
+  ]
+}
