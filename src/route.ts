@@ -99,16 +99,54 @@ async function loadRoutes(
   return context.loadedRoutes.get(template) || [];
 }
 
+export function pathFilter(savedPath: string, actualPath: string): boolean {
+  if (typeof savedPath !== "string") return false;
+  if (savedPath.includes("*")) {
+    // Escape regex special characters in savedPath
+    const escapedPath = savedPath.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    // Treat it as a wildcard
+    const regex = new RegExp(escapedPath.replace(/\*/g, ".*"));
+    return regex.test(actualPath);
+  } else {
+    return savedPath === actualPath;
+  }
+}
+
+export function queryParamsFilter(
+  savedQueryParams: Record<string, string> | null,
+  actualQueryParams: URLSearchParams
+): boolean {
+  if (!savedQueryParams) return true;
+  for (const [key, value] of Object.entries(savedQueryParams)) {
+    if (value === "*") {
+      // If the saved query param is a wildcard, it matches anything
+      continue;
+    }
+    if (actualQueryParams.get(key) !== value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function methodFilter(savedMethod: string | null, actualMethod: string): boolean {
+  if (!savedMethod) return true;
+  if (savedMethod === "*") {
+    const httpMethodRegex = /^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)$/;
+    return httpMethodRegex.test(actualMethod);
+  }
+  return savedMethod === actualMethod;
+}
+
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
   const url = new URL(req.request().url());
-  const methodMatch = !routeItem.filters.method || routeItem.filters.method === req.request().method();
-  const pathMatch = routeItem.filters.path === url.pathname;
-
   const queryParams = routeItem.filters.queryParams;
-  const queryMatch =
-    !queryParams || Object.entries(queryParams).every(([key, value]) => url.searchParams.get(key) === value);
 
-  return methodMatch && pathMatch && queryMatch;
+  return (
+    methodFilter(routeItem.filters.method, req.request().method()) &&
+    pathFilter(routeItem.filters.path, url.pathname) &&
+    queryParamsFilter(queryParams, url.searchParams)
+  );
 }
 
 export async function registerBeforeStepRoutes(context: any, stepName: string, world: any) {
