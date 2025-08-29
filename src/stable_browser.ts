@@ -3848,7 +3848,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
-      await _commandError({ text: "visualVerification", operation: "visualVerification", text, info }, e, this);
+      await _commandError({ text: "visualVerification", operation: "visualVerification", info }, e, this);
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {
