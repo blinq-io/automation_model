@@ -1,64 +1,64 @@
 {
-    "page_timeout": 60000,
-    "networkidle": false,
-    "locatorsHandlers": [
-        {
-            "locator": {
-                "css": "#onetrust-policy-title"
-            },
-            "close_dialog_locator": {
-                "css": "#onetrust-accept-btn-handler"
-            }
-        }
-    ],
-    "changes": [
-        {
-            "css": "gb-side-navigation-menu-item",
-            "changes": {
-                "role": "link"
-            }
-        },
-        {
-            "css": "gb-toolbar-icon",
-            "changes": {
-                "role": "button"
-            }
-        },
-        {
-            "css": "gb-period-picker-button",
-            "changes": {
-                "role": "button"
-            }
-        },
-        {
-            "css": "gb-simple-table",
-            "changes": {
-                "role": "table"
-            }
-        },
-        {
-            "css": ".header-row",
-            "changes": {
-                "role": "row"
-            }
-        },
-        {
-            "css": ".table-row",
-            "changes": {
-                "role": "row"
-            }
-        },
-        {
-            "css": "gb-simple-data-cell",
-            "changes": {
-                "role": "cell"
-            }
-        },
-        {
-            "css": "gb-header-cell",
-            "changes": {
-                "role": "columnheader"
-            }
-        }
-    ]
+  "page_timeout": 60000,
+  "networkidle": false,
+  "locatorsHandlers": [
+    {
+      "locator": {
+        "css": "#onetrust-policy-title"
+      },
+      "close_dialog_locator": {
+        "css": "#onetrust-accept-btn-handler"
+      }
+    }
+  ],
+  "changes": [
+    {
+      "css": "gb-side-navigation-menu-item",
+      "changes": {
+        "role": "link"
+      }
+    },
+    {
+      "css": "gb-toolbar-icon",
+      "changes": {
+        "role": "button"
+      }
+    },
+    {
+      "css": "gb-period-picker-button",
+      "changes": {
+        "role": "button"
+      }
+    },
+    {
+      "css": "gb-simple-table",
+      "changes": {
+        "role": "table"
+      }
+    },
+    {
+      "css": ".header-row",
+      "changes": {
+        "role": "row"
+      }
+    },
+    {
+      "css": ".table-row",
+      "changes": {
+        "role": "row"
+      }
+    },
+    {
+      "css": "gb-simple-data-cell",
+      "changes": {
+        "role": "cell"
+      }
+    },
+    {
+      "css": "gb-header-cell",
+      "changes": {
+        "role": "columnheader"
+      }
+    }
+  ]
 }
