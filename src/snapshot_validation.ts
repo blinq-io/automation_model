@@ -291,7 +291,6 @@ function lineMatches(full: SnapshotLine, sub: SnapshotLine): any {
     return status;
   }
 
-
   if (sub.regex) {
     status.status = toRegExp(sub.value!).test(full.value ?? "");
   } else if (full.regex) {
