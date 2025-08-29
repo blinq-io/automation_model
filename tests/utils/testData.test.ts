@@ -21,7 +21,7 @@ describe("replaceWithLocalTestData", () => {
   // --- Basic Cases ---
 
   it("should return the original value if it is null or empty", async () => {
-    expect(await replaceWithLocalTestData(null, mockWorld, true, true, mockContext)).toBeNull();
+    expect(await replaceWithLocalTestData(null as any, mockWorld, true, true, mockContext)).toBeNull();
     expect(await replaceWithLocalTestData("", mockWorld, true, true, mockContext)).toBe("");
   });
 
