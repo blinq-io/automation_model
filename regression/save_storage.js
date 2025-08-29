@@ -102,7 +102,7 @@ describe("store session", function () {
     await context.web.click(elements["button_login"], _params, options, null);
     // store the session
     await context.web.saveStoreState("test.json", this);
-    await context.web.setTestData({"file": "test.json"});
+    await context.web.setTestData({ file: "test.json" });
     await context.web.restoreSaveState("{{file}}", this);
     // verify browser on the products page
     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);

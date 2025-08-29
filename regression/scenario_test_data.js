@@ -43,11 +43,11 @@ describe("scenario test data", function () {
           name: "Login scenario",
         },
       });
-  
+
       const _params = {};
       const options = {};
       await context.web.clickType(elements["textbox_username"], "{{user1}}", false, _params, options, null);
-  
+
       const info = await context.web.extractAttribute(elements["textbox_username"], "value", "result");
       expect(info.value).to.be.equals("{{user1}}");
     } catch (e) {
