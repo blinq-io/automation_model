@@ -25,14 +25,14 @@ describe("goto", function () {
     info.log = "";
     let url = "https://superdemo.blinq.io/";
     await context.web.goto(url, this);
-    await context.web.verifyTextExistInPage("Welcome to Test on components")
+    await context.web.verifyTextExistInPage("Welcome to Test on components");
   });
   it("goto with testdata", async function () {
     let info = {};
     info.log = "";
     let url = "";
-    await context.web.setTestData({"url": "https://superdemo.blinq.io"});
+    await context.web.setTestData({ url: "https://superdemo.blinq.io" });
     await context.web.goto("{{url}}", this);
-    await context.web.verifyTextExistInPage("Welcome to Test on components")
+    await context.web.verifyTextExistInPage("Welcome to Test on components");
   });
 });

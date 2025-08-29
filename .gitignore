@@ -17,3 +17,5 @@ lib
 tmp
 docs
 reports/*.md
+data
+downloads
