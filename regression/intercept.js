@@ -2,8 +2,6 @@ import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
 import fs from "fs";
 import { _getDataFile } from "../build/lib/utils.js";
 import { expect } from "chai";
-import exp from "constants";
-
 const elements = {
   textbox_username: {
     locators: [
