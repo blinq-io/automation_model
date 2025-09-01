@@ -930,21 +930,34 @@ class StableBrowser {
             );
             newElementSelector = `[${dataAttribute}="${randomToken}"]`;
           } else {
-            const id = await element.evaluate((el, randomToken) => {
-              // check if the element has id attribute
-              if (el.id) {
-                return el.id;
+            const newElementSelector = await element.evaluate((el: HTMLElement, token: string) => {
+              const id = el.id || "";
+
+              if (id) {
+                try {
+                  // count elements with this id
+                  const count = document.querySelectorAll(`#${CSS.escape(id)}`).length;
+                  if (count === 1) {
+                    // unique id → use it
+                    return `#${CSS.escape(id)}`;
+                  } else {
+                    // duplicate id → fallback to custom attribute
+                    const attrName = `data-blinq-id-${token}`;
+                    el.setAttribute(attrName, "");
+                    return `[${attrName}]`;
+                  }
+                } catch {
+                  // invalid CSS chars in id → fallback to XPath
+                  return `//*[@id="${id.replace(/"/g, '\\"')}"]`;
+                }
+              } else {
+                // no id → assign the random token as the element's id
+                el.setAttribute("id", token);
+                return `#${token}`;
               }
-              el.setAttribute("id", randomToken);
-              console.log("set id=" + randomToken + " on element", el);
-              return randomToken;
             }, randomToken);
-            newElementSelector = "#" + id;
-            // check if the id contains :
-            if (id.includes(":") || id.includes(".") || id.includes("[") || id.includes("]")) {
-              // //*[@id="radix-:r0:"]
-              newElementSelector = `//*[@id="${id}"]`;
-            }
+
+            newElementSelector = newElementSelector;
           }
         }
         const scope = element._frame ?? element.page();
