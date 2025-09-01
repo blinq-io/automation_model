@@ -1,0 +1,28 @@
+{
+  "template": "check the time and place",
+  "routes": [
+    {
+      "filters": {
+        "path": "/v1/forecast",
+        "queryParams": {
+          "latitude": "51.5072",
+          "longitude": "-0.1276",
+          "current": "temperature_2m",
+          "timezone": "auto"
+        },
+        "method": "GET"
+      },
+      "actions": [
+        {
+          "type": "assert_json",
+          "config": {
+            "path": "timezone",
+            "expectedValue": "{{timezone}}"
+          }
+        }
+      ],
+      "mandatory": true,
+      "timeout": 2000
+    }
+  ]
+}

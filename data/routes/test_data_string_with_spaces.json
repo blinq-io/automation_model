@@ -1,0 +1,22 @@
+{
+  "template": "test data with spaces",
+  "routes": [
+    {
+      "filters": {
+        "path": "/json",
+        "method": "GET",
+        "queryParams": {}
+      },
+      "actions": [
+        {
+          "type": "assert_whole_json",
+          "config": {
+            "equals": "{\n  \"slideshow\": {\n    \"author\": \"{{author}}\",\n    \"date\": \"date of publication\",\n    \"slides\": [\n      {\n        \"title\": \"Wake up to WonderWidgets!\",\n        \"type\": \"all\"\n      },\n      {\n        \"items\": [\n          \"Why <em>WonderWidgets</em> are great\",\n          \"Who <em>buys</em> WonderWidgets\"\n        ],\n        \"title\": \"Overview\",\n        \"type\": \"all\"\n      }\n    ],\n    \"title\": \"Sample Slide Show\"\n  }\n}"
+          }
+        }
+      ],
+      "mandatory": true,
+      "timeout": 5000
+    }
+  ]
+}
