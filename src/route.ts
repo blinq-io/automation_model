@@ -219,14 +219,16 @@ export function methodFilter(savedMethod: string | null, actualMethod: string): 
 }
 
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
+  const debug = createDebug("automation_model:route:matchRoute");
   const url = new URL(req.request().url());
   const queryParams = routeItem.filters.queryParams;
 
-  return (
-    methodFilter(routeItem.filters.method, req.request().method()) &&
-    pathFilter(routeItem.filters.path, url.pathname) &&
-    queryParamsFilter(queryParams, url.searchParams)
-  );
+  const methodMatch = methodFilter(routeItem.filters.method, req.request().method());
+  const pathMatch = pathFilter(routeItem.filters.path, url.pathname);
+  debug("Path match", pathMatch, routeItem.filters.path, url.pathname);
+  const queryParamsMatch = queryParamsFilter(queryParams, url.searchParams);
+
+  return methodMatch && pathMatch && queryParamsMatch;
 }
 
 function handleAbortRequest(action: AbortAction, context: ActionHandlerContext): ActionResult {
@@ -513,20 +515,24 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
   if (!page) throw new Error("context.web.page is missing");
 
   const stepTemplate = _stepNameToTemplate(stepName);
+  debug("stepTemplate", stepTemplate);
   const routes = await loadRoutes(context, stepTemplate);
+  debug("Routes", routes);
   const allRouteItems: RouteItem[] = routes.flatMap((r) => r.routes);
+  debug("All route items", allRouteItems);
 
   if (!context.__routeState) {
     context.__routeState = { matched: [] } as RouteContextState;
   }
 
   for (let i = 0; i < allRouteItems.length; i++) {
-    const item = allRouteItems[i];
+    let item = allRouteItems[i];
     debug(`Setting up mandatory route with timeout ${item.timeout}ms: ${JSON.stringify(item.filters)}`);
     let content = JSON.stringify(item);
     try {
       content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
       allRouteItems[i] = JSON.parse(content); // Modify the original array
+      item = allRouteItems[i];
       debug(`After replacing test data: ${JSON.stringify(allRouteItems[i])}`);
     } catch (error) {
       debug("Error replacing test data:", error);
@@ -556,10 +562,11 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
     const debug = createDebug("automation_model:route:intercept");
     const request = route.request();
     debug(`Intercepting request: ${request.method()} ${request.url()}`);
+    debug("All route items", allRouteItems);
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
     if (!matchedItem) return route.continue();
     debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
-    debug("Initial context route state", context.__routeState);
+    debug("Initial context route state", JSON.stringify(context.__routeState, null, 2));
     let tracking = context.__routeState.matched.find(
       (t: InterceptedRoute) => JSON.stringify(t.routeItem) === JSON.stringify(matchedItem) && !t.completed
     );
