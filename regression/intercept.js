@@ -344,7 +344,7 @@ describe("route", function () {
   });
   it("route test data", async function () {
     const stepObject = {
-      pickleStep: { text: 'login with "user_name" and "password" 7', keyword: "Given" },
+      pickleStep: { text: 'login with "user_name" and "password" 8', keyword: "Given" },
       gherkinDocument: { feature: { name: "Login" } },
       pickle: {
         name: "Login scenario",
