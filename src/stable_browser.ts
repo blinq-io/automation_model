@@ -934,22 +934,10 @@ class StableBrowser {
               const id = el.id || "";
 
               if (id) {
-                try {
-                  // count elements with this id
-                  const count = document.querySelectorAll(`#${CSS.escape(id)}`).length;
-                  if (count === 1) {
-                    // unique id → use it
-                    return `#${CSS.escape(id)}`;
-                  } else {
-                    // duplicate id → fallback to custom attribute
-                    const attrName = `data-blinq-id-${token}`;
-                    el.setAttribute(attrName, "");
-                    return `[${attrName}]`;
-                  }
-                } catch {
-                  // invalid CSS chars in id → fallback to XPath
-                  return `//*[@id="${id.replace(/"/g, '\\"')}"]`;
-                }
+                // use attribute and not id
+                const attrName = `data-blinq-id-${token}`;
+                el.setAttribute(attrName, "");
+                return `[${attrName}]`;
               } else {
                 // no id → assign the random token as the element's id
                 el.setAttribute("id", token);
