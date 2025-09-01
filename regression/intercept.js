@@ -357,6 +357,51 @@ describe("route", function () {
     await context.web.afterStep(context, this);
     console.log(JSON.stringify(context.routeResults, null, 2));
   });
+  it("route testdata string without spaces", async function () {
+    const stepObject = {
+      pickleStep: { text: "check the time and place", keyword: "Given" },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "Login scenario",
+      },
+    };
+    context.web.setTestData({ timezone: "Europe/London" });
+    await context.web.beforeStep(context, stepObject);
+    await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/api/index.html");
+    await context.web.waitForPageLoad();
+
+    await context.web.afterStep(context, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+    expect(context.routeResults).to.have.lengthOf(1);
+    const result = context.routeResults[0];
+    expect(result.actions).to.have.lengthOf(1);
+    expect(result.actions[0].type).to.equal("assert_json");
+    expect(result.actions[0].status).to.equal("success");
+  });
+
+  it("route testData string with spaces", async function () {
+    const stepObject = {
+      pickleStep: {
+        text: "test data with spaces",
+        keyword: "Given",
+      },
+      gherkinDocument: { feature: { name: "Login" } },
+      pickle: {
+        name: "HTTPBin scenario",
+      },
+    };
+    context.web.setTestData({ author: "Yours Truly" });
+    await context.web.beforeStep(context, stepObject);
+    await context.web.goto("http://localhost:3000");
+    await context.web.waitForPageLoad();
+    await context.web.click(elements["link_response_formats"], null, null, this);
+    await context.web.click(elements["text_get"], null, null, this);
+    await context.web.click(elements["button_try_it_out"], null, null, this);
+    await context.web.click(elements["button_execute"], null, null, this);
+    await context.web.verifyTextExistInPage("slideshow", null, this);
+    await context.web.verifyTextExistInPage("{{author}}", null, this);
+    console.log(JSON.stringify(context.routeResults, null, 2));
+  });
 
   // https://weatherapi.pelmorex.com/api/v1/observation?locale=en-CA&lat=40.712&long=-74.005&unit=metric
 });
