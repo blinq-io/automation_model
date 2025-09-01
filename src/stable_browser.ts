@@ -930,7 +930,7 @@ class StableBrowser {
             );
             newElementSelector = `[${dataAttribute}="${randomToken}"]`;
           } else {
-            const newElementSelector = await element.evaluate((el: HTMLElement, token: string) => {
+            newElementSelector = await element.evaluate((el: HTMLElement, token: string) => {
               const id = el.id || "";
 
               if (id) {
@@ -956,8 +956,6 @@ class StableBrowser {
                 return `#${token}`;
               }
             }, randomToken);
-
-            newElementSelector = newElementSelector;
           }
         }
         const scope = element._frame ?? element.page();
