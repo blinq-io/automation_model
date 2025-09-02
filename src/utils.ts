@@ -214,7 +214,7 @@ function _getTestDataFile(world: any = null, context: any = null, web: any = nul
   return dataFile;
 }
 
-function _getTestData(world = null, context = null, web = null) {
+function _getTestData(world = null, context = null, web = null): any {
   const dataFile = _getDataFile(world, context, web);
   let data = {};
   if (fs.existsSync(dataFile)) {
@@ -381,6 +381,7 @@ function evaluateString(template: string, parameters: any) {
     return template;
   }
 }
+
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
     return dateStr;
@@ -758,11 +759,11 @@ const KEYBOARD_EVENTS = [
   "TVAntennaCable",
   "TVAudioDescription",
 ];
-function unEscapeString(str: string) {
-  const placeholder = "\\n";
-  str = str.replace(new RegExp(placeholder, "g"), "\n");
-  return str;
+
+function unEscapeString(str: string): string {
+  return str.replace(/\\n/g, "\n");
 }
+
 function _getServerUrl() {
   let serviceUrl = "https://api.blinq.io";
   if (process.env.NODE_ENV_BLINQ === "dev") {
@@ -796,6 +797,8 @@ export {
   encrypt,
   decrypt,
   replaceWithLocalTestData,
+  formatDate,
+  evaluateString,
   maskValue,
   _copyContext,
   scrollPageToLoadLazyElements,

@@ -7,7 +7,6 @@ import createDebug from "debug";
 import { existsSync, writeFile } from "fs";
 import { replaceWithLocalTestData } from "./utils.js";
 const debug = createDebug("automation_model:route");
-// const debug = console.debug;
 
 export interface Route {
   template: string;
@@ -25,10 +24,79 @@ export interface RouteItem {
   timeout: number;
 }
 
-export interface Action {
-  type: string;
+interface StubAction {
+  type: "stub_request";
+  config: {
+    path?: string;
+    statusCode?: number;
+    contentType?: string;
+    body?: string;
+  };
+}
+
+interface JSONModifyAction {
+  type: "json_modify";
+  config: {
+    path: string;
+    modifyValue: any;
+  };
+}
+
+interface JSONWholeModifyAction {
+  type: "json_whole_modify";
   config: any;
 }
+
+interface TextModifyAction {
+  type: "change_text";
+  config: string;
+}
+
+interface JSONVerifyAction {
+  type: "assert_json";
+  config: {
+    path: string;
+    expectedValue: any;
+  };
+}
+
+interface JSONWholeVerifyAction {
+  type: "assert_whole_json";
+  config: { contains: string } | { equals: string };
+}
+interface TextVerifyAction {
+  type: "assert_text";
+  config: { contains: string } | { equals: string };
+}
+
+interface StatusCodeModifyAction {
+  type: "status_code_change";
+  config: number;
+}
+
+interface StatusCodeVerifyAction {
+  type: "status_code_verification";
+  config: number;
+}
+
+interface AbortAction {
+  type: "abort_request";
+  config: {
+    errorCode: string;
+  };
+}
+
+export type Action =
+  | AbortAction
+  | StatusCodeVerifyAction
+  | StatusCodeModifyAction
+  | TextVerifyAction
+  | TextModifyAction
+  | JSONModifyAction
+  | JSONWholeModifyAction
+  | JSONVerifyAction
+  | JSONWholeVerifyAction
+  | StubAction;
 
 interface InterceptedRoute {
   routeItem: RouteItem;
@@ -49,6 +117,18 @@ interface RouteContextState {
 }
 
 type FulfillOptions = Parameters<PWRoute["fulfill"]>[0];
+
+type ActionResult = NonNullable<InterceptedRoute["actionResults"]>[0];
+interface ActionHandlerContext {
+  route: PWRoute;
+  tracking: InterceptedRoute;
+  status: number;
+  body: string | Buffer;
+  json?: any;
+  isBinary: boolean;
+  finalBody: any;
+  abortActionPerformed: boolean;
+}
 
 async function loadRoutes(
   context: { loadedRoutes?: Map<string, Route[]> | null; web?: any },
@@ -99,42 +179,378 @@ async function loadRoutes(
   return context.loadedRoutes.get(template) || [];
 }
 
+export function pathFilter(savedPath: string, actualPath: string): boolean {
+  if (typeof savedPath !== "string") return false;
+  if (savedPath.includes("*")) {
+    // Escape regex special characters in savedPath
+    const escapedPath = savedPath.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    // Treat it as a wildcard
+    const regex = new RegExp(escapedPath.replace(/\*/g, ".*"));
+    return regex.test(actualPath);
+  } else {
+    return savedPath === actualPath;
+  }
+}
+
+export function queryParamsFilter(
+  savedQueryParams: Record<string, string> | null,
+  actualQueryParams: URLSearchParams
+): boolean {
+  if (!savedQueryParams) return true;
+  for (const [key, value] of Object.entries(savedQueryParams)) {
+    if (value === "*") {
+      // If the saved query param is a wildcard, it matches anything
+      continue;
+    }
+    if (actualQueryParams.get(key) !== value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function methodFilter(savedMethod: string | null, actualMethod: string): boolean {
+  if (!savedMethod) return true;
+  if (savedMethod === "*") {
+    const httpMethodRegex = /^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)$/;
+    return httpMethodRegex.test(actualMethod);
+  }
+  return savedMethod === actualMethod;
+}
+
 function matchRoute(routeItem: RouteItem, req: PWRoute): boolean {
+  const debug = createDebug("automation_model:route:matchRoute");
   const url = new URL(req.request().url());
-  const methodMatch = !routeItem.filters.method || routeItem.filters.method === req.request().method();
-  const pathMatch = routeItem.filters.path === url.pathname;
-
   const queryParams = routeItem.filters.queryParams;
-  const queryMatch =
-    !queryParams || Object.entries(queryParams).every(([key, value]) => url.searchParams.get(key) === value);
 
-  return methodMatch && pathMatch && queryMatch;
+  const methodMatch = methodFilter(routeItem.filters.method, req.request().method());
+  const pathMatch = pathFilter(routeItem.filters.path, url.pathname);
+  debug("Path match", pathMatch, routeItem.filters.path, url.pathname);
+  const queryParamsMatch = queryParamsFilter(queryParams, url.searchParams);
+
+  return methodMatch && pathMatch && queryParamsMatch;
+}
+
+function handleAbortRequest(action: AbortAction, context: ActionHandlerContext): ActionResult {
+  if (context.tracking.timer) clearTimeout(context.tracking.timer);
+  const errorCode = action.config?.errorCode ?? "failed";
+  console.log(`[abort_request] Aborting with error code: ${errorCode}`);
+  context.route.abort(errorCode);
+  context.abortActionPerformed = true;
+  context.tracking.completed = true;
+
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: "success",
+    message: `Request aborted with code: ${errorCode}`,
+  };
+}
+
+function handleStatusCodeVerification(action: StatusCodeVerifyAction, context: ActionHandlerContext): ActionResult {
+  const isSuccess = String(context.status) === String(action.config);
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: isSuccess ? "success" : "fail",
+    message: `Status code verification ${isSuccess ? "passed" : "failed"}. Expected ${action.config}, got ${context.status}`,
+  };
+}
+
+function handleJsonModify(action: JSONModifyAction, context: ActionHandlerContext): ActionResult {
+  if (!context.json) {
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "fail",
+      message: "JSON modification failed. Response is not JSON",
+    };
+  }
+
+  objectPath.set(context.json, action.config.path, action.config.modifyValue);
+  context.finalBody = JSON.parse(JSON.stringify(context.json));
+
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: "success",
+    message: `JSON modified at path '${action.config.path}'`,
+  };
+}
+
+function handleJsonWholeModify(action: JSONWholeModifyAction, context: ActionHandlerContext): ActionResult {
+  if (!context.json) {
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "fail",
+      message: "JSON modification failed. Response is not JSON",
+    };
+  }
+
+  try {
+    const parsedConfig = typeof action.config === "string" ? JSON.parse(action.config) : action.config;
+    context.json = parsedConfig;
+    context.finalBody = JSON.parse(JSON.stringify(context.json));
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "success",
+      message: "Whole JSON body was replaced.",
+    };
+  } catch (e: unknown) {
+    const message = `JSON modification failed. Invalid JSON in config: ${e instanceof Error ? e.message : String(e)}`;
+    return { type: action.type, description: JSON.stringify(action.config), status: "fail", message };
+  }
+}
+
+function handleStatusCodeChange(action: StatusCodeModifyAction, context: ActionHandlerContext): ActionResult {
+  context.status = Number(action.config);
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: "success",
+    message: `Status code changed to ${context.status}`,
+  };
+}
+
+function handleChangeText(action: TextModifyAction, context: ActionHandlerContext): ActionResult {
+  if (context.isBinary) {
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "fail",
+      message: "Change text action failed. Body is not text.",
+    };
+  }
+
+  context.body = action.config;
+  context.finalBody = context.body;
+
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: "success",
+    message: "Response body text was replaced.",
+  };
+}
+
+function handleAssertJson(action: JSONVerifyAction, context: ActionHandlerContext): ActionResult {
+  if (!context.json) {
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "fail",
+      message: "JSON assertion failed. Response is not JSON.",
+    };
+  }
+
+  const actual = objectPath.get(context.json, action.config.path);
+  const expected = action.config.expectedValue;
+  const isSuccess = JSON.stringify(actual) === JSON.stringify(expected);
+
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: isSuccess ? "success" : "fail",
+    message: isSuccess
+      ? `JSON assertion passed for path '${action.config.path}'.`
+      : `JSON assertion failed for path '${action.config.path}': expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
+  };
+}
+
+function handleAssertWholeJson(action: JSONWholeVerifyAction, context: ActionHandlerContext): ActionResult {
+  if (!context.json) {
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "fail",
+      message: "Whole JSON assertion failed. Response is not JSON.",
+    };
+  }
+
+  const originalJSON = JSON.stringify(context.json, null, 2);
+  let isSuccess = false;
+  let message = "";
+
+  if ("contains" in action.config) {
+    isSuccess = originalJSON.includes(action.config.contains);
+    message = isSuccess
+      ? "Whole JSON assertion passed."
+      : `Whole JSON assertion failed. Expected to contain: "${action.config.contains}".`;
+  } else {
+    isSuccess = originalJSON === action.config.equals;
+    message = isSuccess
+      ? "Whole JSON assertion passed."
+      : `Whole JSON assertion failed. Expected exact match: "${action.config.equals}".`;
+  }
+
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: isSuccess ? "success" : "fail",
+    message,
+  };
+}
+
+function handleAssertText(action: TextVerifyAction, context: ActionHandlerContext): ActionResult {
+  if (typeof context.body !== "string") {
+    return {
+      type: action.type,
+      description: JSON.stringify(action.config),
+      status: "fail",
+      message: "Text assertion failed. Body is not text.",
+    };
+  }
+
+  let isSuccess = false;
+  let message = "";
+
+  if ("contains" in action.config) {
+    isSuccess = context.body.includes(action.config.contains);
+    message = isSuccess
+      ? "Text assertion passed."
+      : `Text assertion failed. Expected to contain: "${action.config.contains}".`;
+  } else {
+    isSuccess = context.body === action.config.equals;
+    message = isSuccess
+      ? "Text assertion passed."
+      : `Text assertion failed. Expected exact match: "${action.config.equals}".`;
+  }
+
+  return {
+    type: action.type,
+    description: JSON.stringify(action.config),
+    status: isSuccess ? "success" : "fail",
+    message,
+  };
+}
+
+function handleStubAction(stubAction: StubAction, route: PWRoute, tracking: InterceptedRoute): boolean {
+  let actionStatus: "success" | "fail" = "success";
+  const description = JSON.stringify(stubAction.config);
+  const request = route.request();
+  let stubActionPerformed = false;
+  debug(`Stub action found for ${request.url()}. Skipping fetch.`);
+  if (tracking.timer) clearTimeout(tracking.timer);
+  const fullFillConfig: FulfillOptions = {};
+  if (!tracking.actionResults) tracking.actionResults = [];
+
+  if (stubAction.config.path) {
+    const filePath = path.join(process.cwd(), "data", "fixtures", stubAction.config.path);
+    debug(`Stub action file path: ${filePath}`);
+    if (existsSync(filePath)) {
+      fullFillConfig.path = filePath;
+      debug(`Stub action fulfilled with file: ${filePath}`);
+    } else {
+      actionStatus = "fail";
+      tracking.actionResults.push({
+        type: "stub_request",
+        description,
+        status: actionStatus,
+        message: `Stub action failed for ${tracking.url}: File not found at ${filePath}`,
+      });
+      stubActionPerformed = true;
+    }
+  }
+
+  if (!fullFillConfig.path) {
+    if (stubAction.config.statusCode) {
+      fullFillConfig.status = Number(stubAction.config.statusCode);
+    }
+    if (stubAction.config.contentType) {
+      if (stubAction.config.contentType === "application/json") {
+        fullFillConfig.contentType = "application/json";
+        if (stubAction.config.body) {
+          try {
+            fullFillConfig.json = JSON.parse(stubAction.config.body);
+          } catch (e) {
+            debug(
+              `Invalid JSON in stub action body: ${stubAction.config.body}, `,
+              e instanceof Error ? e.message : String(e)
+            );
+            debug("Invalid JSON, defaulting to empty object");
+            fullFillConfig.json = {};
+          }
+        }
+      } else {
+        fullFillConfig.contentType = stubAction.config.contentType;
+        fullFillConfig.body = stubAction.config.body || "";
+      }
+    }
+    if (!fullFillConfig.json && !fullFillConfig.body) {
+      if (stubAction.config.body) {
+        fullFillConfig.body = stubAction.config.body;
+      }
+    }
+  }
+  if (actionStatus === "success") {
+    try {
+      route.fulfill(fullFillConfig);
+      stubActionPerformed = true;
+      tracking.completed = true;
+      tracking.actionResults.push({
+        type: "stub_request",
+        description,
+        status: actionStatus,
+        message: `Stub action executed for ${request.url()}`,
+      });
+    } catch (e) {
+      actionStatus = "fail";
+      debug(`Failed to fulfill stub request for ${request.url()}`, e);
+      tracking.actionResults.push({
+        type: "stub_request",
+        description,
+        status: actionStatus,
+        message: `Stub action failed for ${request.url()}: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  }
+  return stubActionPerformed;
 }
 
 export async function registerBeforeStepRoutes(context: any, stepName: string, world: any) {
+  const debug = createDebug("automation_model:route:registerBeforeStepRoutes");
   const page = context.web.page;
   if (!page) throw new Error("context.web.page is missing");
 
   const stepTemplate = _stepNameToTemplate(stepName);
+  debug("stepTemplate", stepTemplate);
   const routes = await loadRoutes(context, stepTemplate);
+  debug("Routes", routes);
   const allRouteItems: RouteItem[] = routes.flatMap((r) => r.routes);
+  debug("All route items", allRouteItems);
 
   if (!context.__routeState) {
     context.__routeState = { matched: [] } as RouteContextState;
   }
 
   for (let i = 0; i < allRouteItems.length; i++) {
-    const item = allRouteItems[i];
+    let item = allRouteItems[i];
+    debug(`Setting up mandatory route with timeout ${item.timeout}ms: ${JSON.stringify(item.filters)}`);
+    let content = JSON.stringify(item);
+    try {
+      content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
+      allRouteItems[i] = JSON.parse(content); // Modify the original array
+      item = allRouteItems[i];
+      debug(`After replacing test data: ${JSON.stringify(allRouteItems[i])}`);
+    } catch (error) {
+      debug("Error replacing test data:", error);
+    }
     if (item.mandatory) {
-      debug(`Setting up mandatory route with timeout ${item.timeout}ms: ${JSON.stringify(item.filters)}`);
-      let content = JSON.stringify(item);
-      try {
-        content = await replaceWithLocalTestData(content, context.web.world, true, false, content, context.web, false);
-        allRouteItems[i] = JSON.parse(content); // Modify the original array
-        debug(`After replacing test data: ${JSON.stringify(allRouteItems[i])}`);
-      } catch (error) {
-        debug("Error replacing test data:", error);
-      }
+      const path = item.filters.path;
+      const queryParams = Object.entries(item.filters.queryParams || {})
+        .map(([key, value]) => `${key}=${value}`)
+        .join("&");
+
+      const tracking: InterceptedRoute = {
+        routeItem: item,
+        url: `${path}${queryParams ? `?${queryParams}` : ""}`,
+        completed: false,
+        startedAt: Date.now(),
+        actionResults: [],
+      };
+      context.__routeState.matched.push(tracking);
     }
   }
 
@@ -143,15 +559,18 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
   let message: string | null = null;
 
   page.route("**/*", async (route: PWRoute) => {
+    const debug = createDebug("automation_model:route:intercept");
     const request = route.request();
     debug(`Intercepting request: ${request.method()} ${request.url()}`);
+    debug("All route items", allRouteItems);
     const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
     if (!matchedItem) return route.continue();
     debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
-    debug("Initial context route state", context.__routeState);
+    debug("Initial context route state", JSON.stringify(context.__routeState, null, 2));
     let tracking = context.__routeState.matched.find(
-      (t: InterceptedRoute) => t.routeItem === matchedItem && !t.completed
+      (t: InterceptedRoute) => JSON.stringify(t.routeItem) === JSON.stringify(matchedItem) && !t.completed
     );
+
     debug("Tracking", tracking);
 
     let stubActionPerformed = false;
@@ -175,302 +594,93 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
     const stubAction = matchedItem.actions.find((a) => a.type === "stub_request");
     if (stubAction) {
-      let actionStatus: "success" | "fail" = "success";
-      const description = JSON.stringify(stubAction.config);
-      debug(`Stub action found for ${request.url()}. Skipping fetch.`);
-      if (tracking.timer) clearTimeout(tracking.timer);
-      const fullFillConfig: FulfillOptions = {};
-
-      if (stubAction.config.path) {
-        const filePath = path.join(process.cwd(), "data", "fixtures", stubAction.config.path);
-        debug(`Stub action file path: ${filePath}`);
-        if (existsSync(filePath)) {
-          fullFillConfig.path = filePath;
-          debug(`Stub action fulfilled with file: ${filePath}`);
-        } else {
-          actionStatus = "fail";
-          tracking.actionResults.push({
-            type: "stub_request",
-            description,
-            status: actionStatus,
-            message: `Stub action failed for ${tracking.url}: File not found at ${filePath}`,
-          });
-          stubActionPerformed = true;
-        }
-      }
-      if (!fullFillConfig.path) {
-        if (stubAction.config.statusCode) {
-          fullFillConfig.status = Number(stubAction.config.statusCode);
-        }
-        if (stubAction.config.contentType) {
-          if (stubAction.config.contentType === "application/json") {
-            fullFillConfig.contentType = "application/json";
-            if (stubAction.config.body) {
-              try {
-                fullFillConfig.json = JSON.parse(stubAction.config.body);
-              } catch (e) {
-                debug(
-                  `Invalid JSON in stub action body: ${stubAction.config.body}, `,
-                  e instanceof Error ? e.message : String(e)
-                );
-                debug("Invalid JSON, defaulting to empty object");
-                fullFillConfig.json = {};
-              }
-            }
-          } else {
-            fullFillConfig.contentType = stubAction.config.contentType;
-            fullFillConfig.body = stubAction.config.body || "";
-          }
-        }
-        if (!fullFillConfig.json && !fullFillConfig.body) {
-          if (stubAction.config.body) {
-            fullFillConfig.body = stubAction.config.body;
-          }
-        }
-      }
-      if (actionStatus === "success") {
-        try {
-          route.fulfill(fullFillConfig);
-          stubActionPerformed = true;
-          tracking.completed = true;
-          tracking.actionResults.push({
-            type: "stub_request",
-            description,
-            status: actionStatus,
-            message: `Stub action executed for ${request.url()}`,
-          });
-        } catch (e) {
-          actionStatus = "fail";
-          debug(`Failed to fulfill stub request for ${request.url()}`, e);
-          tracking.actionResults.push({
-            type: "stub_request",
-            description,
-            status: actionStatus,
-            message: `Stub action failed for ${request.url()}: ${e instanceof Error ? e.message : String(e)}`,
-          });
-        }
-      }
+      stubActionPerformed = handleStubAction(stubAction, route, tracking);
     }
     if (!stubActionPerformed) {
       let response: APIResponse;
       try {
         response = await route.fetch();
-        // debug("Matched item response", response);
       } catch (e) {
         console.error("Fetch failed for", request.url(), e);
         if (tracking?.timer) clearTimeout(tracking.timer);
         return route.abort();
       }
 
-      let status = response.status();
-      let headers = response.headers();
+      const headers = response.headers();
       const isBinary =
-        !headers["content-type"]?.includes("application/json") &&
-        !headers["content-type"]?.includes("text") &&
-        !headers["content-type"]?.includes("application/csv");
-
-      // debug("Matched item isBinary", isBinary);
-
-      const isJSON =
-        headers["content-type"]?.includes("application/json") || headers["content-type"]?.includes("json")
-          ? true
-          : false;
-
-      // debug("Matched item isJSON", isJSON);
-
-      let body;
-      if (isBinary) {
-        body = await response.body(); // returns a Buffer
-      } else {
-        body = await response.text();
-      }
-
+        !headers["content-type"]?.includes("application/json") && !headers["content-type"]?.includes("text");
+      const body = isBinary ? await response.body() : await response.text();
       let json: any;
       try {
-        // check if the body is string
-        if (typeof body === "string") {
-          json = JSON.parse(body);
-        }
+        if (typeof body === "string") json = JSON.parse(body);
       } catch (_) {}
 
-      const actionResults: InterceptedRoute["actionResults"] = [];
+      const actionHandlerContext: ActionHandlerContext = {
+        route,
+        tracking,
+        status: response.status(),
+        body,
+        json,
+        isBinary,
+        finalBody: json ?? body,
+        abortActionPerformed: false,
+      };
 
-      let abortActionPerformed = false;
-      let finalBody = isJSON && json ? json : body;
-
-      // debug("Matched item actions", matchedItem.actions);
+      const actionResults: ActionResult[] = [];
 
       for (const action of matchedItem.actions) {
-        let actionStatus: "success" | "fail" = "success";
-        const description = JSON.stringify(action.config);
-
+        let result: ActionResult | undefined;
         switch (action.type) {
           case "abort_request":
-            if (tracking?.timer) clearTimeout(tracking.timer);
-            const errorCode = action.config?.errorCode ?? "failed";
-            console.log(`[abort_request] Aborting  with error code: ${errorCode}`);
-            await route.abort(errorCode);
-            abortActionPerformed = true;
-            tracking.completed = true;
+            result = handleAbortRequest(action, actionHandlerContext);
             break;
-
           case "status_code_verification":
-            if (String(status) !== String(action.config)) {
-              actionStatus = "fail";
-              message = `Status code verification failed. Expected ${action.config}, got ${status}`;
-              debug(`[status_code_verification] Failed: ${message}`);
-            } else {
-              console.log(`[status_code_verification] Passed`);
-              message = `Status code verification passed. Expected ${action.config}, got ${status}`;
-            }
+            result = handleStatusCodeVerification(action, actionHandlerContext);
             break;
-
           case "json_modify":
-            if (!json) {
-              actionStatus = "fail";
-              message = "JSON modification failed. Response is not JSON";
-              debug(`[json_modify] Failed: ${message}`);
-            } else {
-              if (action.config && action.config.path && action.config.modifyValue) {
-                objectPath.set(json, action.config.path, action.config.modifyValue);
-                console.log(`[json_modify] Modified path ${action.config.path} to ${action.config.modifyValue}`);
-                console.log(`[json_modify] Modified JSON`);
-                message = `JSON modified successfully`;
-                finalBody = JSON.parse(JSON.stringify(json));
-              }
-            }
+            result = handleJsonModify(action, actionHandlerContext);
             break;
-
           case "json_whole_modify":
-            if (!json) {
-              actionStatus = "fail";
-              message = "JSON modification failed. Response is not JSON";
-              debug(`[json_whole_modify] Failed: ${message}`);
-            } else {
-              try {
-                const parsedConfig = JSON.parse(action.config);
-                json = parsedConfig;
-                finalBody = JSON.parse(JSON.stringify(json));
-              } catch (e: unknown) {
-                actionStatus = "fail";
-                message = `JSON modification failed. Invalid JSON: ${e instanceof Error ? e.message : String(e)}`;
-                debug(`[json_whole_modify] Failed: ${message}`);
-                break;
-              }
-              console.log(`[json_whole_modify] Whole JSON replaced`);
-              message = `JSON replaced successfully`;
-            }
+            result = handleJsonWholeModify(action, actionHandlerContext);
             break;
           case "status_code_change":
-            status = Number(action.config);
-            console.log(`[status_code_change] Status changed to ${status}`);
-            message = `Status code changed to ${status}`;
+            result = handleStatusCodeChange(action, actionHandlerContext);
             break;
-
           case "change_text":
-            if (isBinary) {
-              actionStatus = "fail";
-              message = "Change text action failed. Body is not a text";
-              debug(`[change_text] Failed: ${message}`);
-            } else {
-              body = action.config;
-              console.log(`[change_text] HTML body replaced`);
-              message = `HTML body replaced successfully`;
-              finalBody = body;
-            }
+            result = handleChangeText(action, actionHandlerContext);
             break;
 
           case "assert_json":
-            if (!json) {
-              actionStatus = "fail";
-              message = "JSON assertion failed. Response is not JSON";
-              debug(`[assert_json] Failed: ${message}`);
-            } else {
-              const actual = objectPath.get(json, action.config.path);
-              if (typeof actual !== "object") {
-                if (JSON.stringify(actual) !== JSON.stringify(action.config.expectedValue)) {
-                  actionStatus = "fail";
-                  message = `JSON assertion failed for path ${action.config.path}: expected ${JSON.stringify(action.config.expectedValue)}, got ${JSON.stringify(actual)}`;
-                  debug(`[assert_json] Failed: ${message}`);
-                }
-              } else if (JSON.stringify(actual) !== action.config.expectedValue) {
-                actionStatus = "fail";
-                message = `JSON assertion failed for path ${action.config.path}: expected ${action.config.expectedValue}, got ${JSON.stringify(actual)}`;
-                debug(`[assert_json] Failed: ${message}`);
-              } else {
-                console.log(`[assert_json] Assertion passed for path ${action.config.path}`);
-                message = `JSON assertion passed for path ${action.config.path}`;
-              }
-            }
+            result = handleAssertJson(action, actionHandlerContext);
             break;
           case "assert_whole_json":
-            if (!json) {
-              actionStatus = "fail";
-              message = "Whole JSON assertion failed. Response is not JSON";
-              debug(`[assert_whole_json] Failed: ${message}`);
-            } else {
-              if (action.config.contains) {
-                const originalJSON = JSON.stringify(json, null, 2);
-                if (!originalJSON.includes(action.config.contains)) {
-                  actionStatus = "fail";
-                  message = `Whole JSON assertion failed. Expected to contain: "${action.config.contains}", actual: "${body}"`;
-                  debug(`[assert_whole_json] Failed: ${message}`);
-                }
-              } else if (action.config.equals) {
-                const originalJSON = JSON.stringify(json, null, 2);
-                if (originalJSON !== action.config.equals) {
-                  actionStatus = "fail";
-                  message = `Whole JSON assertion failed. Expected exact match: "${action.config.equals}", actual: "${body}"`;
-                  debug(`[assert_whole_json] Failed: ${message}`);
-                }
-              } else {
-                console.log(`[assert_whole_json] Assertion passed`);
-                message = `Whole JSON assertion passed.`;
-              }
-            }
+            result = handleAssertWholeJson(action, actionHandlerContext);
             break;
           case "assert_text":
-            if (typeof body !== "string") {
-              console.error(`[assert_text] Body is not text`);
-              actionStatus = "fail";
-              message = "Text assertion failed. Body is not text";
-              debug(`[assert_text] Failed: ${message}`);
-            } else {
-              if (action.config.contains && !body.includes(action.config.contains)) {
-                actionStatus = "fail";
-                message = `Text assertion failed. Expected to contain: "${action.config.contains}", actual: "${body}"`;
-                debug(`[assert_text] Failed: ${message}`);
-              } else if (action.config.equals && body !== action.config.equals) {
-                actionStatus = "fail";
-                message = `Text assertion failed. Expected exact match: "${action.config.equals}", actual: "${body}"`;
-                debug(`[assert_text] Failed: ${message}`);
-              } else {
-                console.log(`[assert_text] Assertion passed`);
-                message = `Text assertion passed.`;
-              }
-            }
+            result = handleAssertText(action, actionHandlerContext);
             break;
           default:
-            console.warn(`Unknown action type: ${action.type}`);
+            console.warn(`Unknown action type`);
         }
-
-        actionResults.push({ type: action.type, description, status: actionStatus, message: message });
-        debug("Action results:", actionResults);
+        if (result) actionResults.push(result);
       }
 
       tracking.completed = true;
       tracking.actionResults = actionResults;
-
       if (tracking.timer) clearTimeout(tracking.timer);
 
-      if (!abortActionPerformed) {
+      if (!actionHandlerContext.abortActionPerformed) {
         try {
+          const isJSON = headers["content-type"]?.includes("application/json");
           if (isJSON) {
-            await route.fulfill({ status, json: finalBody, headers });
+            await route.fulfill({ status: actionHandlerContext.status, json: actionHandlerContext.finalBody, headers });
           } else {
-            await route.fulfill({ status, body: finalBody, headers });
+            await route.fulfill({
+              status: actionHandlerContext.status,
+              body: actionHandlerContext.finalBody as string | Buffer,
+              headers,
+            });
           }
-          // await route.fulfill({ status, body: finalBody, headers });
         } catch (e) {
           console.error("Failed to fulfill route:", e);
         }

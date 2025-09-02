@@ -930,21 +930,20 @@ class StableBrowser {
             );
             newElementSelector = `[${dataAttribute}="${randomToken}"]`;
           } else {
-            const id = await element.evaluate((el, randomToken) => {
-              // check if the element has id attribute
-              if (el.id) {
-                return el.id;
+            newElementSelector = await element.evaluate((el: HTMLElement, token: string) => {
+              const id = el.id || "";
+
+              if (id) {
+                // use attribute and not id
+                const attrName = `data-blinq-id-${token}`;
+                el.setAttribute(attrName, "");
+                return `[${attrName}]`;
+              } else {
+                // no id → assign the random token as the element's id
+                el.setAttribute("id", token);
+                return `#${token}`;
               }
-              el.setAttribute("id", randomToken);
-              console.log("set id=" + randomToken + " on element", el);
-              return randomToken;
             }, randomToken);
-            newElementSelector = "#" + id;
-            // check if the id contains :
-            if (id.includes(":") || id.includes(".") || id.includes("[") || id.includes("]")) {
-              // //*[@id="radix-:r0:"]
-              newElementSelector = `//*[@id="${id}"]`;
-            }
           }
         }
         const scope = element._frame ?? element.page();
@@ -961,7 +960,7 @@ class StableBrowser {
         // }
         const newSelector = prefixSelector + newElementSelector;
 
-        return scope.locator(newSelector);
+        return scope.locator(newSelector).first();
       }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
@@ -3860,7 +3859,7 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
-      await _commandError({ text: "visualVerification", operation: "visualVerification", text, info }, e, this);
+      await _commandError({ text: "visualVerification", operation: "visualVerification", info }, e, this);
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {

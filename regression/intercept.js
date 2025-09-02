@@ -2,8 +2,6 @@ import { initContext, closeContext, navigate } from "../build/lib/auto_page.js";
 import fs from "fs";
 import { _getDataFile } from "../build/lib/utils.js";
 import { expect } from "chai";
-import exp from "constants";
-
 const elements = {
   textbox_username: {
     locators: [
@@ -205,8 +203,7 @@ describe("route", function () {
       console.log(JSON.stringify(context.routeResults, null, 2));
     } catch (e) {
       expect(e).instanceOf(Error);
-      expect(e.message).to.include(`Route verification failed:
-  Route to  failed with status: timeout`);
+      expect(e.message).to.include(`Route to /favicon1.svg failed with status: timeout`);
     }
   });
   it("route change_text", async function () {
@@ -346,7 +343,7 @@ describe("route", function () {
   });
   it("route test data", async function () {
     const stepObject = {
-      pickleStep: { text: 'login with "user_name" and "password" 7', keyword: "Given" },
+      pickleStep: { text: 'login with "user_name" and "password" 8', keyword: "Given" },
       gherkinDocument: { feature: { name: "Login" } },
       pickle: {
         name: "Login scenario",
