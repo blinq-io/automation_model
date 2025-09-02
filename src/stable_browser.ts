@@ -960,7 +960,7 @@ class StableBrowser {
         // }
         const newSelector = prefixSelector + newElementSelector;
 
-        return scope.locator(newSelector);
+        return scope.locator(newSelector).first();
       }
     }
     throw new Error("unable to locate element " + JSON.stringify(selectors));
