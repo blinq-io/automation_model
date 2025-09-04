@@ -173,6 +173,7 @@ class Browser {
       } else if (channel) {
         args.push("--use-gtk");
         args.push("--use_ozone=false");
+        console.log("Launching chromium with channel: " + channel);
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
@@ -185,6 +186,7 @@ class Browser {
         } else {
           args.push("--use-gtk");
           args.push("--use_ozone=false");
+          console.log("Launching chromium with args: " + args.join(" "));
           this.browser = await chromium.launch({
             headless: headless,
             timeout: 0,
