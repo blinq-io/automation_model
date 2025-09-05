@@ -1059,6 +1059,11 @@ class StableBrowser {
     });
   }
   async _locate_internal(selectors, info, _params?: Params, timeout = 30000, allowDisabled? = false) {
+    if (selectors.locators && Array.isArray(selectors.locators)) {
+      selectors.locators.forEach((locator) => {
+        locator.index = locator.index ?? 0;
+      });
+    }
     if (!info) {
       info = {};
       info.failCause = {};
