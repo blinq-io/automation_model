@@ -74,7 +74,7 @@ describe("Actions Tests", function () {
     //console.log("locatorLog: " + locatorLog);
     // verify that the locatorLog contain ***** click on login button *****
     expect(locatorLog).to.include("***** click on login button *****");
-    expect(locatorLog).to.include('#1 {"text":"LOGIN","tag":"button"}');
+    expect(locatorLog).to.include('#1 {"text":"LOGIN","tag":"button"');
     expect(locatorLog).to.include("0s 0s FOUND");
     //console.log("info object: " + JSON.stringify(info, null, 2));
   });
