@@ -601,7 +601,6 @@ class StableBrowser {
       info.locatorLog = new LocatorLog(selectorHierarchy);
     }
     let locatorSearch = selectorHierarchy[index];
-    locatorSearch.css = `${locatorSearch.css} >> visible=true`;
     try {
       locatorSearch = _fixLocatorUsingParams(locatorSearch, _params);
     } catch (e) {
