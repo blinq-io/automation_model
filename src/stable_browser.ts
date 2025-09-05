@@ -654,6 +654,8 @@ class StableBrowser {
     //   cssHref = true;
     // }
 
+    locator = locator.locator("visible=true");
+
     let count = await locator.count();
     if (count > 0 && !info.failCause.count) {
       info.failCause.count = count;
