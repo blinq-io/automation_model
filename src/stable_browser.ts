@@ -654,9 +654,9 @@ class StableBrowser {
     //   cssHref = true;
     // }
 
-    locator = locator.locator("visible=true");
+    const _locator = locator.locator("visible=true");
 
-    let count = await locator.count();
+    let count = await _locator.count();
     if (count > 0 && !info.failCause.count) {
       info.failCause.count = count;
     }
@@ -665,7 +665,7 @@ class StableBrowser {
     let visibleLocator = null;
 
     if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
-      foundLocators.push(locator.nth(locatorSearch.index));
+      foundLocators.push(_locator.nth(locatorSearch.index));
       if (info.locatorLog) {
         info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
       }
@@ -676,13 +676,13 @@ class StableBrowser {
       info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
     }
     for (let j = 0; j < count; j++) {
-      let visible = await locator.nth(j).isVisible();
-      const enabled = await locator.nth(j).isEnabled();
+      let visible = await _locator.nth(j).isVisible();
+      const enabled = await _locator.nth(j).isEnabled();
       if (!visibleOnly) {
         visible = true;
       }
       if (visible && (allowDisabled || enabled)) {
-        foundLocators.push(locator.nth(j));
+        foundLocators.push(_locator.nth(j));
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
         }
