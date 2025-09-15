@@ -218,6 +218,9 @@ class Api {
     let res: any = {};
     try {
       res = await this.axiosClientRequest<T>(axiosConfig);
+      state.info.headers = res.headers;
+      state.info.status = res.status;
+      state.info.data = res.data;
       if (res.status != config.status) {
         throw new Error(`The returned status code ${res.status} doesn't match the saved status code ${config.status}`);
       }
@@ -258,12 +261,11 @@ class Api {
         );
         const testsFailed = info.tests.filter((test) => test.fail);
         info.testsPassed = info.tests.length - testsFailed.length;
-        state.info.headers = res.headers;
-        state.info.status = res.status;
-        state.info.data = res.data;
         if (testsFailed.length > 0) {
           throw new Error("Tests failed");
         }
+      } else {
+        info.testsPassed = 0;
       }
       return res;
     } catch (e) {
