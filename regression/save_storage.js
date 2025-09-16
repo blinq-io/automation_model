@@ -51,60 +51,60 @@ describe("store session", function () {
     await closeContext();
   });
 
-//   it("store session test", async function () {
-//     // login to the app
-//     const _params = {};
-//     const options = {};
-//     await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
-//     // Fill password field with "password"
-//     await context.web.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
-//     // Click on login button
-//     await context.web.click(elements["button_login"], _params, options, null);
-//     // store the session
-//     await context.web.saveStoreState(null, this);
-//     const dataFile = _getDataFile(this, context, context.web);
-//     // close context
-//     await closeContext();
-//     // configure global test data
-//     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
-//     // create new session
-//     context = await initContext("/", true, true);
-//     process.env.GLOBAL_TEST_DATA_FILE = "";
+  //   it("store session test", async function () {
+  //     // login to the app
+  //     const _params = {};
+  //     const options = {};
+  //     await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
+  //     // Fill password field with "password"
+  //     await context.web.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
+  //     // Click on login button
+  //     await context.web.click(elements["button_login"], _params, options, null);
+  //     // store the session
+  //     await context.web.saveStoreState(null, this);
+  //     const dataFile = _getDataFile(this, context, context.web);
+  //     // close context
+  //     await closeContext();
+  //     // configure global test data
+  //     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
+  //     // create new session
+  //     context = await initContext("/", true, true);
+  //     process.env.GLOBAL_TEST_DATA_FILE = "";
 
-//     await context.web.waitForPageLoad();
-//     // verify browser on the products page
-//     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
-//   });
-//   it("restore session test", async function () {
-//     // login to the app
-//     const _params = {};
-//     const options = {};
-//     await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
-//     // Fill password field with "password"
-//     await context.web.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
-//     // Click on login button
-//     await context.web.click(elements["button_login"], _params, options, null);
-//     // store the session
-//     await context.web.saveStoreState("test.json", this);
-//     await context.web.restoreSaveState("test.json", this);
-//     // verify browser on the products page
-//     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
-//   });
+  //     await context.web.waitForPageLoad();
+  //     // verify browser on the products page
+  //     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
+  //   });
+  //   it("restore session test", async function () {
+  //     // login to the app
+  //     const _params = {};
+  //     const options = {};
+  //     await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
+  //     // Fill password field with "password"
+  //     await context.web.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
+  //     // Click on login button
+  //     await context.web.click(elements["button_login"], _params, options, null);
+  //     // store the session
+  //     await context.web.saveStoreState("test.json", this);
+  //     await context.web.restoreSaveState("test.json", this);
+  //     // verify browser on the products page
+  //     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
+  //   });
 
-//   it("restore session test with test data", async function () {
-//     // login to the app
-//     const _params = {};
-//     const options = {};
-//     await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
-//     // Fill password field with "password"
-//     await context.web.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
-//     // Click on login button
-//     await context.web.click(elements["button_login"], _params, options, null);
-//     // store the session
-//     await context.web.saveStoreState("test.json", this);
-//     await context.web.setTestData({ file: "test.json" });
-//     await context.web.restoreSaveState("{{file}}", this);
-//     // verify browser on the products page
-//     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
-//   });
-// });
+  //   it("restore session test with test data", async function () {
+  //     // login to the app
+  //     const _params = {};
+  //     const options = {};
+  //     await context.web.clickType(elements["textbox_username"], "blinq_user", false, _params, options, null);
+  //     // Fill password field with "password"
+  //     await context.web.clickType(elements["textbox_password"], "let_me_in", false, _params, options, null);
+  //     // Click on login button
+  //     await context.web.click(elements["button_login"], _params, options, null);
+  //     // store the session
+  //     await context.web.saveStoreState("test.json", this);
+  //     await context.web.setTestData({ file: "test.json" });
+  //     await context.web.restoreSaveState("{{file}}", this);
+  //     // verify browser on the products page
+  //     await context.web.verifyTextExistInPage("KeyX 3000 - Mechanical Keyboard", {}, this);
+  //   });
+});
