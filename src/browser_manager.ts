@@ -20,6 +20,7 @@ const __dirname = path.dirname(__filename);
 type StorageState = {
   cookies: Cookie[];
   origins: { origin: string; localStorage: LocalStorage }[];
+  sessionFolder: string;
 };
 class BrowserManager {
   constructor(public browsers: Browser[] = []) {}
@@ -124,6 +125,10 @@ class Browser {
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
+    let sessionFolder = null;
+    if (storageState && storageState.sessionFolder) {
+      sessionFolder = storageState.sessionFolder;
+    }
 
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
 
@@ -194,9 +199,7 @@ class Browser {
         } else {
           args.push("--use-gtk");
           args.push("--use_ozone=false");
-          if (process.env.BROWSER_FOLDER) {
-            useSessionFolder = true;
-            const sessionFolder = prepareBrowserFolder(process.env.BROWSER_FOLDER);
+          if (sessionFolder) {
             this.context = await chromium.launchPersistentContext(sessionFolder, {
               headless: headless,
               timeout: 0,
@@ -220,7 +223,7 @@ class Browser {
       if (!contextOptions["acceptDownloads"]) {
         contextOptions["acceptDownloads"] = true;
       }
-      if (storageState && !useSessionFolder) {
+      if (storageState && !sessionFolder) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
         contextOptions.ignoreHTTPSErrors = true;
