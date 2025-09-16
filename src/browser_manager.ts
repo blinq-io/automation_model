@@ -19,6 +19,7 @@ const __dirname = path.dirname(__filename);
 type StorageState = {
   cookies: Cookie[];
   origins: { origin: string; localStorage: LocalStorage }[];
+  sessionFolder: string;
 };
 class BrowserManager {
   constructor(public browsers: Browser[] = []) {}
@@ -123,6 +124,10 @@ class Browser {
     } else if (!aiConfig.noViewport) {
       viewport = { width: 1280, height: 800 };
     }
+    let sessionFolder = null;
+    if (storageState && storageState.sessionFolder) {
+      sessionFolder = storageState.sessionFolder;
+    }
 
     const args = ["--ignore-https-errors", "--ignore-certificate-errors"];
 
@@ -173,7 +178,6 @@ class Browser {
       } else if (channel) {
         args.push("--use-gtk");
         args.push("--use_ozone=false");
-        console.log("Launching chromium with channel: " + channel);
         this.browser = await chromium.launch({
           headless: headless,
           timeout: 0,
@@ -186,12 +190,19 @@ class Browser {
         } else {
           args.push("--use-gtk");
           args.push("--use_ozone=false");
-          console.log("Launching chromium with args: " + args.join(" "));
-          this.browser = await chromium.launch({
-            headless: headless,
-            timeout: 0,
-            args,
-          });
+          if (sessionFolder) {
+            this.context = await chromium.launchPersistentContext(sessionFolder, {
+              headless: headless,
+              timeout: 0,
+              args,
+            });
+          } else {
+            this.browser = await chromium.launch({
+              headless: headless,
+              timeout: 0,
+              args,
+            });
+          }
         }
       }
 
@@ -203,7 +214,7 @@ class Browser {
       if (!contextOptions["acceptDownloads"]) {
         contextOptions["acceptDownloads"] = true;
       }
-      if (storageState) {
+      if (storageState && !sessionFolder) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
         contextOptions.ignoreHTTPSErrors = true;
