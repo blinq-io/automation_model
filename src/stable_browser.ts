@@ -981,7 +981,7 @@ class StableBrowser {
         for (let i = 0; i < frame.selectors.length; i++) {
           let frameLocator = frame.selectors[i];
           if (frameLocator.css) {
-            let testframescope = framescope.frameLocator(frameLocator.css);
+            let testframescope = framescope.frameLocator(`${frameLocator.css} >> visible=true`);
             if (frameLocator.index) {
               testframescope = framescope.nth(frameLocator.index);
             }
