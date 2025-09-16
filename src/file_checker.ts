@@ -52,7 +52,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
   await _preCommand(state, context.web);
 
   try {
-    filePath = await replaceWithLocalTestData(filePath, world, true, false, context, context.web, false) as string;
+    filePath = (await replaceWithLocalTestData(filePath, world, true, false, context, context.web, false)) as string;
   } catch (err) {
     // Ignore error
   }
