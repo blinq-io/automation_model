@@ -36,6 +36,7 @@
     "csv-parser": "^3.0.0",
     "dayjs": "^1.11.10",
     "debug": "^4.4.1",
+    "dotenv": "^17.2.2",
     "error-stack-parser": "^2.1.4",
     "fs-extra": "^11.3.2",
     "jimp": "^1.6.0",
