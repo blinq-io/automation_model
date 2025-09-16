@@ -3,6 +3,7 @@ import * as path from "path";
 import { promises as fsAsync } from "fs"; // async fs
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
+import { replaceWithLocalTestData } from "./utils.js";
 
 const checkFileAccess = (filePath: string, accessMode: number): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -49,7 +50,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
   };
 
   await _preCommand(state, context.web);
-
+  filePath = await replaceWithLocalTestData(filePath, world,true,false, context, context.web,false) as string;
   try {
     let pathToMatch = filePath;
     if (isSoft) {
