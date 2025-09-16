@@ -930,20 +930,9 @@ class StableBrowser {
             );
             newElementSelector = `[${dataAttribute}="${randomToken}"]`;
           } else {
-            newElementSelector = await element.evaluate((el: HTMLElement, token: string) => {
-              const id = el.id || "";
-
-              if (id) {
-                // use attribute and not id
-                const attrName = `data-blinq-id-${token}`;
-                el.setAttribute(attrName, "");
-                return `[${attrName}]`;
-              } else {
-                // no id → assign the random token as the element's id
-                el.setAttribute("id", token);
-                return `#${token}`;
-              }
-            }, randomToken);
+            // the default case just return the located element
+            // will not work for click and type if the locator is placeholder and the placeholder change due to the click event
+            return element;
           }
         }
         const scope = element._frame ?? element.page();
@@ -1779,6 +1768,15 @@ class StableBrowser {
     }
     try {
       await _preCommand(state, this);
+      const randomToken = "blinq_" + Math.random().toString(36).substring(7);
+      // tag the element
+      let newElementSelector = await state.element.evaluate((el: HTMLElement, token: string) => {
+        // use attribute and not id
+        const attrName = `data-blinq-id-${token}`;
+        el.setAttribute(attrName, "");
+        return `[${attrName}]`;
+      }, randomToken);
+
       state.info.value = _value;
       if (!options.press) {
         try {
@@ -1790,8 +1788,10 @@ class StableBrowser {
           this.logger.info("unable to clear input value");
         }
       }
+
       if (options.press) {
         options.timeout = 5000;
+
         await performAction("click", state.element, options, this, state, _params);
       } else {
         try {
@@ -1801,6 +1801,27 @@ class StableBrowser {
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
+      // check if the element exist after the click (no wait)
+      const count = await state.element.count({ timeout: 0 });
+      if (count === 0) {
+        // the locator changed after the click (placeholder) we need to locate the element using the data-blinq-id
+        const scope = state.element._frame ?? element.page();
+        let prefixSelector = "";
+        const frameControlSelector = " >> internal:control=enter-frame";
+        const frameSelectorIndex = state.element._selector.lastIndexOf(frameControlSelector);
+        if (frameSelectorIndex !== -1) {
+          // remove everything after the >> internal:control=enter-frame
+          const frameSelector = state.element._selector.substring(0, frameSelectorIndex);
+          prefixSelector = frameSelector + " >> internal:control=enter-frame >> ";
+        }
+        // if (element?._frame?._selector) {
+        //   prefixSelector = element._frame._selector + " >> " + prefixSelector;
+        // }
+        const newSelector = prefixSelector + newElementSelector;
+
+        state.element = scope.locator(newSelector).first();
+      }
+
       const valueSegment = state.value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
         if (i > 0) {

@@ -3,6 +3,7 @@ import * as path from "path";
 import { promises as fsAsync } from "fs"; // async fs
 import { _commandError, _commandFinally, _preCommand } from "./command_common.js";
 import { Types } from "./stable_browser.js";
+import { replaceWithLocalTestData } from "./utils.js";
 
 const checkFileAccess = (filePath: string, accessMode: number): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -51,6 +52,12 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
   await _preCommand(state, context.web);
 
   try {
+    filePath = (await replaceWithLocalTestData(filePath, world, true, false, context, context.web, false)) as string;
+  } catch (err) {
+    // Ignore error
+  }
+
+  try {
     let pathToMatch = filePath;
     if (isSoft) {
       pathToMatch = filePath.replace(/^soft:/, ""); // remove soft: prefix for parsing
@@ -58,7 +65,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
 
     let dir: string;
     let input: string;
-    console.log("pathSeparator",path.sep);
+    console.log("pathSeparator", path.sep);
     if (pathToMatch.includes("regex:")) {
       const regexIndex = pathToMatch.indexOf("regex:");
       // Handle both forward slashes and backslashes before regex:
@@ -71,9 +78,9 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
       input = pathToMatch.substring(regexIndex);
     } else {
       // Use path.sep to handle both forward and backward slashes
-      const pathSeparator = path.sep;      
+      const pathSeparator = path.sep;
       const lastSlashIndex = pathToMatch.lastIndexOf(pathSeparator);
-      
+
       // If no separator found, try the other separator (for mixed paths)
       if (lastSlashIndex === -1) {
         const alternativeSeparator = pathSeparator === "/" ? "\\" : "/";
@@ -92,8 +99,8 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
       }
     }
 
-    if(isSoft) {
-        dir = dir.slice(0, -5);
+    if (isSoft) {
+      dir = dir.slice(0, -5);
     }
 
     console.log(`Directory to check: ${dir}`);
@@ -115,7 +122,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
       let raw = input.replace("regex:", "").trim(); // e.g. "/file/i" or "file.*::i"
       let pattern = raw;
       let flags = "";
-    
+
       // Normalize delimiters: convert backslash delimiters to forward slash delimiters
       // This preserves the regex pattern while standardizing the delimiter format
       if (raw.startsWith("\\") && raw.lastIndexOf("\\") > 0) {
@@ -125,7 +132,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
         const flagsPart = raw.substring(lastBackslash + 1);
         raw = `/${patternPart}/${flagsPart}`;
       }
-    
+
       // Now handle the standardized format
       if (raw.startsWith("/") && raw.lastIndexOf("/") > 0) {
         // Standard regex format: /pattern/flags
@@ -136,9 +143,9 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
         // Alternative format: pattern::flags
         [pattern, flags] = raw.split("::");
       }
-    
+
       console.log(`Regex pattern: ${pattern}, flags: ${flags}`);
-    
+
       try {
         const regex = new RegExp(pattern, flags);
         found = files.some((f: string) => {

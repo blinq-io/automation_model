@@ -58,7 +58,6 @@ export class LocatorLog {
     }
   }
   toString() {
-
     let result = this.mission + "\n";
     // go over all the keys in the events object
     let locatorIndex = 0;
