@@ -50,7 +50,7 @@ export const verifyFileExists = async (filePath: string, options: any, context: 
   };
 
   await _preCommand(state, context.web);
-  filePath = await replaceWithLocalTestData(filePath, world,true,false, context, context.web,false) as string;
+  filePath = (await replaceWithLocalTestData(filePath, world, true, false, context, context.web, false)) as string;
   try {
     let pathToMatch = filePath;
     if (isSoft) {
