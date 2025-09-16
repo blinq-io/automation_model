@@ -4209,19 +4209,21 @@ class StableBrowser {
     }
     return 30000;
   }
-  async saveStoreState(path: string | null = null, world: any = null) {
-    const storageState = await this.page.context().storageState();
-    path = await this._replaceWithLocalData(path, this.world);
-    //const testDataFile = _getDataFile(world, this.context, this);
-    if (path) {
-      // save { storageState: storageState } into the path
-      fs.writeFileSync(path, JSON.stringify({ storageState: storageState }, null, 2));
-    } else {
-      await this.setTestData({ storageState: storageState }, world);
-    }
-  }
+  // async saveStoreState(path: string | null = null, world: any = null) {
+  //   //const storageState = await this.page.context().storageState();
+  //   path = await this._replaceWithLocalData(path, this.world);
+  //   //const testDataFile = _getDataFile(world, this.context, this);
+  //   const sessionName = path || "default_session";
+  //   if (path) {
+  //     // save { storageState: storageState } into the path
+  //     fs.writeFileSync(path, JSON.stringify({ storageState: storageState }, null, 2));
+  //   } else {
+  //     await this.setTestData({ storageState: storageState }, world);
+  //   }
+  // }
   async restoreSaveState(path: string | null = null, world: any = null) {
-    path = await this._replaceWithLocalData(path, this.world);
+    const sessionName = path || "default_session";
+    path = await this._replaceWithLocalData(sessionName, this.world);
     await refreshBrowser(this, path, world);
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
