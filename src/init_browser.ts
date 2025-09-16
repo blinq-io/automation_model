@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import fs from "fs-extra";
 import path from "path";
 import { Environment } from "./environment.js";
 import { browserManager } from "./browser_manager.js";
@@ -9,6 +9,8 @@ import { Browser } from "./browser_manager.js";
 import { Api } from "./api.js";
 import { InitScripts } from "./generation_scripts.js";
 import { measureAsync } from "./utils.js";
+import os from "os";
+import tmp from "tmp";
 
 // init browser create context and page, if context and page are not null
 const getContext = async function (
@@ -168,12 +170,35 @@ const refreshBrowser = async function (web: any, sessionPath: string, world: any
   web.context.pages = [];
 
   let storageState = null;
+  //  let storageState = null;
   if (sessionPath) {
-    if (!fs.existsSync(sessionPath)) {
-      throw new Error("Session path not found: " + sessionPath);
+    // if (!fs.existsSync(sessionPath)) {
+    //   throw new Error("Session path not found: " + sessionPath);
+    // }
+    const sessionFolder = path.join("sessions", path.basename(sessionPath));
+    // check if the sessionFolder exists
+    if (fs.existsSync(sessionFolder)) {
+      // generate a temp (using the fs.mkdtempSync) folder and copy the session folder to it
+      //const tempFolder = fs.mkdtempSync(path.join(os.tmpdir(), "session-"));
+      const { name: tempDir } = tmp.dirSync({ unsafeCleanup: true });
+      // copy the entire folder to the temp folder
+      fs.copySync(sessionFolder, tempDir);
+      // delete SingletonLock if exist in tempDir
+      const singletonLockPath = path.join(tempDir, "SingletonLock");
+      if (fs.existsSync(singletonLockPath)) {
+        fs.unlinkSync(singletonLockPath);
+      }
+
+      storageState = {
+        sessionFolder: tempDir,
+      };
+    } else {
+      storageState = {
+        sessionFolder: sessionFolder,
+      };
     }
-    const data = fs.readFileSync(sessionPath, "utf8");
-    storageState = JSON.parse(data).storageState;
+    // const data = fs.readFileSync(sessionPath, "utf8");
+    // storageState = JSON.parse(data).storageState;
   }
   const newContext = await getContext(
     web.context.environment,
