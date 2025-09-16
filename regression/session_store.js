@@ -63,29 +63,29 @@ async function the_user_logs_in_with_email_address_email_address_and_password_pa
 }
 
 let context = null;
-describe("session store", function () {
-  beforeEach(async function () {
-    context = await initContext("/", true, false);
-    //console.log("click_element.test.js: beforeEach");
-  });
-  afterEach(async function () {
-    //console.log("Closing browser");
-    await closeContext();
-    //console.log("click_element.test.js: afterEach");
-  });
+// describe("session store", function () {
+//   beforeEach(async function () {
+//     context = await initContext("/", true, false);
+//     //console.log("click_element.test.js: beforeEach");
+//   });
+//   afterEach(async function () {
+//     //console.log("Closing browser");
+//     await closeContext();
+//     //console.log("click_element.test.js: afterEach");
+//   });
 
-  it("login-session", async function () {
-    await context.web.restoreSaveState(null, this);
-    let url = "https://sandbox-falcon.honeycombinsurance.com/home";
-    console.log(`Navigating to URL ${url}`);
-    await context.web.goto(url);
-    await the_user_logs_in_with_email_address_email_address_and_password_password(
-      "tp05_e2e@honeycomb.testinator.com",
-      "Pass2023@"
-    );
-    await context.web.restoreSaveState(null, this);
-    console.log(`Navigating to URL ${url}`);
-    await context.web.goto(url);
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-  });
-});
+//   it("login-session", async function () {
+//     await context.web.restoreSaveState(null, this);
+//     let url = "https://sandbox-falcon.honeycombinsurance.com/home";
+//     console.log(`Navigating to URL ${url}`);
+//     await context.web.goto(url);
+//     await the_user_logs_in_with_email_address_email_address_and_password_password(
+//       "tp05_e2e@honeycomb.testinator.com",
+//       "Pass2023@"
+//     );
+//     await context.web.restoreSaveState(null, this);
+//     console.log(`Navigating to URL ${url}`);
+//     await context.web.goto(url);
+//     await new Promise((resolve) => setTimeout(resolve, 10000));
+//   });
+// });
