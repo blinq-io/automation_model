@@ -387,7 +387,7 @@ const repStrWParamTData = async (str: string, params: Param, testData: any, worl
   Object.keys(params).forEach((key) => {
     newStr = newStr.replaceAll(`<${key.slice(1)}>`, params[key]);
   });
-  newStr = await replaceWithLocalTestData(newStr, world, true, true, world.context);
+  newStr = await replaceWithLocalTestData(newStr, world, true, true, world.context, false);
   return newStr;
 };
 
