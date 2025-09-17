@@ -8,11 +8,12 @@ import {
   BrowserContextOptions,
 } from "playwright";
 import type { Cookie, LocalStorage } from "./environment.js";
-import fs from "fs";
 import path from "path";
 import { InitScripts } from "./generation_scripts.js";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import fs from "fs-extra";
+import tmp from "tmp";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -129,6 +130,7 @@ class Browser {
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
+    let useSessionFolder = false;
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
@@ -185,11 +187,21 @@ class Browser {
         } else {
           args.push("--use-gtk");
           args.push("--use_ozone=false");
-          this.browser = await chromium.launch({
-            headless: headless,
-            timeout: 0,
-            args,
-          });
+          if (process.env.BROWSER_FOLDER) {
+            useSessionFolder = true;
+            const sessionFolder = prepareBrowserFolder(process.env.BROWSER_FOLDER);
+            this.context = await chromium.launchPersistentContext(sessionFolder, {
+              headless: headless,
+              timeout: 0,
+              args,
+            });
+          } else {
+            this.browser = await chromium.launch({
+              headless: headless,
+              timeout: 0,
+              args,
+            });
+          }
         }
       }
 
@@ -201,7 +213,7 @@ class Browser {
       if (!contextOptions["acceptDownloads"]) {
         contextOptions["acceptDownloads"] = true;
       }
-      if (storageState) {
+      if (storageState && !useSessionFolder) {
         contextOptions.storageState = storageState as unknown as BrowserContextOptions["storageState"];
         contextOptions.bypassCSP = true;
         contextOptions.ignoreHTTPSErrors = true;
@@ -313,6 +325,25 @@ class Browser {
   }
 }
 const browserManager = new BrowserManager();
+
+function prepareBrowserFolder(sessionPath: string) {
+  const sessionFolder = path.join("sessions", path.basename(sessionPath));
+  // check if the sessionFolder exists
+  if (fs.existsSync(sessionFolder)) {
+    // generate a temp (using the fs.mkdtempSync) folder and copy the session folder to it
+    //const tempFolder = fs.mkdtempSync(path.join(os.tmpdir(), "session-"));
+    const { name: tempDir } = tmp.dirSync({ unsafeCleanup: true });
+    // copy the entire folder to the temp folder
+    fs.copySync(sessionFolder, tempDir);
+    // delete SingletonLock if exist in tempDir
+    const singletonLockPath = path.join(tempDir, "SingletonLock");
+    if (fs.existsSync(singletonLockPath)) {
+      fs.unlinkSync(singletonLockPath);
+    }
+    return tempDir;
+  }
+  return sessionFolder;
+}
 
 export { browserManager };
 export type { BrowserManager, Browser };
