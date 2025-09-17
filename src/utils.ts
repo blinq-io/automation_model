@@ -367,11 +367,10 @@ async function replaceWithLocalTestData(
       }
       try {
         const fake = faker.helpers.fake(`{{${templateForFaker}}}`);
-        if(fake !== `{{${templateForFaker}}}`)
-        return fake;
+        if (fake !== `{{${templateForFaker}}}`) return fake;
         else throw new Error("No faker match for " + templateForFaker);
       } catch (e) {
-        console.error(e instanceof Error? e.message: JSON.stringify(e));
+        console.error(e instanceof Error ? e.message : JSON.stringify(e));
         return null;
       }
     }
