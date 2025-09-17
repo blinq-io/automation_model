@@ -5,6 +5,7 @@ import { TOTP } from "totp-generator";
 import fs from "fs";
 import axios from "axios";
 import objectPath from "object-path";
+import { faker } from "@faker-js/faker/locale/en_US";
 
 const measureAsync = async (name: string, fn: () => Promise<any>) => {
   const id = `${name}-${Math.random().toString(36).slice(2, 9)}`;
@@ -282,7 +283,23 @@ async function replaceWithLocalTestData(
       throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
     } else {
       console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
-      return null;
+      let templateForFaker = key;
+      const possibleTestDataMatches = key.match(/{{(.*?)}}/g);
+      for (const testDataMatch of possibleTestDataMatches || []) {
+        const testDataKey = testDataMatch.slice(2, -2);
+        const path = testDataKey.split(".");
+        let value = objectPath.get(testData, path);
+        if (value !== undefined) {
+          templateForFaker = templateForFaker.replace(testDataMatch, String(value));
+        }
+      }
+      try {
+        const fake = faker.helpers.fake(`{{${templateForFaker}}}`);
+        return fake;
+      } catch (e) {
+        console.error("Error processing faker for:", templateForFaker, e);
+        return null;
+      }
     }
   };
 
