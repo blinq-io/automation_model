@@ -354,13 +354,12 @@ async function replaceWithLocalTestData(
     if (throwError) {
       throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
     } else {
-      // console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
+      console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
       let templateForFaker = key;
       const possibleTestDataMatches = key.match(/{{(.*?)}}/g);
       for (const testDataMatch of possibleTestDataMatches || []) {
         const testDataKey = testDataMatch.slice(2, -2);
-        // const path = testDataKey.split(".");
-        const path = getObjectDataPathFromKey(testDataKey);
+        const path = testDataKey.split(".");
         let value = objectPath.get(testData, path);
         if (value !== undefined) {
           templateForFaker = templateForFaker.replace(testDataMatch, String(value));
@@ -368,10 +367,9 @@ async function replaceWithLocalTestData(
       }
       try {
         const fake = faker.helpers.fake(`{{${templateForFaker}}}`);
-        if (fake !== `{{${templateForFaker}}}`) return fake;
-        else throw new Error("No faker match for " + templateForFaker);
+        return fake;
       } catch (e) {
-        console.error(e instanceof Error ? e.message : JSON.stringify(e));
+        console.error("Error processing faker for:", templateForFaker, e);
         return null;
       }
     }
