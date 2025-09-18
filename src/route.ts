@@ -558,19 +558,19 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
   let message: string | null = null;
 
-  try {
-    page.route("**/*", async (route: PWRoute) => {
+  page.route("**/*", async (route: PWRoute) => {
+    try {
       const debug = createDebug("automation_model:route:intercept");
-      const request = route.request();
-      debug(`Intercepting request: ${request.method()} ${request.url()}`);
-      debug("All route items", allRouteItems);
-      const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
-      if (!matchedItem) return route.continue();
-      debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
-      debug("Initial context route state", JSON.stringify(context.__routeState, null, 2));
-      let tracking = context.__routeState.matched.find(
-        (t: InterceptedRoute) => JSON.stringify(t.routeItem) === JSON.stringify(matchedItem) && !t.completed
-      );
+    const request = route.request();
+    debug(`Intercepting request: ${request.method()} ${request.url()}`);
+    debug("All route items", allRouteItems);
+    const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
+    if (!matchedItem) return route.continue();
+    debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
+    debug("Initial context route state", JSON.stringify(context.__routeState, null, 2));
+    let tracking = context.__routeState.matched.find(
+      (t: InterceptedRoute) => JSON.stringify(t.routeItem) === JSON.stringify(matchedItem) && !t.completed
+    );
 
       debug("Tracking", tracking);
 
@@ -691,10 +691,11 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           }
         }
       }
-    });
-  } catch (error) {
-    console.log(JSON.stringify(error));
-  }
+    }
+    } catch (error) {
+      console.log(JSON.stringify(error));
+    }
+  });
 }
 
 export async function registerAfterStepRoutes(context: any, world: any) {
