@@ -321,6 +321,9 @@ class Browser {
       this.browser = null;
       this.context = null;
       this.page = null;
+    } else if (this.context !== null) {
+      await this.context.close();
+      this.context = null;
     }
   }
 }
