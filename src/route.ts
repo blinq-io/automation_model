@@ -559,7 +559,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
   let message: string | null = null;
 
   page.route("**/*", async (route: PWRoute) => {
-    const debug = createDebug("automation_model:route:intercept");
+    try {
+      const debug = createDebug("automation_model:route:intercept");
     const request = route.request();
     debug(`Intercepting request: ${request.method()} ${request.url()}`);
     debug("All route items", allRouteItems);
@@ -684,6 +685,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           console.error("Failed to fulfill route:", e);
         }
       }
+    }
+    } catch (error) {
+      console.log(JSON.stringify(error));
     }
   });
 }
