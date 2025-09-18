@@ -561,132 +561,136 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
   page.route("**/*", async (route: PWRoute) => {
     try {
       const debug = createDebug("automation_model:route:intercept");
-    const request = route.request();
-    debug(`Intercepting request: ${request.method()} ${request.url()}`);
-    debug("All route items", allRouteItems);
-    const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
-    if (!matchedItem) return route.continue();
-    debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
-    debug("Initial context route state", JSON.stringify(context.__routeState, null, 2));
-    let tracking = context.__routeState.matched.find(
-      (t: InterceptedRoute) => JSON.stringify(t.routeItem) === JSON.stringify(matchedItem) && !t.completed
-    );
+      const request = route.request();
+      debug(`Intercepting request: ${request.method()} ${request.url()}`);
+      debug("All route items", allRouteItems);
+      const matchedItem = allRouteItems.find((item) => matchRoute(item, route));
+      if (!matchedItem) return route.continue();
+      debug(`Matched route item: ${JSON.stringify(matchedItem)}`);
+      debug("Initial context route state", JSON.stringify(context.__routeState, null, 2));
+      let tracking = context.__routeState.matched.find(
+        (t: InterceptedRoute) => JSON.stringify(t.routeItem) === JSON.stringify(matchedItem) && !t.completed
+      );
 
-    debug("Tracking", tracking);
+      debug("Tracking", tracking);
 
-    let stubActionPerformed = false;
+      let stubActionPerformed = false;
 
-    if (!tracking) {
-      debug("Tracking not found, creating tracking");
-      tracking = {
-        routeItem: matchedItem,
-        url: request.url(),
-        completed: false,
-        startedAt: Date.now(),
-        actionResults: [],
-      };
-      debug("Created tracking", tracking);
-      context.__routeState.matched.push(tracking);
-      debug("Current route state", context.__routeState);
-    } else {
-      tracking.url = request.url();
-      debug("Updating tracking", tracking);
-    }
-
-    const stubAction = matchedItem.actions.find((a) => a.type === "stub_request");
-    if (stubAction) {
-      stubActionPerformed = handleStubAction(stubAction, route, tracking);
-    }
-    if (!stubActionPerformed) {
-      let response: APIResponse;
-      try {
-        response = await route.fetch();
-      } catch (e) {
-        console.error("Fetch failed for", request.url(), e);
-        if (tracking?.timer) clearTimeout(tracking.timer);
-        return route.abort();
+      if (!tracking) {
+        debug("Tracking not found, creating tracking");
+        tracking = {
+          routeItem: matchedItem,
+          url: request.url(),
+          completed: false,
+          startedAt: Date.now(),
+          actionResults: [],
+        };
+        debug("Created tracking", tracking);
+        context.__routeState.matched.push(tracking);
+        debug("Current route state", context.__routeState);
+      } else {
+        tracking.url = request.url();
+        debug("Updating tracking", tracking);
       }
 
-      const headers = response.headers();
-      const isBinary =
-        !headers["content-type"]?.includes("application/json") && !headers["content-type"]?.includes("text");
-      const body = isBinary ? await response.body() : await response.text();
-      let json: any;
-      try {
-        if (typeof body === "string") json = JSON.parse(body);
-      } catch (_) {}
-
-      const actionHandlerContext: ActionHandlerContext = {
-        route,
-        tracking,
-        status: response.status(),
-        body,
-        json,
-        isBinary,
-        finalBody: json ?? body,
-        abortActionPerformed: false,
-      };
-
-      const actionResults: ActionResult[] = [];
-
-      for (const action of matchedItem.actions) {
-        let result: ActionResult | undefined;
-        switch (action.type) {
-          case "abort_request":
-            result = handleAbortRequest(action, actionHandlerContext);
-            break;
-          case "status_code_verification":
-            result = handleStatusCodeVerification(action, actionHandlerContext);
-            break;
-          case "json_modify":
-            result = handleJsonModify(action, actionHandlerContext);
-            break;
-          case "json_whole_modify":
-            result = handleJsonWholeModify(action, actionHandlerContext);
-            break;
-          case "status_code_change":
-            result = handleStatusCodeChange(action, actionHandlerContext);
-            break;
-          case "change_text":
-            result = handleChangeText(action, actionHandlerContext);
-            break;
-
-          case "assert_json":
-            result = handleAssertJson(action, actionHandlerContext);
-            break;
-          case "assert_whole_json":
-            result = handleAssertWholeJson(action, actionHandlerContext);
-            break;
-          case "assert_text":
-            result = handleAssertText(action, actionHandlerContext);
-            break;
-          default:
-            console.warn(`Unknown action type`);
-        }
-        if (result) actionResults.push(result);
+      const stubAction = matchedItem.actions.find((a) => a.type === "stub_request");
+      if (stubAction) {
+        stubActionPerformed = handleStubAction(stubAction, route, tracking);
       }
-
-      tracking.completed = true;
-      tracking.actionResults = actionResults;
-      if (tracking.timer) clearTimeout(tracking.timer);
-
-      if (!actionHandlerContext.abortActionPerformed) {
+      if (!stubActionPerformed) {
+        let response: APIResponse;
         try {
-          const isJSON = headers["content-type"]?.includes("application/json");
-          if (isJSON) {
-            await route.fulfill({ status: actionHandlerContext.status, json: actionHandlerContext.finalBody, headers });
-          } else {
-            await route.fulfill({
-              status: actionHandlerContext.status,
-              body: actionHandlerContext.finalBody as string | Buffer,
-              headers,
-            });
-          }
+          response = await route.fetch();
         } catch (e) {
-          console.error("Failed to fulfill route:", e);
+          console.error("Fetch failed for", request.url(), e);
+          if (tracking?.timer) clearTimeout(tracking.timer);
+          return route.abort();
+        }
+
+        const headers = response.headers();
+        const isBinary =
+          !headers["content-type"]?.includes("application/json") && !headers["content-type"]?.includes("text");
+        const body = isBinary ? await response.body() : await response.text();
+        let json: any;
+        try {
+          if (typeof body === "string") json = JSON.parse(body);
+        } catch (_) {}
+
+        const actionHandlerContext: ActionHandlerContext = {
+          route,
+          tracking,
+          status: response.status(),
+          body,
+          json,
+          isBinary,
+          finalBody: json ?? body,
+          abortActionPerformed: false,
+        };
+
+        const actionResults: ActionResult[] = [];
+
+        for (const action of matchedItem.actions) {
+          let result: ActionResult | undefined;
+          switch (action.type) {
+            case "abort_request":
+              result = handleAbortRequest(action, actionHandlerContext);
+              break;
+            case "status_code_verification":
+              result = handleStatusCodeVerification(action, actionHandlerContext);
+              break;
+            case "json_modify":
+              result = handleJsonModify(action, actionHandlerContext);
+              break;
+            case "json_whole_modify":
+              result = handleJsonWholeModify(action, actionHandlerContext);
+              break;
+            case "status_code_change":
+              result = handleStatusCodeChange(action, actionHandlerContext);
+              break;
+            case "change_text":
+              result = handleChangeText(action, actionHandlerContext);
+              break;
+
+            case "assert_json":
+              result = handleAssertJson(action, actionHandlerContext);
+              break;
+            case "assert_whole_json":
+              result = handleAssertWholeJson(action, actionHandlerContext);
+              break;
+            case "assert_text":
+              result = handleAssertText(action, actionHandlerContext);
+              break;
+            default:
+              console.warn(`Unknown action type`);
+          }
+          if (result) actionResults.push(result);
+        }
+
+        tracking.completed = true;
+        tracking.actionResults = actionResults;
+        if (tracking.timer) clearTimeout(tracking.timer);
+
+        if (!actionHandlerContext.abortActionPerformed) {
+          try {
+            const isJSON = headers["content-type"]?.includes("application/json");
+            if (isJSON) {
+              await route.fulfill({
+                status: actionHandlerContext.status,
+                json: actionHandlerContext.finalBody,
+                headers,
+              });
+            } else {
+              await route.fulfill({
+                status: actionHandlerContext.status,
+                body: actionHandlerContext.finalBody as string | Buffer,
+                headers,
+              });
+            }
+          } catch (e) {
+            console.error("Failed to fulfill route:", e);
+          }
         }
       }
-    }
     } catch (error) {
       console.log(JSON.stringify(error));
     }
