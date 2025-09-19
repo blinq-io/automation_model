@@ -558,8 +558,8 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
   let message: string | null = null;
 
-  page.route("**/*", async (route: PWRoute) => {
-    try {
+  try {
+    page.route("**/*", async (route: PWRoute) => {
       const debug = createDebug("automation_model:route:intercept");
       const request = route.request();
       debug(`Intercepting request: ${request.method()} ${request.url()}`);
@@ -691,10 +691,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
           }
         }
       }
-    } catch (error) {
-      console.log(JSON.stringify(error));
-    }
-  });
+    });
+  } catch (error) {
+    console.log(JSON.stringify(error));
+  }
 }
 
 export async function registerAfterStepRoutes(context: any, world: any) {
