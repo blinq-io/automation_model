@@ -559,7 +559,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
   let message: string | null = null;
 
   try {
-  page.route("**/*", async (route: PWRoute) => {
+    page.route("**/*", async (route: PWRoute) => {
       const debug = createDebug("automation_model:route:intercept");
       const request = route.request();
       debug(`Intercepting request: ${request.method()} ${request.url()}`);
