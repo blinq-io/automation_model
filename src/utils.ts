@@ -282,7 +282,7 @@ async function replaceWithLocalTestData(
     if (throwError) {
       throw new Error(`Parameter "{{${key}}}" is undefined in the test data`);
     } else {
-      console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
+      // console.warn(`Parameter "{{${key}}}" is undefined in the test data`);
       let templateForFaker = key;
       const possibleTestDataMatches = key.match(/{{(.*?)}}/g);
       for (const testDataMatch of possibleTestDataMatches || []) {
