@@ -216,14 +216,21 @@ function _getTestDataFile(world: any = null, context: any = null, web: any = nul
 }
 
 function _getTestData(world = null, context = null, web = null): any {
-  const dataFile = _getDataFile(world, context, web);
-  let data = {};
-  if (fs.existsSync(dataFile)) {
-    // convert \r\n to \n
-    const fileContent = fs.readFileSync(dataFile, "utf8").replace(/\r\n/g, "\n");
-    data = JSON.parse(fileContent);
-  }
-  return data;
+    const dataFile = _getDataFile(world, context, web);
+    let data = {};
+    let fileContent = "";
+    try {
+        if (fs.existsSync(dataFile)) {
+            // convert \r\n to \n
+             fileContent = fs.readFileSync(dataFile, "utf8").replace(/\r\n/g, "\n");
+
+            data = JSON.parse(fileContent);
+        }
+    } catch (error) {
+        console.error("🟥 Failed to read or parse test data file:", error, JSON.stringify({dataFile, fileContent}, null, 2));
+        throw new Error("Failed to read or parse test data file: " + (error as any)?.message);
+    }
+    return data;
 }
 async function replaceWithLocalTestData(
   value: string,
