@@ -342,8 +342,10 @@ function prepareBrowserFolder(sessionPath: string) {
     fs.copySync(sessionFolder, tempDir);
     // delete SingletonLock if exist in tempDir
     const singletonLockPath = path.join(tempDir, "SingletonLock");
-    if (fs.existsSync(singletonLockPath)) {
+    try {
       fs.unlinkSync(singletonLockPath);
+    } catch (err) {
+      // handle the error if the file does not exist
     }
     return tempDir;
   }
