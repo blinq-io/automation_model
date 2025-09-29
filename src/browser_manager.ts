@@ -333,22 +333,19 @@ const browserManager = new BrowserManager();
 
 function prepareBrowserFolder(sessionPath: string) {
   const sessionFolder = path.join("sessions", path.basename(sessionPath));
-  // check if the sessionFolder exists
+
   if (fs.existsSync(sessionFolder)) {
-    // generate a temp (using the fs.mkdtempSync) folder and copy the session folder to it
-    //const tempFolder = fs.mkdtempSync(path.join(os.tmpdir(), "session-"));
+    // Create a temp folder
     const { name: tempDir } = tmp.dirSync({ unsafeCleanup: true });
-    // copy the entire folder to the temp folder
-    fs.copySync(sessionFolder, tempDir);
-    // delete SingletonLock if exist in tempDir
-    const singletonLockPath = path.join(tempDir, "SingletonLock");
-    try {
-      fs.unlinkSync(singletonLockPath);
-    } catch (err) {
-      // handle the error if the file does not exist
-    }
+
+    // Copy folder structure but skip SingletonLock files
+    fs.copySync(sessionFolder, tempDir, {
+      filter: (src) => path.basename(src) !== "SingletonLock",
+    });
+
     return tempDir;
   }
+
   return sessionFolder;
 }
 
