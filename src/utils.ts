@@ -232,6 +232,67 @@ function _getTestData(world = null, context = null, web = null): any {
     }
     return data;
 }
+
+function getObjectDataPathFromKey(key: string): string[] {
+  const keyParts: string[] = [];
+  let currentPart = "";
+  let state = "outside";
+  for (let i = 0; i < key.length; i++) {
+    const char = key[i];
+    switch (state) {
+      case "outside":
+        switch (char) {
+          case "'":
+            state = "inside";
+            currentPart += char;
+            break;
+          case ".":
+            if (currentPart) {
+              keyParts.push(currentPart);
+              currentPart = "";
+            }
+            break;
+          default:
+            currentPart += char;
+            break;
+        }
+        break;
+
+      case "inside":
+        switch (char) {
+          case "\\":
+            state = "escape";
+            break;
+          case "'":
+            state = "outside";
+            currentPart += char; // Keep quotes in the part
+            break;
+          default:
+            currentPart += char;
+            break;
+        }
+        break;
+
+      case "escape":
+        currentPart += char;
+        state = "inside";
+        break;
+    }
+  }
+
+  if (currentPart) {
+    keyParts.push(currentPart);
+  }
+
+  // Remove surrounding quotes from parts
+  for (let i = 0; i < keyParts.length; i++) {
+    if (keyParts[i].startsWith("'") && keyParts[i].endsWith("'")) {
+      keyParts[i] = keyParts[i].slice(1, -1).replace(/\\'/g, "'");
+    }
+  }
+  return keyParts;
+}
+
 async function replaceWithLocalTestData(
   value: string,
   world: any,
@@ -294,7 +355,8 @@ async function replaceWithLocalTestData(
       const possibleTestDataMatches = key.match(/{{(.*?)}}/g);
       for (const testDataMatch of possibleTestDataMatches || []) {
         const testDataKey = testDataMatch.slice(2, -2);
-        const path = testDataKey.split(".");
+        // const path = testDataKey.split(".");
+        const path = getObjectDataPathFromKey(testDataKey);
         let value = objectPath.get(testData, path);
         if (value !== undefined) {
           templateForFaker = templateForFaker.replace(testDataMatch, String(value));
@@ -361,7 +423,8 @@ interface TestDataValue {
 type TestData = TestDataArray | TestDataValue;
 
 function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true) {
-  const path = key.split(".");
+  // const path = key.split(".");
+  const path = getObjectDataPathFromKey(key);
   const value = objectPath.get(testData, path);
   if (value && !Array.isArray(value)) {
     return value as string;
@@ -821,6 +884,7 @@ export {
   measureAsync,
   encrypt,
   decrypt,
+  getObjectDataPathFromKey,
   replaceWithLocalTestData,
   formatDate,
   evaluateString,
