@@ -340,7 +340,7 @@ class Api {
           test.fail = true;
           const path = test === null || test === void 0 ? void 0 : getObjectDataPathFromKey(test.pattern);
           let lengthExists = false;
-          if(path == undefined)  return;
+          if (path == undefined) return;
           if (path[path.length - 1] === "length") {
             path.pop();
             lengthExists = true;
