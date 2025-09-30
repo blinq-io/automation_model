@@ -359,7 +359,8 @@ async function replaceWithLocalTestData(
       const possibleTestDataMatches = key.match(/{{(.*?)}}/g);
       for (const testDataMatch of possibleTestDataMatches || []) {
         const testDataKey = testDataMatch.slice(2, -2);
-        const path = testDataKey.split(".");
+        // const path = testDataKey.split(".");
+        const path = getObjectDataPathFromKey(testDataKey);
         let value = objectPath.get(testData, path);
         if (value !== undefined) {
           templateForFaker = templateForFaker.replace(testDataMatch, String(value));
