@@ -5,7 +5,7 @@ import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
 import { _commandFinally, _reportToWorld } from "./command_common.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
-import { tryParseJson, replaceWithLocalTestData } from "./utils.js";
+import { tryParseJson, replaceWithLocalTestData, getObjectDataPathFromKey } from "./utils.js";
 
 interface Config {
   url: string;
@@ -327,8 +327,9 @@ class Api {
         info.tests = apiRequests.tests;
         info.tests?.forEach((test: any) => {
           test.fail = true;
-          const path = test === null || test === void 0 ? void 0 : test.pattern.split(".");
+          const path = test === null || test === void 0 ? void 0 : getObjectDataPathFromKey(test.pattern);
           let lengthExists = false;
+          if (path == undefined) return;
           if (path[path.length - 1] === "length") {
             path.pop();
             lengthExists = true;
@@ -392,7 +393,8 @@ const repStrWParamTData = async (str: string, params: Param, testData: any, worl
 };
 
 const getValue = (data: any, pattern: string): any => {
-  const path = pattern.split(".");
+  // const path = pattern.split(".");
+  const path = getObjectDataPathFromKey(pattern);
   let lengthExists = false;
   if (path[path.length - 1] === "length") {
     path.pop();
