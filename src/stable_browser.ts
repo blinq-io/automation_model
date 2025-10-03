@@ -2776,7 +2776,7 @@ class StableBrowser {
     let expectedValue;
     try {
       await _preCommand(state, this);
-      expectedValue = await this._replaceWithLocalData(value, world);
+      expectedValue = await replaceWithLocalTestData(state.value, world, true, true, this.context);
       state.info.expectedValue = expectedValue;
       switch (property) {
         case "innerText":
