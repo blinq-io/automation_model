@@ -130,6 +130,11 @@ class Browser {
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
     }
+
+    if (process.env.REMOTE_ORIGINS_URL) {
+      args.push(`--remote-allow-origins=${process.env.REMOTE_ORIGINS_URL}`);
+    }
+
     let useSessionFolder = false;
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
