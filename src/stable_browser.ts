@@ -1424,6 +1424,12 @@ class StableBrowser {
       log: "***** click on " + selectors.element_name + " *****\n",
     };
     check_performance("click_all ***", this.context, true);
+    let stepFastMode = this.stepTags.includes("fast-mode");
+    if (stepFastMode) {
+      state.onlyFailuresScreenshot = true;
+      state.scroll = false;
+      state.highlight = false;
+    }
     try {
       check_performance("click_preCommand", this.context, true);
       await _preCommand(state, this);
