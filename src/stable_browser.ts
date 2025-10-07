@@ -158,6 +158,7 @@ class StableBrowser {
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
     if (this.configuration && this.configuration.fastMode === true) {
+      console.log("Fast mode enabled from ai_config.json");
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "true") {
