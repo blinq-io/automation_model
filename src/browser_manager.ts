@@ -189,6 +189,8 @@ class Browser {
       } else {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
+        } else if (process.env.BROWSER_WS_ENDPOINT) {
+          this.browser = await chromium.connect(process.env.BROWSER_WS_ENDPOINT);
         } else {
           args.push("--use-gtk");
           args.push("--use_ozone=false");
