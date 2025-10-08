@@ -558,8 +558,9 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
   let message: string | null = null;
 
+  try {
   page.route("**/*", async (route: PWRoute) => {
-    const debug = createDebug("automation_model:route:intercept");
+      const debug = createDebug("automation_model:route:intercept");
     const request = route.request();
     debug(`Intercepting request: ${request.method()} ${request.url()}`);
     debug("All route items", allRouteItems);
@@ -669,24 +670,31 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
       tracking.actionResults = actionResults;
       if (tracking.timer) clearTimeout(tracking.timer);
 
-      if (!actionHandlerContext.abortActionPerformed) {
-        try {
-          const isJSON = headers["content-type"]?.includes("application/json");
-          if (isJSON) {
-            await route.fulfill({ status: actionHandlerContext.status, json: actionHandlerContext.finalBody, headers });
-          } else {
-            await route.fulfill({
-              status: actionHandlerContext.status,
-              body: actionHandlerContext.finalBody as string | Buffer,
-              headers,
-            });
+        if (!actionHandlerContext.abortActionPerformed) {
+          try {
+            const isJSON = headers["content-type"]?.includes("application/json");
+            if (isJSON) {
+              await route.fulfill({
+                status: actionHandlerContext.status,
+                json: actionHandlerContext.finalBody,
+                headers,
+              });
+            } else {
+              await route.fulfill({
+                status: actionHandlerContext.status,
+                body: actionHandlerContext.finalBody as string | Buffer,
+                headers,
+              });
+            }
+          } catch (e) {
+            console.error("Failed to fulfill route:", e);
           }
-        } catch (e) {
-          console.error("Failed to fulfill route:", e);
         }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.log(JSON.stringify(error));
+  }
 }
 
 export async function registerAfterStepRoutes(context: any, world: any) {
