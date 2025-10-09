@@ -1051,7 +1051,8 @@ class StableBrowser {
     if (selectors.locators && Array.isArray(selectors.locators)) {
       selectors.locators.forEach((locator) => {
         locator.index = locator.index ?? 0;
-        if (locator.css && !locator.css.endsWith(">> visible=true")) {
+        locator.visible = locator.visible ?? true;
+        if (locator.visible && locator.css && !locator.css.endsWith(">> visible=true")) {
           locator.css = locator.css + " >> visible=true";
         }
       });
