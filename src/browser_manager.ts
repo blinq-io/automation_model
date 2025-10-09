@@ -1,9 +1,4 @@
-import type {
-  Browser as PlaywrightBrowser,
-  BrowserContext,
-  Page,
-  BrowserContextOptions
-} from "playwright";
+import type { Browser as PlaywrightBrowser, BrowserContext, Page, BrowserContextOptions } from "playwright";
 
 // Playwright dynamic/global import helper
 let playwright: typeof import("playwright") | undefined;
