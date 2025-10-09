@@ -1,12 +1,29 @@
-import {
-  chromium,
-  firefox,
-  webkit,
+import type {
   Browser as PlaywrightBrowser,
   BrowserContext,
   Page,
-  BrowserContextOptions,
+  BrowserContextOptions
 } from "playwright";
+
+// Playwright dynamic/global import helper
+let playwright: typeof import("playwright") | undefined;
+let chromium: typeof import("playwright").chromium;
+let firefox: typeof import("playwright").firefox;
+let webkit: typeof import("playwright").webkit;
+
+async function ensurePlaywright() {
+  if (!playwright) {
+    if ((globalThis as any).playwright !== undefined) {
+      playwright = (globalThis as any).playwright as typeof import("playwright");
+    } else {
+      playwright = await import("playwright");
+    }
+    chromium = playwright.chromium;
+    firefox = playwright.firefox;
+    webkit = playwright.webkit;
+  }
+}
+
 import type { Cookie, LocalStorage } from "./environment.js";
 import path from "path";
 import { InitScripts } from "./generation_scripts.js";
@@ -136,6 +153,7 @@ class Browser {
     }
 
     let useSessionFolder = false;
+    await ensurePlaywright();
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
@@ -165,6 +183,7 @@ class Browser {
         ],
       });
     } else {
+      await ensurePlaywright();
       if (process.env.BROWSER === "firefox") {
         this.browser = await firefox.launch({
           headless: headless,
