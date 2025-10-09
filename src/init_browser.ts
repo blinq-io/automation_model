@@ -4,7 +4,7 @@ import { Environment } from "./environment.js";
 import { browserManager } from "./browser_manager.js";
 import { TestContext } from "./test_context.js";
 import { StableBrowser } from "./stable_browser.js";
-import { Browser as PlaywrightBrowser } from "playwright";
+import type { Browser as PlaywrightBrowser } from "playwright";
 import { Browser } from "./browser_manager.js";
 import { Api } from "./api.js";
 import { InitScripts } from "./generation_scripts.js";
