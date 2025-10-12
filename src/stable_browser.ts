@@ -3547,7 +3547,8 @@ class StableBrowser {
 
     const timeout = this._getFindElementTimeout(options);
     //if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
-    if (!this.stepTags.includes("fast-mode")) {
+    let stepFastMode = this.stepTags.includes("fast-mode");
+    if (!stepFastMode) {
       if (!this.fastMode) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       } else {
@@ -3563,6 +3564,12 @@ class StableBrowser {
 
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
+
+    if (stepFastMode) {
+      state.onlyFailuresScreenshot = true;
+      state.scroll = false;
+      state.highlight = false;
+    }
     try {
       await _preCommand(state, this);
       state.info.text = text;
