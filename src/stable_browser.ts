@@ -1051,7 +1051,8 @@ class StableBrowser {
     if (selectors.locators && Array.isArray(selectors.locators)) {
       selectors.locators.forEach((locator) => {
         locator.index = locator.index ?? 0;
-        if (locator.css && !locator.css.endsWith(">> visible=true")) {
+        locator.visible = locator.visible ?? true;
+        if (locator.visible && locator.css && !locator.css.endsWith(">> visible=true")) {
           locator.css = locator.css + " >> visible=true";
         }
       });
@@ -3542,7 +3543,14 @@ class StableBrowser {
     }
 
     const timeout = this._getFindElementTimeout(options);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    //if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
+    if (!this.stepTags.includes("fast-mode")) {
+      if (!this.fastMode) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
 
     const newValue = await this._replaceWithLocalData(text, world);
     if (newValue !== text) {
