@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import path from "path";
 import tunnel, { ProxyOptions } from "tunnel";
 import objectPath from "object-path";
-import { _commandFinally, _reportToWorld } from "./command_common.js";
+import { _commandFinally, _preCommand, _reportToWorld } from "./command_common.js";
 import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { tryParseJson, replaceWithLocalTestData, getObjectDataPathFromKey } from "./utils.js";
 
@@ -138,8 +138,13 @@ class Api {
       type: "api_test",
       text: `Api test`,
       info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
     };
 
+    await _preCommand(state, this);
     const info = {
       tests: config.tests,
       testsPassed: 0,
@@ -303,7 +308,13 @@ class Api {
       type: "api_test",
       text: `Api test for ${methodName}`,
       info: {},
+      locate: false,
+      scroll: false,
+      screenshot: false,
+      highlight: false,
     };
+
+    await _preCommand(state, this);
     const apiFilePath = path.join("./features", "apis", methodName + ".json");
     let result = null;
     if (existsSync(apiFilePath)) {
