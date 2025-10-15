@@ -174,6 +174,7 @@ export async function _screenshot(state: any, web: any, specificElement?: any) {
 }
 
 export async function _commandFinally(state: any, web: any) {
+  web.inStepReport = true;
   if (state && !state.commandError === true) {
     state.info.failCause = {};
   }
