@@ -216,12 +216,20 @@ const getTestData = async (
   context?: any
 ) => {
   // copy the global test data located in data/data.json to the report folder
+  let debugData = false;
+  let fileContent = "";
+  if ((context && context.debugData === true) || process.env.DEBUG_DATA === "true") {
+    debugData = true;
+  }
+  if (debugData) {
+    console.log("Loading test data for environment: " + currentEnv);
+  }
   try {
     let jsonData = {} as Record<string, Omit<testData, "environment">[]>;
     const filterFeatureScenario = feature || scenario;
     if (existsSync(path.join("data", "data.json"))) {
-      const data = readFileSync(path.join("data", "data.json"), "utf8");
-      jsonData = JSON.parse(data) as Record<string, Omit<testData, "environment">[]>;
+      fileContent = readFileSync(path.join("data", "data.json"), "utf8");
+      jsonData = JSON.parse(fileContent) as Record<string, Omit<testData, "environment">[]>;
     }
     let testData: Record<string, any> = {};
     const allEnvData = jsonData["*"];
@@ -316,7 +324,9 @@ const getTestData = async (
         };
       }
     }
-
+    if (debugData) {
+      console.log("Test data loaded: ", testData);
+    }
     if (!dataFile) dataFile = _getDataFile(world, context, context?.web);
 
     // Always ensure directory exists before writing
@@ -334,10 +344,15 @@ const getTestData = async (
       } catch (error) {
         console.log("Error reading data.json file: " + error);
       }
+    } else {
+      if (debugData) {
+        console.log("data.json file does not exist, it will be created at: " + dataFile);
+      }
     }
     writeFileSync(dataFile, JSON.stringify(testData, null, 2));
   } catch (e) {
     console.log("Error reading data.json file: " + e);
+    console.log("File content: " + fileContent);
   }
 };
 
