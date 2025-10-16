@@ -121,6 +121,8 @@ class StableBrowser {
   isRecording = false;
   initSnapshotTaken = false;
   onlyFailuresScreenshot = process.env.SCREENSHOT_ON_FAILURE_ONLY === "true";
+  // set to true if the step issue a report
+  inStepReport = false;
   constructor(
     public browser: Browser,
     public page: Page,
@@ -4637,6 +4639,7 @@ class StableBrowser {
     this.context.loadedRoutes = null;
     await registerBeforeStepRoutes(this.context, this.stepName, world);
     networkBeforeStep(this.stepName, this.context);
+    this.inStepReport = false;
   }
   setStepTags(tags: string[]) {
     this.stepTags = tags;
@@ -4722,7 +4725,7 @@ class StableBrowser {
       state.payload = payload;
       if (commandStatus === "FAILED") {
         state.throwError = true;
-        throw new Error("Command failed");
+        throw new Error(commandText);
       }
     } catch (e) {
       await _commandError(state, e, this);
@@ -4731,7 +4734,7 @@ class StableBrowser {
     }
   }
 
-  async afterStep(world, step) {
+  async afterStep(world, step, result) {
     this.stepName = null;
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
@@ -4752,6 +4755,18 @@ class StableBrowser {
     }
     if (this.context) {
       this.context.examplesRow = null;
+    }
+    if (!this.inStepReport) {
+      // check the step result
+      if (result && result.status === "FAILED" && world && world.attach) {
+        await this.addCommandToReport(
+          result.message ? result.message : "Step failed",
+          "FAILED",
+          `${result.message}`,
+          { type: "text", screenshot: true },
+          world
+        );
+      }
     }
     if (
       world &&
