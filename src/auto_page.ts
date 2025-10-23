@@ -115,6 +115,12 @@ const initContext = async (
       world.attach(reportFolder, { mediaType: "text/plain" });
     }
   }
+  if (process.env.MODE === "executions") {
+    const globalDataFile = "global_test_data.json";
+    if (existsSync(globalDataFile)) {
+      process.env.GLOBAL_TEST_DATA_FILE = globalDataFile;
+    }
+  }
   const globalTestDataFile = process.env.GLOBAL_TEST_DATA_FILE;
   if (globalTestDataFile) {
     // check if file exists
