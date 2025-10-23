@@ -4453,6 +4453,12 @@ class StableBrowser {
 
   saveTestDataAsGlobal(options: any, world: any) {
     const dataFile = _getDataFile(world, this.context, this);
+    if (process.env.MODE === "executions") {
+      const globalDataFile = path.join(this.project_path, "global_test_data.json");
+      fs.copyFileSync(dataFile, globalDataFile);
+      this.logger.info("Save the scenario test data to " + globalDataFile + " as global for the following scenarios.");
+      return;
+    }
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
     this.logger.info("Save the scenario test data as global for the following scenarios.");
   }
