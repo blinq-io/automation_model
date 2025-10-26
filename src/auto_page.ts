@@ -23,17 +23,21 @@ const navigate = async (path = "") => {
   await context!.web!.waitForPageLoad();
 };
 const _findEmptyFolder = (folder?: string) => {
-  if (!folder) {
-    folder = "./runs";
-  }
-  if (!existsSync(folder)) {
-    mkdirSync(folder);
+  if (process.env.MODE === "executions") {
+    folder = path.join("/tmp", "runs", "0");
   }
   if (process.env.REPORT_FOLDER) {
     return process.env.REPORT_FOLDER;
   }
+  if (!folder) {
+    folder = "./runs";
+  }
   if (process.env.REPORT_ID) {
     return path.join(folder, process.env.REPORT_ID);
+  }
+
+  if (!existsSync(folder)) {
+    mkdirSync(folder);
   }
   let nextIndex = 1;
   while (existsSync(path.join(folder, nextIndex.toString()))) {
