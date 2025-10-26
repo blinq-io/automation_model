@@ -24,7 +24,7 @@ const navigate = async (path = "") => {
 };
 const _findEmptyFolder = (folder?: string) => {
   if (process.env.MODE === "executions") {
-    return path.join("/tmp", "runs", "0");
+    folder = path.join("/tmp", "runs", "0");
   }
   if (process.env.REPORT_FOLDER) {
     return process.env.REPORT_FOLDER;
