@@ -1,5 +1,3 @@
-import { all } from "axios";
-
 export async function highlightSnapshot(snapshot: any, scope: any) {
   const lines = snapshot.split("\n");
   const nodes = fromLinesToSnapshotLines(lines);
@@ -318,8 +316,10 @@ export interface MatchResult {
 }
 export function snapshotValidation(snapshot: string, referanceSnapshot: string, snapshotName: string): MatchResult {
   const lines = snapshot.split("\n");
+  console.log("Size of page snapshot :", lines?.length || 0);
   const nodes = fromLinesToSnapshotLines(lines);
   const subLines = referanceSnapshot.split("\n");
+  console.log("Size of reference snapshot :", subLines?.length || 0);
   const subNodes = fromLinesToSnapshotLines(subLines);
   return matchSnapshot(nodes, subNodes, snapshotName);
 }
@@ -365,6 +365,8 @@ export function matchSnapshot(full: SnapshotLine[], sub: SnapshotLine[], snapsho
   }
 
   const found = dfs(0, 0, null);
+  console.log("Snapshot validation result:", found ? "MATCH" : `NO MATCH`);
+
   let error = null;
   if (!found) {
     error = `Snapshot file: ${snapshotName}\nLine no.: ${sub[failureAt].line}\nLine: ${sub[failureAt].line_text}`;

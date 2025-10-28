@@ -2200,7 +2200,15 @@ class StableBrowser {
           }
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
 
+          if (snapshot && snapshot.length <= 10) {
+            console.log("Page snapshot length is suspiciously small:", snapshot);
+          }
+
           matchResult = snapshotValidation(snapshot, newValue, referanceSnapshot);
+          if (matchResult === undefined) {
+            console.log("snapshotValidation returned undefined");
+          }
+
           if (matchResult.errorLine !== -1) {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
