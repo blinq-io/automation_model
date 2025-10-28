@@ -134,7 +134,21 @@ export async function _commandError(state: any, error: any, web: any) {
       web.logger.error(line);
     }
   }
-  const { screenshotId, screenshotPath } = await web._screenShot(state.options, state.world, state.info);
+  let fullPage = false;
+  if (state.options && state.options.fullPage === true) {
+    fullPage = true;
+  }
+  if (process.env.FULL_PAGE_SCREENSHOT_ON_FAILURE === "true") {
+    fullPage = true;
+  }
+  if (web && web.configuration && web.configuration.fullPageScreenshotOnFailure === true) {
+    fullPage = true;
+  }
+  const { screenshotId, screenshotPath } = await web._screenShot(
+    { ...state.options, fullPage },
+    state.world,
+    state.info
+  );
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
   state.info.screenshotPath = screenshotPath;
@@ -154,20 +168,7 @@ export async function _commandError(state: any, error: any, web: any) {
   }
 }
 
-export async function _screenshot(state: any, web: any, specificElement?: any) {
-  // let focusedElement = null;
-  // if (specificElement !== undefined) {
-  //   focusedElement = specificElement;
-  // } else {
-  //   focusedElement = state.element;
-  // }
-  // const { screenshotId, screenshotPath } = await web._screenShot(
-  //   state.options,
-  //   state.world,
-  //   state.info,
-  //   focusedElement
-  // );
-  // ;
+export async function _screenshot(state: any, web: any) {
   const { screenshotId, screenshotPath } = await web._screenShot(state.options, state.world, state.info);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
