@@ -2386,6 +2386,9 @@ class StableBrowser {
   }
 
   async _screenShot(options = {}, world = null, info = null) {
+    if (!options) {
+      options = {};
+    }
     // collect url/path/title
     if (info) {
       if (!info.title) {
