@@ -2412,7 +2412,7 @@ class StableBrowser {
       const uuidStr = "id_" + randomUUID();
       const screenshotPath = path.join(world.screenshotPath, uuidStr + ".png");
       try {
-        await this.takeScreenshot(screenshotPath);
+        await this.takeScreenshot(screenshotPath, options.fullPage === true);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(screenshotPath, buffer, (err) => {
@@ -2431,7 +2431,7 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
-        await this.takeScreenshot(options.screenshotPath);
+        await this.takeScreenshot(options.screenshotPath, options.fullPage === true);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(options.screenshotPath, buffer, (err) => {
@@ -2449,7 +2449,7 @@ class StableBrowser {
 
     return result;
   }
-  async takeScreenshot(screenshotPath) {
+  async takeScreenshot(screenshotPath, fullPage = false) {
     const playContext = this.context.playContext;
 
     // Using CDP to capture the screenshot
@@ -2480,13 +2480,7 @@ class StableBrowser {
       const client = await playContext.newCDPSession(this.page);
       const { data } = await client.send("Page.captureScreenshot", {
         format: "png",
-        // clip: {
-        //   x: 0,
-        //   y: 0,
-        //   width: viewportWidth,
-        //   height: viewportHeight,
-        //   scale: 1,
-        // },
+        captureBeyondViewport: fullPage,
       });
       await client.detach();
       if (!screenshotPath) {
@@ -2494,7 +2488,7 @@ class StableBrowser {
       }
       screenshotBuffer = Buffer.from(data, "base64");
     } else {
-      screenshotBuffer = await this.page.screenshot();
+      screenshotBuffer = await this.page.screenshot({ fullPage: fullPage });
     }
 
     // if (focusedElement) {
