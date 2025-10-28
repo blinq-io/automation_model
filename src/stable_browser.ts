@@ -368,7 +368,7 @@ class StableBrowser {
   // async closeUnexpectedPopups() {
   //   await closeUnexpectedPopups(this.page);
   // }
-  async goto(url: string, world = null) {
+  async goto(url: string, world = null, options = {}) {
     if (!url) {
       throw new Error("url is null, verify that the environment file is correct");
     }
@@ -389,10 +389,14 @@ class StableBrowser {
       screenshot: false,
       highlight: false,
     };
+    let timeout = 60000;
+    if (options && options["timeout"]) {
+      timeout = options["timeout"];
+    }
     try {
       await _preCommand(state, this);
       await this.page.goto(url, {
-        timeout: 60000,
+        timeout: timeout,
       });
       await _screenshot(state, this);
     } catch (error) {
@@ -2207,7 +2211,15 @@ class StableBrowser {
           }
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
 
+          if (snapshot && snapshot.length <= 10) {
+            console.log("Page snapshot length is suspiciously small:", snapshot);
+          }
+
           matchResult = snapshotValidation(snapshot, newValue, referanceSnapshot);
+          if (matchResult === undefined) {
+            console.log("snapshotValidation returned undefined");
+          }
+
           if (matchResult.errorLine !== -1) {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
