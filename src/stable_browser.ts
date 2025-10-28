@@ -368,7 +368,7 @@ class StableBrowser {
   // async closeUnexpectedPopups() {
   //   await closeUnexpectedPopups(this.page);
   // }
-  async goto(url: string, world = null) {
+  async goto(url: string, world = null, options = {}) {
     if (!url) {
       throw new Error("url is null, verify that the environment file is correct");
     }
@@ -389,10 +389,14 @@ class StableBrowser {
       screenshot: false,
       highlight: false,
     };
+    let timeout = 60000;
+    if (options && options["timeout"]) {
+      timeout = options["timeout"];
+    }
     try {
       await _preCommand(state, this);
       await this.page.goto(url, {
-        timeout: 60000,
+        timeout: timeout,
       });
       await _screenshot(state, this);
     } catch (error) {
