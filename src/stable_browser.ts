@@ -2169,22 +2169,16 @@ class StableBrowser {
       throw new Error("referanceSnapshot is null");
     }
     let text = null;
-    if (
-      fs.existsSync(
-        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yml")
-      )
-    ) {
+    const snapshotsFolder = process.env.BVT_TEMP_SNAPSHOTS_FOLDER ?? path.join(this.project_path, "data", "snapshots");
+
+    if (fs.existsSync(path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yml"))) {
       text = fs.readFileSync(
-        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yml"),
+        path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yml"),
         "utf8"
       );
-    } else if (
-      fs.existsSync(
-        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yaml")
-      )
-    ) {
+    } else if (fs.existsSync(path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yaml"))) {
       text = fs.readFileSync(
-        path.join(this.project_path, "data", "snapshots", this.context.environment.name, referanceSnapshot + ".yaml"),
+        path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yaml"),
         "utf8"
       );
     } else if (referanceSnapshot.startsWith("yaml:")) {
