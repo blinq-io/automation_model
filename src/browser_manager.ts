@@ -129,7 +129,6 @@ class Browser {
 
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
-      // args.push(`--remote-debugging-address=0.0.0.0`);
     }
 
     if (process.env.REMOTE_ORIGINS_URL) {
