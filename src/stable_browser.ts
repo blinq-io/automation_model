@@ -2170,18 +2170,12 @@ class StableBrowser {
       throw new Error("referanceSnapshot is null");
     }
     let text = null;
-    const snapshotsFolder = process.env.BVT_TEMP_SNAPSHOTS_FOLDER ?? path.join(this.project_path, "data", "snapshots");
+    const snapshotsFolder = process.env.BVT_TEMP_SNAPSHOTS_FOLDER ?? this.context.snapshotFolder; //path .join(this.project_path, "data", "snapshots");
 
-    if (fs.existsSync(path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yml"))) {
-      text = fs.readFileSync(
-        path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yml"),
-        "utf8"
-      );
-    } else if (fs.existsSync(path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yaml"))) {
-      text = fs.readFileSync(
-        path.join(snapshotsFolder, this.context.environment.name, referanceSnapshot + ".yaml"),
-        "utf8"
-      );
+    if (fs.existsSync(path.join(snapshotsFolder, referanceSnapshot + ".yml"))) {
+      text = fs.readFileSync(path.join(snapshotsFolder, referanceSnapshot + ".yml"), "utf8");
+    } else if (fs.existsSync(path.join(snapshotsFolder, referanceSnapshot + ".yaml"))) {
+      text = fs.readFileSync(path.join(snapshotsFolder, referanceSnapshot + ".yaml"), "utf8");
     } else if (referanceSnapshot.startsWith("yaml:")) {
       text = referanceSnapshot.substring(5);
     } else {
