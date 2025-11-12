@@ -350,7 +350,7 @@ const getTestData = async (
         //const data = JSON.parse(content);
         const data = _getTestData(world, context, context?.web);
         // merge the global test data with the existing data
-        testData = Object.assign(data, testData);
+        testData = Object.assign(testData, data);
       } catch (error) {
         console.log("Error reading data.json file: " + error);
       }

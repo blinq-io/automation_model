@@ -129,8 +129,12 @@ class Browser {
 
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
-      args.push(`--remote-debugging-address=0.0.0.0`);
     }
+
+    if (process.env.REMOTE_ORIGINS_URL) {
+      args.push(`--remote-allow-origins=${process.env.REMOTE_ORIGINS_URL}`);
+    }
+
     let useSessionFolder = false;
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
@@ -185,6 +189,8 @@ class Browser {
       } else {
         if (process.env.CDP_CONNECT_URL) {
           this.browser = await chromium.connectOverCDP(process.env.CDP_CONNECT_URL);
+        } else if (process.env.BROWSER_WS_ENDPOINT) {
+          this.browser = await chromium.connect(process.env.BROWSER_WS_ENDPOINT);
         } else {
           args.push("--use-gtk");
           args.push("--use_ozone=false");
