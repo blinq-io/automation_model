@@ -4592,7 +4592,7 @@ class StableBrowser {
     }
     await loadBrunoParams(this.context, this.context.environment.name);
 
-    if ((process.env.TRACE === "true" || this.configuration.trace === true) && this.context) {
+    if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
       this.trace = true;
       const traceFolder = path.join(this.context.reportFolder!, "trace");
       if (!fs.existsSync(traceFolder)) {
@@ -4604,16 +4604,12 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {
     const id = scenario.testCaseStartedId;
-    if (this.trace) {
-      await this.context.playContext.tracing.stop({
-        path: path.join(this.traceFolder!, `trace-${id}.zip`),
-      });
-    }
+    await this.context.playContext.tracing.stop({
+      path: path.join(this.traceFolder!, `trace-${id}.zip`),
+    });
   }
   async beforeStep(world, step) {
-    if (step?.pickleStep && this.trace) {
-      await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
-    }
+    await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
@@ -4825,9 +4821,7 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     }
-    if (this.trace) {
-      await this.context.playContext.tracing.groupEnd();
-    }
+    await this.context.playContext.tracing.groupEnd();
   }
 }
 
