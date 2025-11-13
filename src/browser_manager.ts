@@ -260,15 +260,15 @@ class Browser {
         }
       }
     }
-    if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
-      this.trace = true;
-      const traceFolder = path.join(this.reportFolder!, "trace");
-      if (!fs.existsSync(traceFolder)) {
-        fs.mkdirSync(traceFolder, { recursive: true });
-      }
-      this.traceFolder = traceFolder;
-      await this.context.tracing.start({ screenshots: true, snapshots: true });
-    }
+    // if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
+    //   this.trace = true;
+    //   const traceFolder = path.join(this.reportFolder!, "trace");
+    //   if (!fs.existsSync(traceFolder)) {
+    //     fs.mkdirSync(traceFolder, { recursive: true });
+    //   }
+    //   this.traceFolder = traceFolder;
+    //   await this.context.tracing.start({ screenshots: true, snapshots: true });
+    // }
 
     function createGuid(): string {
       return crypto.randomBytes(16).toString("hex");
