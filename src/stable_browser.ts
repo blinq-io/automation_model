@@ -4574,7 +4574,7 @@ class StableBrowser {
 
     await loadBrunoParams(this.context, this.context.environment.name);
 
-    if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
+    if ((process.env.TRACE === "true" || this.configuration.trace === true) && this.context) {
       this.trace = true;
       const traceFolder = path.join(this.context.reportFolder!, "trace");
       if (!fs.existsSync(traceFolder)) {
