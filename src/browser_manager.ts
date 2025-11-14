@@ -211,7 +211,12 @@ class Browser {
           }
         }
       }
-
+      if(process.env.VIDEO_ID) {
+        if (!aiConfig.contextOptions) aiConfig.contextOptions = {};
+        if (!aiConfig.contextOptions.recordVideo) aiConfig.contextOptions.recordVideo = {};
+        const videoDir = path.join('/tmp/videos', process.env.VIDEO_ID);
+        aiConfig.contextOptions.recordVideo.dir = videoDir;
+      }
       let contextOptions: any = {};
       if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
