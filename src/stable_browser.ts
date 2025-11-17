@@ -4608,7 +4608,9 @@ class StableBrowser {
     });
   }
   async beforeStep(world, step) {
-    await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
+    if (step?.pickleStep) {
+      await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
+    }
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
