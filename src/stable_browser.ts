@@ -4595,12 +4595,14 @@ class StableBrowser {
   }
   async afterScenario(world, scenario) {
     const id = scenario.testCaseStartedId;
-    await this.context.playContext.tracing.stop({
-      path: path.join(this.traceFolder!, `trace-${id}.zip`),
-    });
+    if (this.trace) {
+      await this.context.playContext.tracing.stop({
+        path: path.join(this.traceFolder!, `trace-${id}.zip`),
+      });
+    }
   }
   async beforeStep(world, step) {
-    if (step?.pickleStep) {
+    if (step?.pickleStep && this.trace) {
       await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
     }
     this.stepTags = [];
@@ -4814,7 +4816,9 @@ class StableBrowser {
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     }
-    await this.context.playContext.tracing.groupEnd();
+    if (this.trace) {
+      await this.context.playContext.tracing.groupEnd();
+    }
   }
 }
 
