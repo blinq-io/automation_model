@@ -770,8 +770,9 @@ class StableBrowser {
   }
   getFilePath() {
     const stackFrames = errorStackParser.parse(new Error());
-    const stackFrame = stackFrames.findLast((frame) => frame.fileName && frame.fileName.endsWith(".mjs"));
-    // return stackFrame?.fileName || null;
+    const mjsFrames = stackFrames.filter((frame) => frame.fileName && frame.fileName.endsWith(".mjs"));
+    const stackFrame = mjsFrames[mjsFrames.length - 2];
+
     const filepath = stackFrame?.fileName;
     if (filepath) {
       let jsonFilePath = filepath.replace(".mjs", ".json");
