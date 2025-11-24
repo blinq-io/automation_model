@@ -256,7 +256,10 @@ class StableBrowser {
         false,
         this,
         -1,
-        this.context.reportFolder
+        this.context.reportFolder,
+        null,
+        null,
+        this.tags
       );
       newContextCreated = true;
       apps[appName] = {

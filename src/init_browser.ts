@@ -22,7 +22,8 @@ const getContext = async function (
   moveToRight = -1,
   reportFolder: string | null = null,
   initScripts: InitScripts | null = null,
-  storageState: any | null = null
+  storageState: any | null = null,
+  tags: string[] | null = null
 ) {
   return measureAsync("browser Launch", async () => {
     if (environment === null) {
@@ -111,7 +112,8 @@ const getContext = async function (
       userAgent,
       channel,
       configuration,
-      initScripts
+      initScripts,
+      tags
     );
     let context = new TestContext();
     context.browser = browser.browser;
@@ -186,7 +188,8 @@ const refreshBrowser = async function (web: any, sessionPath: string, world: any
     -1,
     web.context.reportFolder,
     web.context.initScripts,
-    storageState
+    storageState,
+    web.tags
   );
 
   web.context.browser = newContext.browser;
