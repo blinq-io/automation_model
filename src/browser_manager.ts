@@ -57,7 +57,8 @@ class BrowserManager {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null
+    initScripts: InitScripts | null = null,
+    tags: string[] | null = null
   ) {
     const browser = new Browser();
     await browser.init(
@@ -69,7 +70,8 @@ class BrowserManager {
       userAgent,
       channel,
       aiConfig,
-      initScripts
+      initScripts,
+      tags
     );
     this.browsers.push(browser);
     return browser;
@@ -98,10 +100,14 @@ class Browser {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null
+    initScripts: InitScripts | null = null,
+    tags: string[] | null = null
   ) {
     if (!aiConfig) {
       aiConfig = {};
+    }
+    if (!tags) {
+      tags = [];
     }
 
     if (process.env.VIDEO_ID) {
@@ -223,8 +229,22 @@ class Browser {
           }
         }
       }
+      // search for tag starts with @browserOptions__
+      let browserOptionsFromTag = null;
+      for (let tag of tags) {
+        if (tag.startsWith("@browserOptions__")) {
+          const optionsString = tag.replace("@browserOptions__", "");
+          if (aiConfig.browserOptions && aiConfig.browserOptions[optionsString]) {
+            browserOptionsFromTag = aiConfig.browserOptions[optionsString];
+          }
+        }
+      }
+
       let contextOptions: any = {};
-      if (aiConfig.contextOptions) {
+      if (browserOptionsFromTag) {
+        contextOptions = browserOptionsFromTag;
+        console.log("contextOptions: " + JSON.stringify(contextOptions));
+      } else if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
         console.log("contextOptions: " + JSON.stringify(contextOptions));
       }
