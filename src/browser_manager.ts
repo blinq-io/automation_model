@@ -33,7 +33,7 @@ type StorageState = {
   origins: { origin: string; localStorage: LocalStorage }[];
 };
 class BrowserManager {
-  constructor(public browsers: Browser[] = []) { }
+  constructor(public browsers: Browser[] = []) {}
 
   async closeAll() {
     await Promise.all(this.browsers.map((browser) => browser.close()));

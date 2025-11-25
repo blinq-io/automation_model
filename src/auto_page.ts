@@ -154,7 +154,20 @@ const initContext = async (
     world.screenshotPath = screenshotPath;
     world.screenshot = true;
   }
-  context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder, initScript, null, tags);
+  context = await getContext(
+    null,
+    headless,
+    world,
+    null,
+    null,
+    true,
+    null,
+    moveToRight,
+    reportFolder,
+    initScript,
+    null,
+    tags
+  );
   if (world) {
     world.context = context;
     if (world.attach) {
