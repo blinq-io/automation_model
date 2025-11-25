@@ -1,12 +1,23 @@
-import {
-  chromium,
-  firefox,
-  webkit,
-  Browser as PlaywrightBrowser,
-  BrowserContext,
-  Page,
-  BrowserContextOptions,
-} from "playwright";
+import type { Browser as PlaywrightBrowser, BrowserContext, Page, BrowserContextOptions } from "playwright";
+
+// Playwright dynamic/global import helper
+let playwright: typeof import("playwright") | undefined;
+let chromium: typeof import("playwright").chromium;
+let firefox: typeof import("playwright").firefox;
+let webkit: typeof import("playwright").webkit;
+
+async function ensurePlaywright() {
+  if (!playwright) {
+    if ((globalThis as any).playwright !== undefined) {
+      playwright = (globalThis as any).playwright as typeof import("playwright");
+    } else {
+      playwright = await import("playwright");
+    }
+    chromium = playwright.chromium;
+    firefox = playwright.firefox;
+    webkit = playwright.webkit;
+  }
+}
 import type { Cookie, LocalStorage } from "./environment.js";
 import path from "path";
 import { InitScripts } from "./generation_scripts.js";
@@ -22,7 +33,7 @@ type StorageState = {
   origins: { origin: string; localStorage: LocalStorage }[];
 };
 class BrowserManager {
-  constructor(public browsers: Browser[] = []) {}
+  constructor(public browsers: Browser[] = []) { }
 
   async closeAll() {
     await Promise.all(this.browsers.map((browser) => browser.close()));
@@ -57,7 +68,8 @@ class BrowserManager {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null
+    initScripts: InitScripts | null = null,
+    tags: string[] | null = null
   ) {
     const browser = new Browser();
     await browser.init(
@@ -69,7 +81,8 @@ class BrowserManager {
       userAgent,
       channel,
       aiConfig,
-      initScripts
+      initScripts,
+      tags
     );
     this.browsers.push(browser);
     return browser;
@@ -98,10 +111,14 @@ class Browser {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null
+    initScripts: InitScripts | null = null,
+    tags: string[] | null = null
   ) {
     if (!aiConfig) {
       aiConfig = {};
+    }
+    if (!tags) {
+      tags = [];
     }
 
     if (process.env.VIDEO_ID) {
@@ -145,6 +162,7 @@ class Browser {
     }
 
     let useSessionFolder = false;
+    await ensurePlaywright();
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
@@ -176,6 +194,7 @@ class Browser {
         ],
       });
     } else {
+      await ensurePlaywright();
       if (process.env.BROWSER === "firefox") {
         this.browser = await firefox.launch({
           headless: headless,
