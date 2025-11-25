@@ -104,6 +104,15 @@ class Browser {
       aiConfig = {};
     }
 
+    if (process.env.VIDEO_ID) {
+      if (!aiConfig.contextOptions) aiConfig.contextOptions = {};
+      if (!aiConfig.contextOptions.recordVideo) aiConfig.contextOptions.recordVideo = {};
+      const videoDir = path.join("/tmp/videos", process.env.VIDEO_ID);
+      aiConfig.contextOptions.recordVideo.dir = videoDir;
+    }
+
+    const recordVideo = process.env.VIDEO_ID ? { dir: path.join("/tmp/videos", process.env.VIDEO_ID) } : undefined;
+
     this.headless = headless;
     if (reportFolder) {
       this.reportFolder = reportFolder;
@@ -141,6 +150,7 @@ class Browser {
         headless: false,
         timeout: 0,
         bypassCSP: true,
+        recordVideo,
         args: [
           "--ignore-https-errors",
           "--no-incognito",
@@ -154,6 +164,7 @@ class Browser {
         headless: headless,
         timeout: 0,
         bypassCSP: true,
+        recordVideo,
         args: [
           "--ignore-https-errors",
           "--disable-extensions-except=" + extensionPath,
@@ -200,6 +211,7 @@ class Browser {
             this.context = await chromium.launchPersistentContext(sessionFolder, {
               headless: headless,
               timeout: 0,
+              recordVideo,
               args,
             });
           } else {
@@ -211,7 +223,6 @@ class Browser {
           }
         }
       }
-
       let contextOptions: any = {};
       if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
