@@ -55,6 +55,7 @@ import axios from "axios";
 import { _findCellArea, findElementsInArea } from "./table_helper.js";
 import { highlightSnapshot, snapshotValidation } from "./snapshot_validation.js";
 import { loadBrunoParams } from "./bruno.js";
+
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
 import { profile } from "./check_performance.js";
@@ -76,6 +77,7 @@ export const Types = {
   VERIFY_PAGE_CONTAINS_NO_TEXT: "verify_page_contains_no_text",
   ANALYZE_TABLE: "analyze_table",
   SELECT: "select_combobox", //
+  VERIFY_PROPERTY: "verify_element_property",
   VERIFY_PAGE_PATH: "verify_page_path",
   VERIFY_PAGE_TITLE: "verify_page_title",
   TYPE_PRESS: "type_press",
@@ -94,12 +96,11 @@ export const Types = {
   SET_INPUT: "set_input",
   WAIT_FOR_TEXT_TO_DISAPPEAR: "wait_for_text_to_disappear",
   VERIFY_ATTRIBUTE: "verify_element_attribute",
-  VERIFY_PROPERTY: "verify_element_property",
   VERIFY_TEXT_WITH_RELATION: "verify_text_with_relation",
   BRUNO: "bruno",
-  SNAPSHOT_VALIDATION: "snapshot_validation",
   VERIFY_FILE_EXISTS: "verify_file_exists",
   SET_INPUT_FILES: "set_input_files",
+  SNAPSHOT_VALIDATION: "snapshot_validation",
   REPORT_COMMAND: "report_command",
   STEP_COMPLETE: "step_complete",
   SLEEP: "sleep",
@@ -160,11 +161,10 @@ class StableBrowser {
     const logFolder = path.join(this.project_path, "logs", "web");
     this.world = world;
     if (this.configuration && this.configuration.fastMode === true) {
-      console.log("Fast mode enabled from ai_config.json");
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "true") {
-      console.log("Fast mode enabled from environment variable");
+      // console.log("Fast mode enabled from environment variable");
       this.fastMode = true;
     }
     if (process.env.FAST_MODE === "false") {
@@ -256,10 +256,7 @@ class StableBrowser {
         false,
         this,
         -1,
-        this.context.reportFolder,
-        null,
-        null,
-        this.tags
+        this.context.reportFolder
       );
       newContextCreated = true;
       apps[appName] = {
@@ -663,9 +660,7 @@ class StableBrowser {
     //   cssHref = true;
     // }
 
-    const _locator = locator.locator("visible=true");
-
-    let count = await _locator.count();
+    let count = await locator.count();
     if (count > 0 && !info.failCause.count) {
       info.failCause.count = count;
     }
@@ -674,7 +669,7 @@ class StableBrowser {
     let visibleLocator = null;
 
     if (typeof locatorSearch.index === "number" && locatorSearch.index < count) {
-      foundLocators.push(_locator.nth(locatorSearch.index));
+      foundLocators.push(locator.nth(locatorSearch.index));
       if (info.locatorLog) {
         info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
       }
@@ -685,13 +680,13 @@ class StableBrowser {
       info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
     }
     for (let j = 0; j < count; j++) {
-      let visible = await _locator.nth(j).isVisible();
-      const enabled = await _locator.nth(j).isEnabled();
+      let visible = await locator.nth(j).isVisible();
+      const enabled = await locator.nth(j).isEnabled();
       if (!visibleOnly) {
         visible = true;
       }
       if (visible && (allowDisabled || enabled)) {
-        foundLocators.push(_locator.nth(j));
+        foundLocators.push(locator.nth(j));
         if (info.locatorLog) {
           info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "FOUND");
         }
@@ -856,7 +851,6 @@ class StableBrowser {
 
       for (let j = 0; j < selectors.locators.length; j++) {
         let selector = selectors.locators[j];
-
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
       if (this.tryAllStrategies && selectedStrategy) {
@@ -2206,7 +2200,15 @@ class StableBrowser {
           }
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
 
+          if (snapshot && snapshot.length <= 10) {
+            console.log("Page snapshot length is suspiciously small:", snapshot);
+          }
+
           matchResult = snapshotValidation(snapshot, newValue, referanceSnapshot);
+          if (matchResult === undefined) {
+            console.log("snapshotValidation returned undefined");
+          }
+
           if (matchResult.errorLine !== -1) {
             throw new Error("Snapshot validation failed at line " + matchResult.errorLineText);
           }
@@ -3692,6 +3694,9 @@ class StableBrowser {
       log: "***** search for " + textAnchor + " climb " + climb + " and verify " + textToVerify + " found *****\n",
     };
 
+    const cmdStartTime = Date.now();
+    let cmdEndTime = null;
+
     const timeout = this._getFindElementTimeout(options);
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -3732,6 +3737,15 @@ class StableBrowser {
           }
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
+        } else {
+          cmdEndTime = Date.now();
+          if (cmdEndTime - cmdStartTime > 55000) {
+            if (foundAncore) {
+              throw new Error(`Text ${textToVerify} not found in page`);
+            } else {
+              throw new Error(`Text ${textAnchor} not found in page`);
+            }
+          }
         }
         try {
           for (let i = 0; i < resultWithElementsFound.length; i++) {
@@ -4550,6 +4564,7 @@ class StableBrowser {
     if (world && world.attach) {
       world.attach(this.context.reportFolder, { mediaType: "text/plain" });
     }
+    this.context.loadedRoutes = null;
     this.beforeScenarioCalled = true;
     if (scenario && scenario.pickle && scenario.pickle.name) {
       this.scenarioName = scenario.pickle.name;
@@ -4575,7 +4590,6 @@ class StableBrowser {
     if (!process.env.TEMP_RUN) {
       await getTestData(envName, world, undefined, this.featureName, this.scenarioName, this.context);
     }
-
     await loadBrunoParams(this.context, this.context.environment.name);
 
     if ((process.env.TRACE === "true" || this.configuration.trace === true) && this.context) {
@@ -4603,6 +4617,7 @@ class StableBrowser {
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {
       this.beforeScenario(world, step);
+      this.context.loadedRoutes = null;
     }
     if (this.stepIndex === undefined) {
       this.stepIndex = 0;

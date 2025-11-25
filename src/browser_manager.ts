@@ -1,24 +1,12 @@
-import type { Browser as PlaywrightBrowser, BrowserContext, Page, BrowserContextOptions } from "playwright";
-
-// Playwright dynamic/global import helper
-let playwright: typeof import("playwright") | undefined;
-let chromium: typeof import("playwright").chromium;
-let firefox: typeof import("playwright").firefox;
-let webkit: typeof import("playwright").webkit;
-
-async function ensurePlaywright() {
-  if (!playwright) {
-    if ((globalThis as any).playwright !== undefined) {
-      playwright = (globalThis as any).playwright as typeof import("playwright");
-    } else {
-      playwright = await import("playwright");
-    }
-    chromium = playwright.chromium;
-    firefox = playwright.firefox;
-    webkit = playwright.webkit;
-  }
-}
-
+import {
+  chromium,
+  firefox,
+  webkit,
+  Browser as PlaywrightBrowser,
+  BrowserContext,
+  Page,
+  BrowserContextOptions,
+} from "playwright";
 import type { Cookie, LocalStorage } from "./environment.js";
 import path from "path";
 import { InitScripts } from "./generation_scripts.js";
@@ -69,8 +57,7 @@ class BrowserManager {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null,
-    tags: string[] | null = null
+    initScripts: InitScripts | null = null
   ) {
     const browser = new Browser();
     await browser.init(
@@ -82,8 +69,7 @@ class BrowserManager {
       userAgent,
       channel,
       aiConfig,
-      initScripts,
-      tags
+      initScripts
     );
     this.browsers.push(browser);
     return browser;
@@ -112,15 +98,20 @@ class Browser {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null,
-    tags: string[] | null = null
+    initScripts: InitScripts | null = null
   ) {
     if (!aiConfig) {
       aiConfig = {};
     }
-    if (!tags) {
-      tags = [];
+
+    if (process.env.VIDEO_ID) {
+      if (!aiConfig.contextOptions) aiConfig.contextOptions = {};
+      if (!aiConfig.contextOptions.recordVideo) aiConfig.contextOptions.recordVideo = {};
+      const videoDir = path.join("/tmp/videos", process.env.VIDEO_ID);
+      aiConfig.contextOptions.recordVideo.dir = videoDir;
     }
+
+    const recordVideo = process.env.VIDEO_ID ? { dir: path.join("/tmp/videos", process.env.VIDEO_ID) } : undefined;
 
     this.headless = headless;
     if (reportFolder) {
@@ -147,7 +138,6 @@ class Browser {
 
     if (process.env.CDP_LISTEN_PORT) {
       args.push(`--remote-debugging-port=${process.env.CDP_LISTEN_PORT}`);
-      // args.push(`--remote-debugging-address=0.0.0.0`);
     }
 
     if (process.env.REMOTE_ORIGINS_URL) {
@@ -155,12 +145,12 @@ class Browser {
     }
 
     let useSessionFolder = false;
-    await ensurePlaywright();
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
         headless: false,
         timeout: 0,
         bypassCSP: true,
+        recordVideo,
         args: [
           "--ignore-https-errors",
           "--no-incognito",
@@ -174,6 +164,7 @@ class Browser {
         headless: headless,
         timeout: 0,
         bypassCSP: true,
+        recordVideo,
         args: [
           "--ignore-https-errors",
           "--disable-extensions-except=" + extensionPath,
@@ -185,7 +176,6 @@ class Browser {
         ],
       });
     } else {
-      await ensurePlaywright();
       if (process.env.BROWSER === "firefox") {
         this.browser = await firefox.launch({
           headless: headless,
@@ -221,6 +211,7 @@ class Browser {
             this.context = await chromium.launchPersistentContext(sessionFolder, {
               headless: headless,
               timeout: 0,
+              recordVideo,
               args,
             });
           } else {
@@ -232,22 +223,8 @@ class Browser {
           }
         }
       }
-      // search for tag starts with @browserOptions__
-      let browserOptionsFromTag = null;
-      for (let tag of tags) {
-        if (tag.startsWith("@browserOptions__")) {
-          const optionsString = tag.replace("@browserOptions__", "");
-          if (aiConfig.browserOptions && aiConfig.browserOptions[optionsString]) {
-            browserOptionsFromTag = aiConfig.browserOptions[optionsString];
-          }
-        }
-      }
-
       let contextOptions: any = {};
-      if (browserOptionsFromTag) {
-        contextOptions = browserOptionsFromTag;
-        console.log("contextOptions: " + JSON.stringify(contextOptions));
-      } else if (aiConfig.contextOptions) {
+      if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
         console.log("contextOptions: " + JSON.stringify(contextOptions));
       }

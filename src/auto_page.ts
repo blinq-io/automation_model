@@ -64,16 +64,10 @@ const initContext = async (
   world: any = null,
   moveToRight = -1,
   initScript: InitScripts | null = null,
-  envName: string | null = null,
-  scenario: any | null = null
+  envName: string | null = null
 ) => {
   if (world) {
     foundWold = world;
-  }
-  let tags = [];
-  if (scenario && scenario.pickle && scenario.pickle.tags) {
-    // @ts-ignore
-    tags = scenario.pickle.tags.map((tag: string) => tag.name);
   }
   if (domyWorld && world) {
     // first compy all the fields from domyWorld to world
@@ -154,20 +148,7 @@ const initContext = async (
     world.screenshotPath = screenshotPath;
     world.screenshot = true;
   }
-  context = await getContext(
-    null,
-    headless,
-    world,
-    null,
-    null,
-    true,
-    null,
-    moveToRight,
-    reportFolder,
-    initScript,
-    null,
-    tags
-  );
+  context = await getContext(null, headless, world, null, null, true, null, moveToRight, reportFolder, initScript);
   if (world) {
     world.context = context;
     if (world.attach) {
@@ -180,13 +161,13 @@ const initContext = async (
   if (doNavigate) {
     await navigate(path);
   }
+  if (context) context.reportFolder = reportFolder;
   if (context) {
     const env = getEnv(envName);
     if (env && !process.env.TEMP_RUN) {
       await getTestData(env, world, undefined, undefined, undefined, context);
     }
   }
-  if (context) context.reportFolder = reportFolder;
 
   if (context && !context.snapshotFolder) {
     context.snapshotFolder = _createSnapshotsFolder("data");

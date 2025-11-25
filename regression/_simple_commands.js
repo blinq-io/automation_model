@@ -31,7 +31,7 @@ describe("Actions Tests", function () {
       try {
         fs.mkdirSync("temp");
       } catch (e) {
-        console.log(e);
+        // ignore
       }
     }
   });

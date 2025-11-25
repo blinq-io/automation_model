@@ -1,4 +1,4 @@
-import type { BrowserContext, Page, Browser as PlaywrightBrowser } from "playwright";
+import { BrowserContext, Page, Browser as PlaywrightBrowser } from "playwright";
 import { Environment } from "./environment.js";
 import { StableBrowser } from "./stable_browser.js";
 import { Api } from "./api.js";

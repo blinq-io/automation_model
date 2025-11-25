@@ -650,6 +650,7 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
             case "change_text":
               result = handleChangeText(action, actionHandlerContext);
               break;
+
             case "assert_json":
               result = handleAssertJson(action, actionHandlerContext);
               break;
