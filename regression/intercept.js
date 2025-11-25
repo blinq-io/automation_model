@@ -203,7 +203,6 @@ describe("route", function () {
       console.log(JSON.stringify(context.routeResults, null, 2));
     } catch (e) {
       expect(e).instanceOf(Error);
-      console.log(e.message);
       expect(e.message).to.include(`Route to /favicon1.svg failed with status: timeout`);
     }
   });

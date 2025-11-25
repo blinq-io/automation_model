@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import type { Locator } from "playwright";
+import { Locator } from "playwright";
 
 const getDateTimeSegments = async (input: {
   element: Locator;

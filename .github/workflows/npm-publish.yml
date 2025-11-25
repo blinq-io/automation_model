@@ -16,16 +16,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Use Node.js 16.x
+      - name: Use Node.js 18.x
         uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 18.x
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
       - run: npm install
         working-directory: ${{ github.workspace }}
       - name: Install Playwright dependencies
-        run: npx playwright install
+        run: npx playwright install --with-deps
         working-directory: ${{ github.workspace }}
 
       - name: Fetch current version from npm with tag 'latest'
@@ -39,7 +39,6 @@ jobs:
         run: |
           current_version=${{ env.version }}
           IFS='.' read -r -a version_parts <<< "$current_version"
-          preid="main"
           patch_version=$((version_parts[2]+1))
           NEW_VERSION="${version_parts[0]}.${version_parts[1]}.${patch_version}"
 

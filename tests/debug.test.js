@@ -101,7 +101,7 @@ function getScreenShotPath() {
   }
   return "./screenshots/" + screenshotId + ".png";
 }
-const context = await initContext(path, true, false, null, 450);
+const context = await initContext(path, true, false);
 const login = async function (username, password) {
   // const config = {
   //   method: "GET",

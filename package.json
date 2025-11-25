@@ -1,13 +1,12 @@
 {
   "name": "automation_model",
-  "version": "1.0.414-dev",
+  "version": "1.0.369-stage",
   "description": "An automation infrastructure module to be use for generative AI automation projects.",
   "main": "lib/index.js",
   "type": "module",
   "types": "lib/index.d.ts",
   "directories": {
-    "lib": "lib",
-    "patches": "patches"
+    "lib": "lib"
   },
   "scripts": {
     "compile": "tsc",
@@ -19,7 +18,7 @@
     "test": "npm run build && cross-env HEADLESS=true npx mocha --parallel --jobs=8 ./regression/ --timeout 180000",
     "debug": "node tests/debug.test.js",
     "types": "tsc --declaration --allowJs --emitDeclarationOnly --outDir types",
-    "regression": "cross-env HEADLESS=true npx mocha --parallel --jobs=12 ./regression/ --timeout 120000",
+    "regression": "cross-env HEADLESS=true npx mocha --bail --parallel --jobs=12 ./regression/ --timeout 120000",
     "reg": "npm run build && npm run compile && npm run regression"
   },
   "author": "",

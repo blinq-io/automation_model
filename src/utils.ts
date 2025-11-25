@@ -455,6 +455,7 @@ function replaceTestDataValue(env: string, key: string, testData: TestData, decr
     if (obj.DataType === "totp") {
       return `totp:${obj.value}`;
     }
+
     return obj.value;
   }
 
@@ -906,8 +907,8 @@ export {
   _convertToRegexQuery,
   extractStepExampleParameters,
   _getDataFile,
-  getTestDataValue,
   tryParseJson,
+  getTestDataValue,
   replaceTestDataValue,
   _getTestData,
 };

@@ -4,7 +4,7 @@ import { Environment } from "./environment.js";
 import { browserManager } from "./browser_manager.js";
 import { TestContext } from "./test_context.js";
 import { StableBrowser } from "./stable_browser.js";
-import type { Browser as PlaywrightBrowser } from "playwright";
+import { Browser as PlaywrightBrowser } from "playwright";
 import { Browser } from "./browser_manager.js";
 import { Api } from "./api.js";
 import { InitScripts } from "./generation_scripts.js";
@@ -22,8 +22,7 @@ const getContext = async function (
   moveToRight = -1,
   reportFolder: string | null = null,
   initScripts: InitScripts | null = null,
-  storageState: any | null = null,
-  tags: string[] | null = null
+  storageState: any | null = null
 ) {
   return measureAsync("browser Launch", async () => {
     if (environment === null) {
@@ -112,8 +111,7 @@ const getContext = async function (
       userAgent,
       channel,
       configuration,
-      initScripts,
-      tags
+      initScripts
     );
     let context = new TestContext();
     context.browser = browser.browser;
@@ -188,8 +186,7 @@ const refreshBrowser = async function (web: any, sessionPath: string, world: any
     -1,
     web.context.reportFolder,
     web.context.initScripts,
-    storageState,
-    web.tags
+    storageState
   );
 
   web.context.browser = newContext.browser;

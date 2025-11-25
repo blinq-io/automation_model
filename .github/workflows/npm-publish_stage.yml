@@ -108,3 +108,4 @@ jobs:
           repository: blinq-io/ai-qa
           event-type: trigger-cucumber-stage
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+

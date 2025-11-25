@@ -28,6 +28,7 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: ${{ github.workspace }}
 
+
       - name: Fetch current version from npm with tag 'next'
         id: npm_version
         run: |
@@ -56,42 +57,19 @@ jobs:
       - run: npm run build
         working-directory: ${{ github.workspace }}
 
-      - name: Start HTTPBin container
+      - name: pull and run HTTPBin Docker container
         run: |
-          docker pull kennethreitz/httpbin
-          docker run --name httpbin-container -d -p 3000:80 kennethreitz/httpbin
-
-      - name: Wait for HTTPBin to be ready
-        run: |
-          echo "Waiting for HTTPBin to start..."
-          for i in {1..30}; do
-            if curl -f -s http://localhost:3000/status/200 > /dev/null; then
-              echo "HTTPBin is ready!"
-              break
-            fi
-            echo "Attempt $i: HTTPBin not ready yet, waiting..."
-            sleep 2
-          done
-
-          # Final check
-          if ! curl -f -s http://localhost:3000/status/200 > /dev/null; then
-            echo "HTTPBin failed to start after 60 seconds"
-            echo "Container logs:"
-            docker logs httpbin-container
-            echo "Container status:"
-            docker ps -a
-            exit 1
-          fi
-
+            docker pull kennethreitz/httpbin
+            docker run --name httpbin-container -p 3000:80 kennethreitz/httpbin
       - run: npm test
         working-directory: ${{ github.workspace }}
 
-      - name: Stop and remove HTTPBin container
-        if: always()
+      - name: stop and remove HTTPBin Docker container
         run: |
-          docker stop httpbin-container || true
-          docker rm httpbin-container || true
+            docker stop httpbin-container
+            docker rm httpbin-container
       - name: publish automation model to npm
+
         uses: cucumber/action-publish-npm@v1.1.0
         with:
           npm-token: ${{ secrets.NPM_PASSWORD }}
@@ -110,3 +88,4 @@ jobs:
           repository: blinq-io/ai-qa
           event-type: trigger-cucumber-dev
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+
