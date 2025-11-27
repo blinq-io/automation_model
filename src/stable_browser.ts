@@ -256,7 +256,10 @@ class StableBrowser {
         false,
         this,
         -1,
-        this.context.reportFolder
+        this.context.reportFolder,
+        null,
+        null,
+        this.tags
       );
       newContextCreated = true;
       apps[appName] = {
@@ -390,6 +393,9 @@ class StableBrowser {
       highlight: false,
     };
     let timeout = 60000;
+    if (this.configuration && this.configuration.page_timeout) {
+      timeout = this.configuration.page_timeout;
+    }
     if (options && options["timeout"]) {
       timeout = options["timeout"];
     }

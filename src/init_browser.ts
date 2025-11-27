@@ -22,7 +22,8 @@ const getContext = async function (
   moveToRight = -1,
   reportFolder: string | null = null,
   initScripts: InitScripts | null = null,
-  storageState: any | null = null
+  storageState: any | null = null,
+  tags: string[] | null = null
 ) {
   return measureAsync("browser Launch", async () => {
     if (environment === null) {
