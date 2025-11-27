@@ -2590,6 +2590,13 @@ class StableBrowser {
 
       this.setTestData({ [variable]: state.value }, world);
       this.logger.info("set test data: " + variable + "=" + state.value);
+
+      if (process.env.MODE === "executions") {
+        const globalDataFile = "global_test_data.json";
+        if (existsSync(globalDataFile)) {
+          this.saveTestDataAsGlobal({}, world);
+        }
+      }
       // await new Promise((resolve) => setTimeout(resolve, 500));
       return state.info;
     } catch (e) {
@@ -2661,6 +2668,14 @@ class StableBrowser {
 
       this.setTestData({ [variable]: state.value }, world);
       this.logger.info("set test data: " + variable + "=" + state.value);
+
+      if (process.env.MODE === "executions") {
+        const globalDataFile = "global_test_data.json";
+        if (existsSync(globalDataFile)) {
+          this.saveTestDataAsGlobal({}, world);
+        }
+      }
+
       // await new Promise((resolve) => setTimeout(resolve, 500));
       return state.info;
     } catch (e) {
@@ -3095,6 +3110,12 @@ class StableBrowser {
             this.logger.info("set test data: emailUrl = " + url);
             emailUrl = url;
             codeOrUrlFound = true;
+          }
+          if (process.env.MODE === "executions") {
+            const globalDataFile = "global_test_data.json";
+            if (existsSync(globalDataFile)) {
+              this.saveTestDataAsGlobal({}, world);
+            }
           }
           if (codeOrUrlFound) {
             return { emailUrl, emailCode };
