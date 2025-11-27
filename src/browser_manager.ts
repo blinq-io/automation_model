@@ -232,8 +232,8 @@ class Browser {
       // search for tag starts with @browserOptions__
       let browserOptionsFromTag = null;
       for (let tag of tags) {
-        if (tag.startsWith("@browserOptions__")) {
-          const optionsString = tag.replace("@browserOptions__", "");
+        if (tag.toLowerCase().startsWith("@browseroptions__")) {
+          const optionsString = tag.toLowerCase().replace("@browseroptions__", "");
           if (aiConfig.browserOptions && aiConfig.browserOptions[optionsString]) {
             browserOptionsFromTag = aiConfig.browserOptions[optionsString];
           }
