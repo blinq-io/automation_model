@@ -57,7 +57,8 @@ class BrowserManager {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null
+    initScripts: InitScripts | null = null,
+    tags: string[] | null = null
   ) {
     const browser = new Browser();
     await browser.init(
@@ -69,7 +70,8 @@ class BrowserManager {
       userAgent,
       channel,
       aiConfig,
-      initScripts
+      initScripts,
+      tags
     );
     this.browsers.push(browser);
     return browser;
@@ -98,10 +100,14 @@ class Browser {
     userAgent?: string,
     channel?: string,
     aiConfig?: any,
-    initScripts: InitScripts | null = null
+    initScripts: InitScripts | null = null,
+    tags: string[] | null = null
   ) {
     if (!aiConfig) {
       aiConfig = {};
+    }
+    if (!tags) {
+      tags = [];
     }
 
     if (process.env.VIDEO_ID) {
