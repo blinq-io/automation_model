@@ -567,7 +567,6 @@
             var n = e;
             t &&
             ((t.type = "rule"), (n.rule = t), (n = t), m(), (d = o.charAt(i)), !(c <= i || "," === d || ")" === d));
-
           )
             if (a[d]) {
               var r = d;
@@ -4158,7 +4157,6 @@
     for (
       var r = { classes: {}, tags: {}, attributes: {} }, a = (e = Array.isArray(e) ? e : [e]).slice(), o = [];
       a.length;
-
     )
       !(function () {
         var e,
@@ -4182,7 +4180,6 @@
               }),
             t.children.length && (o.push(a), (a = t.children.slice()));
           !a.length && o.length;
-
         )
           a = o.pop();
       })();
@@ -4316,14 +4313,12 @@
           for (
             a = 1, r = t.previousSibling;
             1 === r.nodeType && r.nodeName === t.nodeName && a++, (r = r.previousSibling);
-
           );
           1 === a && (a = null);
         } else if (t.nextSibling)
           for (
             r = t.nextSibling;
             (r = 1 === r.nodeType && r.nodeName === t.nodeName ? ((a = 1), null) : ((a = null), r.previousSibling));
-
           );
         return (
           1 === t.nodeType &&
@@ -4820,7 +4815,6 @@
             a < 16 && (t[r + a++] = Br[e]);
           });
         a < 16;
-
       )
         t[r + a++] = 0;
       return t;
@@ -5430,7 +5424,6 @@
         (n = (n = n.assignedSlot || n.parentNode) && 11 === n.nodeType ? n.host : n) &&
         !Kn(n, t) &&
         n !== document.documentElement;
-
       );
       return n && Kn(n, t) ? n : null;
     },
@@ -5689,7 +5682,6 @@
           o = document.createTreeWalker(e, window.NodeFilter.SHOW_ELEMENT, null, !1),
           i = n ? o.nextNode() : o.currentNode;
         i;
-
       ) {
         var l = D(i),
           s =
@@ -6006,7 +5998,6 @@
       for (
         var n = t.parent, r = [], a = !1;
         n && n.shadowId === t.shadowId && !a && (r.push(n), "legend" !== n.props.nodeName);
-
       ) {
         if (void 0 !== n._inDisabledFieldset) {
           a = n._inDisabledFieldset;
@@ -6077,7 +6068,6 @@
         !i.find(function (e) {
           return e.root === o.getRootNode();
         });
-
       )
         o = o.getRootNode().host;
       if (
@@ -9852,7 +9842,6 @@
               c = (i.range || i.refRange)[0],
               d = Ds(u, s);
             0.01 < d - c;
-
           )
             (Ss(u, Bs(Is(u), { space: r, method: "clip" })) - 2 < 0.01 ? (c = Ds(u, s)) : (d = Ds(u, s)),
               Es(u, s, (c + d) / 2));
@@ -10739,7 +10728,6 @@
           return 0 === n ? 0 : ((t = $u(t.color, c[n - 1].color, l)), Math.max(e, t));
         }, 0);
         i < d;
-
       ) {
         d = 0;
         for (var p = 1; p < c.length && c.length < u; p++) {
@@ -12836,7 +12824,6 @@
             (o.splice(o.indexOf(document.documentElement), 1), o.push(document.documentElement)),
             r = i.length;
           (a = i[--r]);
-
         )
           o[r].style.setProperty(l, a.value || "", a.priority);
         return (document.head.removeChild(u), o);
@@ -12981,7 +12968,6 @@
       for (
         var r = e, e = t, a = n, o = [], i = od(Array.isArray(r) ? r : [r], e, null, r[0].shadowId, id.pop()), l = [];
         i.vNodesIndex < i.vNodes.length;
-
       ) {
         for (
           var s,
@@ -13016,7 +13002,6 @@
         for (
           u.children && u.children.length && (o.push(i), (i = od(u.children, d, c, u.shadowId, id.pop())));
           i.vNodesIndex === i.vNodes.length && o.length;
-
         )
           (id.push(i), (i = o.pop()));
       }
@@ -17584,7 +17569,6 @@
         return !Ka(e);
       }));
       n;
-
     )
       ("LABEL" === n.nodeName.toUpperCase() && -1 === a.indexOf(n) && a.push(n), (n = n.parentNode));
     return (
