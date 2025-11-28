@@ -223,8 +223,22 @@ class Browser {
           }
         }
       }
+      // search for tag starts with @browserOptions__
+      let browserOptionsFromTag = null;
+      for (let tag of tags) {
+        if (tag.toLowerCase().startsWith("@browseroptions__")) {
+          const optionsString = tag.toLowerCase().replace("@browseroptions__", "");
+          if (aiConfig.browserOptions && aiConfig.browserOptions[optionsString]) {
+            browserOptionsFromTag = aiConfig.browserOptions[optionsString];
+          }
+        }
+      }
+
       let contextOptions: any = {};
-      if (aiConfig.contextOptions) {
+      if (browserOptionsFromTag) {
+        contextOptions = browserOptionsFromTag;
+        console.log("contextOptions: " + JSON.stringify(contextOptions));
+      } else if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
         console.log("contextOptions: " + JSON.stringify(contextOptions));
       }
