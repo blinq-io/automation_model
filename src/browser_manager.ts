@@ -246,7 +246,7 @@ class Browser {
         console.log("contextOptions: " + JSON.stringify(contextOptions));
       } else if (aiConfig.contextOptions) {
         contextOptions = aiConfig.contextOptions;
-        console.log("contextOptions: " + JSON.stringify(contextOptions));
+        console.log("contextOptions: " + JSON.stringify(contextOptions, null, 2));
       }
       if (!contextOptions["acceptDownloads"]) {
         contextOptions["acceptDownloads"] = true;
