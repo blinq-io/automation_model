@@ -161,10 +161,17 @@ class Browser {
       args.push(`--remote-allow-origins=${process.env.REMOTE_ORIGINS_URL}`);
     }
 
-    if(process.env.MAXIMIZE_BROWSER==="true"){
+    if (process.env.MAXIMIZE_BROWSER === "true") {
       console.log("Starting browser maximized for remote recorder");
       args.push(`--start-maximized`);
-    } 
+      args.push(
+        "--ignore-https-errors",
+        "--ignore-certificate-errors",
+        "--disable-crash-reporter",
+        "--disable-crashpad",
+        "--no-crash-upload"
+      );
+    }
 
     let useSessionFolder = false;
     await ensurePlaywright();
