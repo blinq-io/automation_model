@@ -161,7 +161,7 @@ class Browser {
       args.push(`--remote-allow-origins=${process.env.REMOTE_ORIGINS_URL}`);
     }
 
-    if(process.env.REMOTE_RECORDER==="true"){
+    if (process.env.REMOTE_RECORDER === "true") {
       args.push(`--start-maximized`);
     }
 
