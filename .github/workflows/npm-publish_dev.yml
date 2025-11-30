@@ -60,7 +60,7 @@ jobs:
       - name: pull and run HTTPBin Docker container
         run: |
             docker pull kennethreitz/httpbin
-            docker run --name httpbin-container -p 3000:80 kennethreitz/httpbin
+            docker run --name httpbin-container -d -p 3000:80 kennethreitz/httpbin
       - run: npm test
         working-directory: ${{ github.workspace }}
 
