@@ -162,6 +162,18 @@ class Browser {
       );
     }
 
+    if (process.env.FULLSCREEN_BROWSER === "true") {
+      console.log("Starting browser in fullscreen for remote recorder");
+      args.push(`--start-fullscreen`);
+      args.push(
+        "--ignore-https-errors",
+        "--ignore-certificate-errors",
+        "--disable-crash-reporter",
+        "--disable-crashpad",
+        "--no-crash-upload"
+      );
+    }
+
     let useSessionFolder = false;
     if (!extensionPath && userDataDirPath) {
       this.context = await chromium.launchPersistentContext(userDataDirPath, {
