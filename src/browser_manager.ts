@@ -169,7 +169,8 @@ class Browser {
         "--ignore-certificate-errors",
         "--disable-crash-reporter",
         "--disable-crashpad",
-        "--no-crash-upload"
+        "--no-crash-upload",
+        "--kiosk"
       );
       viewport = null;
     }
@@ -182,7 +183,8 @@ class Browser {
         "--ignore-certificate-errors",
         "--disable-crash-reporter",
         "--disable-crashpad",
-        "--no-crash-upload"
+        "--no-crash-upload",
+        "--kiosk"
       );
       viewport = null;
     }
@@ -297,9 +299,11 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
+        console.log("Setting viewport to " + JSON.stringify(viewport));
       } else {
         if (!this.headless) {
           contextOptions.viewport = null;
+          console.log("Setting viewport to null for non-headless browser");
         }
       }
 
