@@ -160,6 +160,7 @@ class Browser {
         "--disable-crashpad",
         "--no-crash-upload"
       );
+      viewport = null;
     }
 
     if (process.env.FULLSCREEN_BROWSER === "true") {
@@ -172,6 +173,7 @@ class Browser {
         "--disable-crashpad",
         "--no-crash-upload"
       );
+      viewport = null;
     }
 
     let useSessionFolder = false;
