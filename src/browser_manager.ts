@@ -162,7 +162,6 @@ class Browser {
         "--no-crash-upload",
         "--kiosk"
       );
-      viewport = null;
     }
 
     if (process.env.FULLSCREEN_BROWSER === "true") {
