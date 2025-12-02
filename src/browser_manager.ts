@@ -25,6 +25,7 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs-extra";
 import tmp from "tmp";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -172,6 +173,7 @@ class Browser {
         "--no-crash-upload",
         "--kiosk"
       );
+      viewport = null;
     }
 
     if (process.env.FULLSCREEN_BROWSER === "true") {
