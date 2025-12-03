@@ -133,6 +133,7 @@ class Browser {
       this.headless = false;
     }
     if (process.env.VIEWPORT) {
+      console.log("Setting viewport from ENV VIEWPORT: " + process.env.VIEWPORT);
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     } else if (aiConfig.viewport && aiConfig.viewport.width && aiConfig.viewport.height) {
