@@ -259,7 +259,7 @@ class Api {
                 try {
                   const pattern = String(test.value);
                   const regex = new RegExp(pattern);
-                  test.fail = !regex.test(String(receivedValue)); 
+                  test.fail = !regex.test(String(receivedValue));
                 } catch (err) {
                   console.error("Invalid regex:", test.value, err);
                   test.fail = true;
