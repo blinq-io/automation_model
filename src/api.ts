@@ -402,7 +402,7 @@ class Api {
 }
 
 const repStrWParamTData = async (str: any, params: Param, testData: any, world: any) => {
-  if(typeof str !== 'string') {
+  if (typeof str !== "string") {
     return str;
   }
   let newStr = str;
