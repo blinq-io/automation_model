@@ -3786,7 +3786,9 @@ class StableBrowser {
               climbArray1.push("..");
             }
             let climbXpath = "xpath=" + climbArray1.join("/");
-            css = css + " >> " + climbXpath;
+            if (Number(climb) > 0) {
+              css = css + " >> " + climbXpath;
+            }
             const count = await frame.locator(css).count();
             for (let j = 0; j < count; j++) {
               const continer = await frame.locator(css).nth(j);
