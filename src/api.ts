@@ -256,7 +256,14 @@ class Api {
                 test.fail = receivedValue > test.value;
                 break;
               case "mat":
-                test.fail = !new RegExp(test.value).test(receivedValue);
+                try {
+                  const pattern = String(test.value);
+                  const regex = new RegExp(pattern);
+                  test.fail = !regex.test(String(receivedValue));
+                } catch (err) {
+                  console.error("Invalid regex:", test.value, err);
+                  test.fail = true;
+                }
                 break;
               default:
                 test.fail = true;
