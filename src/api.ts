@@ -235,7 +235,7 @@ class Api {
             test.fail = true;
             const receivedValue = getValue(res.data, test.pattern);
             test.receivedValue = receivedValue;
-            test.value = await repStrWParamTData(String(test.value), params, testData, world);
+            test.value = await repStrWParamTData(test.value, params, testData, world);
             switch (test.operator) {
               case "eq":
                 test.fail = receivedValue !== test.value;
@@ -256,7 +256,14 @@ class Api {
                 test.fail = receivedValue > test.value;
                 break;
               case "mat":
-                test.fail = !new RegExp(test.value).test(receivedValue);
+                try {
+                  const pattern = String(test.value);
+                  const regex = new RegExp(pattern);
+                  test.fail = !regex.test(String(receivedValue)); 
+                } catch (err) {
+                  console.error("Invalid regex:", test.value, err);
+                  test.fail = true;
+                }
                 break;
               default:
                 test.fail = true;
@@ -394,7 +401,10 @@ class Api {
   }
 }
 
-const repStrWParamTData = async (str: string, params: Param, testData: any, world: any) => {
+const repStrWParamTData = async (str: any, params: Param, testData: any, world: any) => {
+  if(typeof str !== 'string') {
+    return str;
+  }
   let newStr = str;
   Object.keys(params).forEach((key) => {
     newStr = newStr.replaceAll(`<${key.slice(1)}>`, params[key]);
