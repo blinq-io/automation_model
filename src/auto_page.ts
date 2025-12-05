@@ -216,6 +216,11 @@ const getEnv = (envName: string | null) => {
   return null;
 };
 const closeContext = async () => {
+
+  if(process.env.REMOTE_EXECUTION === "true") {
+    return;
+  } 
+
   if (process.env.TEMP_RUN) {
     return;
   }
