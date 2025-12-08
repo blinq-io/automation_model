@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs-extra";
 import tmp from "tmp";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -132,6 +133,7 @@ class Browser {
       this.headless = false;
     }
     if (process.env.VIEWPORT) {
+      console.log("Setting viewport from ENV VIEWPORT: " + process.env.VIEWPORT);
       let viewportParts = process.env.VIEWPORT.split(",");
       viewport = { width: parseInt(viewportParts[0]), height: parseInt(viewportParts[1]) };
     } else if (aiConfig.viewport && aiConfig.viewport.width && aiConfig.viewport.height) {
@@ -148,6 +150,32 @@ class Browser {
 
     if (process.env.REMOTE_ORIGINS_URL) {
       args.push(`--remote-allow-origins=${process.env.REMOTE_ORIGINS_URL}`);
+    }
+
+    if (process.env.MAXIMIZE_BROWSER === "true") {
+      console.log("Starting browser maximized for remote recorder");
+      args.push(`--start-maximized`);
+      args.push(
+        "--ignore-https-errors",
+        "--ignore-certificate-errors",
+        "--disable-crash-reporter",
+        "--disable-crashpad",
+        "--no-crash-upload",
+        "--kiosk"
+      );
+    }
+
+    if (process.env.FULLSCREEN_BROWSER === "true") {
+      console.log("Starting browser in fullscreen for remote recorder");
+      args.push(`--start-fullscreen`);
+      args.push(
+        "--ignore-https-errors",
+        "--ignore-certificate-errors",
+        "--disable-crash-reporter",
+        "--disable-crashpad",
+        "--no-crash-upload",
+        "--kiosk"
+      );
     }
 
     let useSessionFolder = false;
@@ -258,9 +286,11 @@ class Browser {
       }
       if (viewport) {
         contextOptions.viewport = viewport;
+        console.log("Setting viewport to " + JSON.stringify(viewport));
       } else {
         if (!this.headless) {
           contextOptions.viewport = null;
+          console.log("Setting viewport to null for non-headless browser");
         }
       }
 
