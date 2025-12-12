@@ -407,7 +407,7 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goto", error);
-      _commandError(state, error, this);
+      await _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
     }
@@ -435,7 +435,7 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goBack", error);
-      _commandError(state, error, this);
+      await _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
     }
@@ -463,7 +463,7 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goForward", error);
-      _commandError(state, error, this);
+      await _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
     }
@@ -1340,7 +1340,7 @@ class StableBrowser {
       operation: "simpleClick",
       log: "***** click on " + elementDescription + " *****\n",
     };
-    _preCommand(state, this);
+    await _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1389,7 +1389,7 @@ class StableBrowser {
       operation: "simpleClickType",
       log: "***** click type on " + elementDescription + " *****\n",
     };
-    _preCommand(state, this);
+    await _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -4641,7 +4641,7 @@ class StableBrowser {
   }
   async beforeStep(world, step) {
     if (step?.pickleStep && this.trace) {
-      await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
+      await this.context.playContext.tracing.group(`${step.pickleStep.text}`);
     }
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {
