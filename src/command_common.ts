@@ -28,6 +28,10 @@ type JsonCommandReport = {
 };
 
 export async function _preCommand(state: any, web: any) {
+  if (web.trace) {
+    await web.context.playContext.tracing.group(state.text);
+  }
+
   if (web && web.getCmdId) {
     state.cmdId = web.getCmdId();
   }
@@ -175,6 +179,9 @@ export async function _screenshot(state: any, web: any) {
 }
 
 export async function _commandFinally(state: any, web: any) {
+  if (web.trace) {
+    await web.context.playContext.tracing.groupEnd();
+  }
   web.inStepReport = true;
   if (state && !state.commandError === true) {
     state.info.failCause = {};
