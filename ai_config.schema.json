@@ -6,6 +6,7 @@
   "properties": {
     "viewport": {
       "type": "object",
+      "description": "Viewport to launch the browser with.",
       "properties": {
         "width": {
           "type": "number",
