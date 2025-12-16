@@ -41,10 +41,7 @@
       "type": "boolean"
     },
     "userDataDirPath": {
-      "type": [
-        "string",
-        "boolean"
-      ]
+      "type": ["string", "boolean"]
     },
     "extensionPath": {
       "type": "string"
@@ -68,10 +65,7 @@
       "type": "boolean"
     },
     "page_timeout": {
-      "type": [
-        "boolean",
-        "number"
-      ]
+      "type": ["boolean", "number"]
     },
     "popupHandlers": {
       "type": "array",
@@ -92,10 +86,7 @@
       "type": "boolean"
     },
     "uploadsFolder": {
-      "type": [
-        "boolean",
-        "string"
-      ]
+      "type": ["boolean", "string"]
     },
     "find_element_timeout": {
       "type": "number"
