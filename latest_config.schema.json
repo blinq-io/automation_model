@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "configuration, aiConfig schema",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "contextOptions": {
+      "type": "boolean",
+      "properties": {
+        "recordVideo": {
+          "type": "boolean",
+          "properties": {
+            "dir": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "viewport": {
+      "type": "boolean",
+      "properties": {
+        "width": {
+          "type": "boolean"
+        },
+        "height": {
+          "type": "boolean"
+        }
+      }
+    },
+    "noViewport": {
+      "type": "boolean"
+    },
+    "browserOptions": {
+      "type": "array",
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "fullPageScreenshotOnFailure": {
+      "type": "boolean"
+    },
+    "userDataDirPath": {
+      "type": ["string", "boolean"]
+    },
+    "extensionPath": {
+      "type": "string"
+    },
+    "useGoogleChrome": {
+      "type": "boolean"
+    },
+    "useMicrosoftEdge": {
+      "type": "boolean"
+    },
+    "overrideUserAgent": {
+      "type": "string"
+    },
+    "fastMode": {
+      "type": "boolean"
+    },
+    "acceptDialog": {
+      "type": "boolean"
+    },
+    "closePopups": {
+      "type": "boolean"
+    },
+    "page_timeout": {
+      "type": ["boolean", "number"]
+    },
+    "popupHandlers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "locator": {},
+          "close_dialog_locator": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "stableLocatorStrategy": {
+      "type": "string"
+    },
+    "load_all_lazy": {
+      "type": "boolean"
+    },
+    "uploadsFolder": {
+      "type": ["boolean", "string"]
+    },
+    "find_element_timeout": {
+      "type": "number"
+    },
+    "networkidle": {
+      "type": "boolean"
+    },
+    "load": {
+      "type": "boolean"
+    },
+    "domcontentloaded": {
+      "type": "boolean"
+    },
+    "trace": {
+      "type": "boolean"
+    },
+    "ariaSnapshotTimeout": {
+      "type": "number"
+    },
+    "changes": {}
+  }
+}
