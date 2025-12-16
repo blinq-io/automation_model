@@ -50,6 +50,9 @@
     "tunnel": "^0.0.6"
   },
   "devDependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "@babel/types": "^7.28.5",
     "@microsoft/api-documenter": "^7.26.27",
     "@microsoft/api-extractor": "^7.52.8",
     "@types/crypto-js": "^4.2.2",

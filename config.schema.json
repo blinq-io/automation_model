@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AI Configuration Schema",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "viewport": {
+      "type": "boolean",
+      "properties": {
+        "width": {
+          "type": "number",
+          "description": "Width of the viewport with which browser should be launched."
+        },
+        "height": {
+          "type": "number",
+          "description": "Height of the viewport with which browser should be launched."
+        }
+      }
+    },
+    "noViewport": {
+      "type": "boolean",
+      "description": "Let the host OS decide the browser viewport. Note that tests may not be consistent due to varying viewport sizes."
+    },
+    "fullPageScreenshotOnFailure": {
+      "type": "boolean",
+      "description": "Take full page screenshot when test fails."
+    },
+    "userDataDirPath": {
+      "type": "string",
+      "description": "The directory to load user preferences from incase of persistent context."
+    },
+    "extensionPath": {
+      "type": "string",
+      "description": "The directory to load extensions from incase of persistent context."
+    },
+    "useGoogleChrome": {
+      "type": "boolean",
+      "description": "Run the test using Google Chrome instead of default chromium browser. Note that Google Chrome must be installed on the system where tests are being run."
+    },
+    "useMicrosoftEdge": {
+      "type": "boolean",
+      "description": "Run the test using Microsoft Edge instead of default chromium browser. Note that Microsoft Edge must be installed on the system where tests are being run."
+    },
+    "overrideUserAgent": {
+      "type": "string",
+      "description": "Override the default user agent of the browser using the value provided."
+    },
+    "fastMode": {
+      "type": "boolean",
+      "description": "Run tests in fast mode. Note that some steps may fail if the page takes too long to load."
+    },
+    "acceptDialog": {
+      "type": "boolean",
+      "description": "Auto accept browser dialogs and alerts."
+    },
+    "closePopups": {
+      "type": "boolean",
+      "description": "Auto close popups that appear during test execution."
+    },
+    "page_timeout": {
+      "type": "number",
+      "description": "Time to wait for the page to load completely."
+    },
+    "popupHandlers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "locator": {
+            "type": "object"
+          },
+          "close_dialog_locator": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "Locators for handling popups. Includes the locator for the popup and the close button."
+    },
+    "stableLocatorStrategy": {
+      "type": ["string"],
+      "description": "Preferred identification strategy to be while locating elements during runtime."
+    },
+
+    "load_all_lazy": {
+      "type": "boolean",
+      "description": "If true, will scroll the entire page to load elements which are usually lazy loaded."
+    },
+    "uploadsFolder": {
+      "type": "string",
+      "description": "The folder path where uploads would be fetched from during runtime."
+    },
+    "find_element_timeout": {
+      "type": "number",
+      "description": "The maximum time to wait while trying to find an element on the page."
+    },
+    "networkidle": {
+      "type": "boolean",
+      "description": "Wait for network to be idle before performing actions on the page."
+    },
+    "load": {
+      "type": "boolean",
+      "description": "Wait for page to be completely loaded before performing actions on the page."
+    },
+    "domcontentloaded": {
+      "type": "boolean",
+      "description": "Wait for DOM Content to be loaded before performing actions on the page."
+    },
+    "ariaSnapshotTimeout": {
+      "type": "number",
+      "description": "Timeout while waiting for ARIA snapshot to be captured."
+    }
+  }
+}
