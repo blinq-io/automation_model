@@ -81,7 +81,6 @@
       "type": ["string"],
       "description": "Preferred identification strategy to be while locating elements during runtime."
     },
-
     "load_all_lazy": {
       "type": "boolean",
       "description": "If true, will scroll the entire page to load elements which are usually lazy loaded."
@@ -109,6 +108,48 @@
     "ariaSnapshotTimeout": {
       "type": "number",
       "description": "Timeout while waiting for ARIA snapshot to be captured."
+    },
+    "contextOptions": {
+      "type": "object",
+      "description": "Options passed when creating a new Playwright browser context. For available options, refer to the Playwright documentation: https://playwright.dev/docs/api/class-browser#browser-new-context",
+      "additionalProperties": true,
+      "examples": [
+        {
+          "ignoreHTTPSErrors": true,
+          "locale": "en-US",
+          "timezoneId": "America/New_York",
+          "geolocation": {
+            "latitude": 40.7128,
+            "longitude": -74.0060
+          },
+          "permissions": ["geolocation"]
+        }
+      ]
+    },
+    "browserOptions": {
+      "type": "object",
+      "description": "A dictionary mapping keys to context option overrides. When a Gherkin scenario has a matching tag that matches with `@browserOptions__<key>`, the corresponding context options will override the default contextOptions.",
+      "additionalProperties": {
+        "type": "object",
+        "description": "Context options for scenarios with this tag. These options follow the same structure as contextOptions. Refer to Playwright documentation: https://playwright.dev/docs/api/class-browser#browser-new-context",
+        "additionalProperties": true
+      },
+      "examples": [
+        {
+          "mobile": {
+            "viewport": {
+              "width": 375,
+              "height": 667
+            },
+            "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15",
+            "isMobile": true,
+            "hasTouch": true
+          },
+          "authenticated": {
+            "storageState": "auth.json"
+          }
+        }
+      ]
     }
   }
 }
