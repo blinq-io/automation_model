@@ -438,7 +438,7 @@ function replaceTestDataValue(env: string, key: string, testData: TestData, decr
     if (value.startsWith("${") && value.endsWith("}")) {
         newValue = evaluateString(value, context?.examplesRow);
     }
-    return newValue;
+    return newValue ? newValue : value;
   }
 
   const dataArray = (testData as TestDataArray)[env];
