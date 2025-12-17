@@ -345,10 +345,10 @@ async function replaceWithLocalTestData(
       return await resolveDatePlaceholder(key);
     }
 
-    let resolved = replaceTestDataValue(env, key, testData, _decrypt);
+    let resolved = replaceTestDataValue(env, key, testData, _decrypt,context);
     if (resolved !== null) return resolved;
 
-    resolved = replaceTestDataValue("*", key, testData, _decrypt);
+    resolved = replaceTestDataValue("*", key, testData, _decrypt,context);
     if (resolved !== null) return resolved;
 
     if (throwError) {
@@ -426,12 +426,19 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true) {
+function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true, context: any = null): string | null {
   // const path = key.split(".");
   const path = getObjectDataPathFromKey(key);
   const value = objectPath.get(testData, path);
+  let newValue;
   if (value && !Array.isArray(value)) {
-    return value as string;
+    if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
+        newValue = decrypt(value, null);
+    }
+    if (value.startsWith("${") && value.endsWith("}")) {
+        newValue = evaluateString(value, context?.examplesRow);
+    }
+    return newValue;
   }
 
   const dataArray = (testData as TestDataArray)[env];
