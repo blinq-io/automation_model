@@ -16,7 +16,13 @@
           "type": "number",
           "description": "Height of the viewport with which browser should be launched."
         }
-      }
+      },
+      "examples": [
+        {
+          "width": 1200,
+          "height": 800
+        }
+      ]
     },
     "noViewport": {
       "type": "boolean",
