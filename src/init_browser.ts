@@ -211,7 +211,7 @@ const refreshBrowser = async function (web: any, sessionPath: string, world: any
   web.context.initScripts = newContext.initScripts;
 
   if (web.trace) {
-    await web.context.playContext.tracing.start();
+    await web.context.playContext.tracing.start({ screenshots: true, snapshots: true });
 
     if (web.traceGroupName) {
       // start trace group again
