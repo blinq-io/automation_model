@@ -166,6 +166,12 @@ const getContext = async function (
   });
 };
 const refreshBrowser = async function (web: any, sessionPath: string, world: any) {
+  if (web.trace) {
+    if (web.traceGroupName) {
+      await web.context.playContext.tracing.groupEnd();
+    }
+    await web.context.playContext.tracing.stop();
+  }
   await web.context.browserObject.close();
   web.context.pages = [];
 
@@ -203,6 +209,15 @@ const refreshBrowser = async function (web: any, sessionPath: string, world: any
   web.context.browserName = newContext.browserName;
   web.context.reportFolder = newContext.reportFolder;
   web.context.initScripts = newContext.initScripts;
+
+  if (web.trace) {
+    await web.context.playContext.tracing.start();
+
+    if (web.traceGroupName) {
+      // start trace group again
+      await web.context.playContext.tracing.group(web.traceGroupName);
+    }
+  }
   await web.goto(web.context.environment.baseUrl);
 };
 
