@@ -4639,9 +4639,28 @@ class StableBrowser {
       });
     }
   }
+  getGherkinKeyword(step) {
+    if (!step?.type) {
+      return "";
+    }
+    switch (step.type) {
+      case "Context":
+        return "Given";
+      case "Action":
+        return "When";
+      case "Outcome":
+        return "Then";
+      case "Conjunction":
+        return "And";
+      default:
+        return "";
+    }
+  }
   async beforeStep(world, step) {
     if (step?.pickleStep && this.trace) {
-      await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
+      const keyword = this.getGherkinKeyword(step.pickleStep);
+      this.traceGroupName = `${keyword} ${step.pickleStep.text}`;
+      await this.context.playContext.tracing.group(this.traceGroupName);
     }
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {
