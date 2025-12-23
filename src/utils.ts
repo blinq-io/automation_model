@@ -449,7 +449,7 @@ function replaceTestDataValue(
   } else {
       return value;
     }     
-
+  }
   const dataArray = (testData as TestDataArray)[env];
 
   if (!dataArray) {
