@@ -438,17 +438,17 @@ function replaceTestDataValue(
   const value = objectPath.get(testData, path);
   let newValue;
   if (value && !Array.isArray(value)) {
-    if(typeof value == "string") {
-    if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
-      newValue = decrypt(value, null);
-    }
-    if (value.startsWith("${") && value.endsWith("}")) {
-      newValue = evaluateString(value, context?.examplesRow);
-    }
-    return newValue ? newValue : value;
-  } else {
+    if (typeof value == "string") {
+      if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
+        newValue = decrypt(value, null);
+      }
+      if (value.startsWith("${") && value.endsWith("}")) {
+        newValue = evaluateString(value, context?.examplesRow);
+      }
+      return newValue ? newValue : value;
+    } else {
       return value;
-    }     
+    }
   }
   const dataArray = (testData as TestDataArray)[env];
 
