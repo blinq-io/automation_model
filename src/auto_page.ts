@@ -152,9 +152,13 @@ const initContext = async (
   if (world) {
     world.context = context;
     if (world.attach) {
-      world.attach(JSON.stringify(context!.environment), {
-        mediaType: "application/json+env",
-      });
+      try {
+        world.attach(JSON.stringify(context!.environment), {
+          mediaType: "application/json+env",
+        });
+      } catch (error) {
+        console.log("Error attaching environment to report: " + error);
+      }
     }
   }
 
