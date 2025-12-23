@@ -443,7 +443,7 @@ function replaceTestDataValue(env: string, key: string, testData: TestData, decr
   } else {
       return value;
     }     
-
+  }
   const dataArray = (testData as TestDataArray)[env];
 
   if (!dataArray) {
