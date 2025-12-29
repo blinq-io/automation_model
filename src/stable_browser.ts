@@ -4280,7 +4280,7 @@ class StableBrowser {
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
     if (this.onRestoreSaveState) {
-     await this.onRestoreSaveState(path);
+      await this.onRestoreSaveState(path);
     }
   }
 
