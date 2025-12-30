@@ -558,6 +558,10 @@ export async function registerBeforeStepRoutes(context: any, stepName: string, w
 
   let message: string | null = null;
 
+  if (stepTemplate === "Reset browser session {string}" || stepTemplate === "reset browser session {string}") return;
+
+  if (!Array.isArray(allRouteItems) || allRouteItems.length === 0) return;
+
   try {
     page.route("**/*", async (route: PWRoute) => {
       const debug = createDebug("automation_model:route:intercept");
