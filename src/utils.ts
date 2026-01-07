@@ -484,22 +484,43 @@ function evaluateString(template: string, parameters: any) {
   }
 }
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
     return dateStr;
   }
-  // Split the input date string
+
+  // Expect "dd-mm-yyyy"
   const [dd, mm, yyyy] = dateStr.split("-");
 
-  // Define replacements
+  const monthIndex = parseInt(mm, 10) - 1;
+  const fullMonth = MONTH_NAMES[monthIndex] ?? "";
+  const shortMonth = fullMonth.slice(0, 3); // "Dec"
+
   const replacements: Record<string, string> = {
-    dd: dd,
-    mm: mm,
-    yyyy: yyyy,
+    dd,
+    mm,
+    yyyy,
+    MONTH: fullMonth,
+    MON: shortMonth,
   };
 
-  // Replace format placeholders with actual values
-  return format.replace(/dd|mm|yyyy/g, (match) => replacements[match]);
+  // Support all tokens
+  return format.replace(/dd|mm|yyyy|MONTH|MON/g, (match) => replacements[match]);
 }
 
 function maskValue(value: string) {
