@@ -1713,7 +1713,7 @@ class StableBrowser {
       _text: `Set date time value: ${value} on ${selectors.element_name}`,
       operation: "setDateTime",
       log: "***** set date time value " + selectors.element_name + " *****\n",
-      throwError: false,
+      // throwError: false,
     };
     try {
       await _preCommand(state, this);
@@ -4377,7 +4377,7 @@ class StableBrowser {
       _text: `Close the page`,
       operation: "closePage",
       log: "***** close page *****\n",
-      throwError: false,
+      // throwError: false,
     };
 
     try {
