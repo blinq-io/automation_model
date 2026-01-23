@@ -59,6 +59,7 @@ import { loadBrunoParams } from "./bruno.js";
 import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
 import { profile } from "./check_performance.js";
+import { TAG_CONSTANTS } from "./constants.js";
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -4607,8 +4608,11 @@ class StableBrowser {
     if (this.tags === null && scenario && scenario.pickle && scenario.pickle.tags) {
       this.tags = scenario.pickle.tags.map((tag) => tag.name);
       // check if @global_test_data tag is present
-      if (this.tags.includes("@global_test_data")) {
+      if (this.tags.includes(TAG_CONSTANTS.GLOBAL_TEST_DATA)) {
         this.saveTestDataAsGlobal({}, world);
+      }
+      if (this.tags.includes(TAG_CONSTANTS.FAST_MODE)) {
+        this.fastMode = true;
       }
     }
     // update test data based on feature/scenario
