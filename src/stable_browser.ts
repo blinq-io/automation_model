@@ -4611,7 +4611,7 @@ class StableBrowser {
       if (this.tags.includes(TAG_CONSTANTS.GLOBAL_TEST_DATA)) {
         this.saveTestDataAsGlobal({}, world);
       }
-      if(this.tags.includes(TAG_CONSTANTS.FAST_MODE)) {
+      if (this.tags.includes(TAG_CONSTANTS.FAST_MODE)) {
         this.fastMode = true;
       }
     }
