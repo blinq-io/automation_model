@@ -408,7 +408,7 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goto", error);
-      _commandError(state, error, this);
+      await _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
     }
@@ -436,7 +436,7 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goBack", error);
-      _commandError(state, error, this);
+      await _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
     }
@@ -464,7 +464,7 @@ class StableBrowser {
       await _screenshot(state, this);
     } catch (error) {
       console.error("Error on goForward", error);
-      _commandError(state, error, this);
+      await _commandError(state, error, this);
     } finally {
       await _commandFinally(state, this);
     }
@@ -1341,7 +1341,7 @@ class StableBrowser {
       operation: "simpleClick",
       log: "***** click on " + elementDescription + " *****\n",
     };
-    _preCommand(state, this);
+    await _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1390,7 +1390,7 @@ class StableBrowser {
       operation: "simpleClickType",
       log: "***** click type on " + elementDescription + " *****\n",
     };
-    _preCommand(state, this);
+    await _preCommand(state, this);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1713,7 +1713,7 @@ class StableBrowser {
       _text: `Set date time value: ${value} on ${selectors.element_name}`,
       operation: "setDateTime",
       log: "***** set date time value " + selectors.element_name + " *****\n",
-      throwError: false,
+      // throwError: false,
     };
     try {
       await _preCommand(state, this);
@@ -4281,7 +4281,7 @@ class StableBrowser {
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
     if (this.onRestoreSaveState) {
-      this.onRestoreSaveState(path);
+      await this.onRestoreSaveState(path);
     }
   }
 
@@ -4377,7 +4377,7 @@ class StableBrowser {
       _text: `Close the page`,
       operation: "closePage",
       log: "***** close page *****\n",
-      throwError: false,
+      // throwError: false,
     };
 
     try {
@@ -4643,9 +4643,28 @@ class StableBrowser {
       });
     }
   }
+  getGherkinKeyword(step) {
+    if (!step?.type) {
+      return "";
+    }
+    switch (step.type) {
+      case "Context":
+        return "Given";
+      case "Action":
+        return "When";
+      case "Outcome":
+        return "Then";
+      case "Conjunction":
+        return "And";
+      default:
+        return "";
+    }
+  }
   async beforeStep(world, step) {
     if (step?.pickleStep && this.trace) {
-      await this.context.playContext.tracing.group(`Step: ${step.pickleStep.text}`);
+      const keyword = this.getGherkinKeyword(step.pickleStep);
+      this.traceGroupName = `${keyword} ${step.pickleStep.text}`;
+      await this.context.playContext.tracing.group(this.traceGroupName);
     }
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {

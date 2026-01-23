@@ -28,6 +28,10 @@ type JsonCommandReport = {
 };
 
 export async function _preCommand(state: any, web: any) {
+  if (web.trace) {
+    await web.context.playContext.tracing.group(state.text);
+  }
+
   if (web && web.getCmdId) {
     state.cmdId = web.getCmdId();
   }
@@ -52,7 +56,14 @@ export async function _preCommand(state: any, web: any) {
     state.highlight = true;
   }
   if (state.throwError !== false) {
-    state.throwError = true;
+    if (state?.options?.dontThrowOnFailure && typeof state.options.dontThrowOnFailure === "boolean") {
+      state.throwError = !state.options.dontThrowOnFailure;
+      if (state.throwError === false) {
+        console.warn("Errors will be suppressed for this command as per dontThrowOnFailure option.");
+      }
+    } else {
+      state.throwError = true;
+    }
   }
   state.info = {};
   if (state.value) {
@@ -165,6 +176,8 @@ export async function _commandError(state: any, error: any, web: any) {
   state.commandError = true;
   if (state.throwError) {
     throw error;
+  } else {
+    console.warn("Error suppressed:", error.message);
   }
 }
 
@@ -175,6 +188,9 @@ export async function _screenshot(state: any, web: any) {
 }
 
 export async function _commandFinally(state: any, web: any) {
+  if (web.trace) {
+    await web.context.playContext.tracing.groupEnd();
+  }
   web.inStepReport = true;
   if (state && !state.commandError === true) {
     state.info.failCause = {};

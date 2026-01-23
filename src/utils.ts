@@ -345,10 +345,10 @@ async function replaceWithLocalTestData(
       return await resolveDatePlaceholder(key);
     }
 
-    let resolved = replaceTestDataValue(env, key, testData, _decrypt);
+    let resolved = replaceTestDataValue(env, key, testData, _decrypt, context);
     if (resolved !== null) return resolved;
 
-    resolved = replaceTestDataValue("*", key, testData, _decrypt);
+    resolved = replaceTestDataValue("*", key, testData, _decrypt, context);
     if (resolved !== null) return resolved;
 
     if (throwError) {
@@ -426,14 +426,30 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true) {
+function replaceTestDataValue(
+  env: string,
+  key: string,
+  testData: TestData,
+  decryptValue = true,
+  context: any = null
+): string | null {
   // const path = key.split(".");
   const path = getObjectDataPathFromKey(key);
   const value = objectPath.get(testData, path);
+  let newValue;
   if (value && !Array.isArray(value)) {
-    return value as string;
+    if (typeof value == "string") {
+      if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
+        newValue = decrypt(value, null);
+      }
+      if (value.startsWith("${") && value.endsWith("}")) {
+        newValue = evaluateString(value, context?.examplesRow);
+      }
+      return newValue ? newValue : value;
+    } else {
+      return value;
+    }
   }
-
   const dataArray = (testData as TestDataArray)[env];
 
   if (!dataArray) {
@@ -474,22 +490,43 @@ function evaluateString(template: string, parameters: any) {
   }
 }
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
     return dateStr;
   }
-  // Split the input date string
+
+  // Expect "dd-mm-yyyy"
   const [dd, mm, yyyy] = dateStr.split("-");
 
-  // Define replacements
+  const monthIndex = parseInt(mm, 10) - 1;
+  const fullMonth = MONTH_NAMES[monthIndex] ?? "";
+  const shortMonth = fullMonth.slice(0, 3); // "Dec"
+
   const replacements: Record<string, string> = {
-    dd: dd,
-    mm: mm,
-    yyyy: yyyy,
+    dd,
+    mm,
+    yyyy,
+    MONTH: fullMonth,
+    MON: shortMonth,
   };
 
-  // Replace format placeholders with actual values
-  return format.replace(/dd|mm|yyyy/g, (match) => replacements[match]);
+  // Support all tokens
+  return format.replace(/dd|mm|yyyy|MONTH|MON/g, (match) => replacements[match]);
 }
 
 function maskValue(value: string) {
