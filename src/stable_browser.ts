@@ -60,6 +60,8 @@ import { registerAfterStepRoutes, registerBeforeStepRoutes } from "./route.js";
 import { existsSync } from "node:fs";
 import { profile } from "./check_performance.js";
 import { TAG_CONSTANTS } from "./constants.js";
+import _ from "lodash";
+
 export const Types = {
   CLICK: "click_element",
   WAIT_ELEMENT: "wait_element",
@@ -4492,7 +4494,13 @@ class StableBrowser {
     const dataFile = _getDataFile(world, this.context, this);
     if (process.env.MODE === "executions") {
       const globalDataFile = path.join(this.project_path, "global_test_data.json");
-      fs.copyFileSync(dataFile, globalDataFile);
+
+      const dataFileContents = fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile)) : {};
+      const globalDataFileContents = fs.existsSync(globalDataFile) ? JSON.parse(fs.readFileSync(globalDataFile)) : {};
+
+      const mergedData = JSON.stringify(_.merge({}, dataFileContents, globalDataFileContents), null, 2);
+
+      fs.writeFileSync(globalDataFile, mergedData);
       this.logger.info("Save the scenario test data to " + globalDataFile + " as global for the following scenarios.");
       return;
     }
