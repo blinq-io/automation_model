@@ -4283,7 +4283,7 @@ class StableBrowser {
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
     if (this.onRestoreSaveState) {
-     await this.onRestoreSaveState(path);
+      await this.onRestoreSaveState(path);
     }
   }
 
@@ -4500,8 +4500,8 @@ class StableBrowser {
 
       const mergedData = JSON.stringify(_.merge({}, dataFileContents, globalDataFileContents), null, 2);
 
-      fs.writeFileSync(globalDataFile, mergedData);
-      this.logger.info("Save the scenario test data to " + globalDataFile + " as global for the following scenarios.");
+      fs.writeFileSync(dataFile, mergedData);
+      this.logger.info("Save the scenario test data to " + dataFile + " as global for the following scenarios.");
       return;
     }
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
@@ -4619,7 +4619,7 @@ class StableBrowser {
       if (this.tags.includes(TAG_CONSTANTS.GLOBAL_TEST_DATA)) {
         this.saveTestDataAsGlobal({}, world);
       }
-      if(this.tags.includes(TAG_CONSTANTS.FAST_MODE)) {
+      if (this.tags.includes(TAG_CONSTANTS.FAST_MODE)) {
         this.fastMode = true;
       }
     }
