@@ -19,7 +19,7 @@
   ],
   "bruno": {
     "test": {
-      "filename": "/Users/adityabalakrishnan/Documents/GitHub/automation_model/Create Object.bru"
+      "filename": "/Users/adityabalakrishnan/Documents/GitHub/bc/automation_model/Create Object.bru"
     },
     "request": {
       "method": "POST",
@@ -33,7 +33,7 @@
       "status": 200,
       "statusText": "OK",
       "headers": {
-        "date": "Tue, 30 Dec 2025 06:36:39 GMT",
+        "date": "Wed, 28 Jan 2026 12:07:19 GMT",
         "content-type": "application/json",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
@@ -41,25 +41,25 @@
         "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
         "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
         "cf-cache-status": "DYNAMIC",
-        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=XlASqjRYP%2FUlh9uYjt4TKztMmRUb9nJ96ynlQOTMKOIEAohERxdFez0DTv9Ec7h5K3Wb8n43WR1s58yzKecbdMvPibObbax3iBLvYWf3mAbB\"}]}",
-        "cf-ray": "9b5f862afe6918a2-MRS",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=zoIHOz7G7rIL%2F6mCDCz0B0OI6PeTVXwxvAYLaONdv%2FIdL9JDoBBWr%2F64Yx5l7mZzolo9WXHtV7jDhG7yTS%2BtM4n7qXTwXRRzbPSpk%2BapFt3c4NQ%3D\"}]}",
+        "cf-ray": "9c505e6bd9a2c1fb-MRS",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "data": {
-        "id": "ff8081819782e69e019b6df917391797",
+        "id": "ff8081819782e69e019c04803fd90658",
         "name": "{{ObjectName}}",
-        "createdAt": "2025-12-30T06:36:39.609+00:00",
+        "createdAt": "2026-01-28T12:07:19.769+00:00",
         "data": {
           "secret": "{{SecretValue}}",
           "guid": "1234"
         }
       },
-      "responseTime": 712
+      "responseTime": 872
     },
     "error": null,
     "assertionResults": [
       {
-        "uid": "r3EbfIWCRzUsQZ77Sbg0k",
+        "uid": "pK71lX3Kpxy4wKcQITpRF",
         "lhsExpr": "res.body.data.secret",
         "rhsExpr": "eq {{SecretValue}}",
         "rhsOperand": "{{SecretValue}}",
@@ -67,7 +67,7 @@
         "status": "pass"
       },
       {
-        "uid": "OGcY5b1BwNrLOenOh4T0i",
+        "uid": "z2mpRYtXUCJYJmneWrckS",
         "lhsExpr": "res.body.data.guid",
         "rhsExpr": "eq \"{{Guid}}\"",
         "rhsOperand": "\"{{Guid}}\"",
@@ -77,12 +77,12 @@
     ],
     "testResults": [],
     "shouldStopRunnerExecution": false,
-    "runtime": 0.740819041,
-    "suitename": "/Users/adityabalakrishnan/Documents/GitHub/automation_model/Create Object",
+    "runtime": 0.90050075,
+    "suitename": "/Users/adityabalakrishnan/Documents/GitHub/bc/automation_model/Create Object",
     "iterationIndex": 0
   },
   "ddd": "liad123121",
-  "id": 272385868,
-  "result": "user_123",
+  "id": 280630868,
+  "result": "02/13/2025",
   "url": "https://superdemo.blinq.io"
 }
