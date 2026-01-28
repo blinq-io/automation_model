@@ -4500,8 +4500,8 @@ class StableBrowser {
 
       const mergedData = JSON.stringify(_.merge({}, dataFileContents, globalDataFileContents), null, 2);
 
-      fs.writeFileSync(globalDataFile, mergedData);
-      this.logger.info("Save the scenario test data to " + globalDataFile + " as global for the following scenarios.");
+      fs.writeFileSync(dataFile, mergedData);
+      this.logger.info("Save the scenario test data to " + dataFile + " as global for the following scenarios.");
       return;
     }
     process.env.GLOBAL_TEST_DATA_FILE = dataFile;
