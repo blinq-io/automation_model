@@ -9,14 +9,6 @@ on:
       - "package.json"
       - "package-lock.json"
 
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        type: boolean
-        description: "Enable SSH debugging"
-        required: false
-        default: false
-
 permissions:
   contents: write
 
@@ -25,10 +17,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}     
-
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -83,9 +71,10 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: stop and remove HTTPBin Docker container
+        if: ${{ always() }}
         run: |
-            docker stop httpbin-container
-            docker rm httpbin-container
+            docker stop httpbin-container || true
+            docker rm httpbin-container || true
       - name: publish automation model to npm
 
         uses: cucumber/action-publish-npm@v1.1.0
@@ -106,4 +95,3 @@ jobs:
           repository: blinq-io/ai-qa
           event-type: trigger-cucumber-dev
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
-
