@@ -239,7 +239,7 @@ describe("route", function () {
     await context.web.beforeStep(context, stepObject);
     await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/api/index.html");
     await context.web.waitForPageLoad();
-
+    await new Promise((r) => setTimeout(r, 2000));
     await context.web.verifyTextExistInPage("55");
     await context.web.afterStep(context, this);
     console.log(JSON.stringify(context.routeResults, null, 2));
