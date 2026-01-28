@@ -1,0 +1,76 @@
+name: Javascript client debug
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Open SSH (tmate) session if tests fail"
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ github.workspace }}
+
+      - name: Install Playwright dependencies
+        run: npx playwright install --with-deps
+        working-directory: ${{ github.workspace }}
+
+      - name: Start HTTPBin container
+        run: |
+          docker pull kennethreitz/httpbin
+          docker run --name httpbin-container -d -p 3000:80 kennethreitz/httpbin
+
+      - name: Wait for HTTPBin to be ready
+        run: |
+          echo "Waiting for HTTPBin to start..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:3000/status/200 > /dev/null; then
+              echo "HTTPBin is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: HTTPBin not ready yet, waiting..."
+            sleep 2
+          done
+
+          echo "HTTPBin failed to start after 60 seconds"
+          echo "Container logs:"
+          docker logs httpbin-container || true
+          echo "Container status:"
+          docker ps -a || true
+          exit 1
+
+      - name: Run tests
+        run: npm test
+        working-directory: ${{ github.workspace }}
+
+      - name: Open debug SSH (tmate) on failure
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ failure() && inputs.debug_enabled }}
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+      - name: Stop and remove HTTPBin container
+        if: ${{ always() }}
+        run: |
+          docker stop httpbin-container || true
+          docker rm httpbin-container || true
