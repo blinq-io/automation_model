@@ -3,6 +3,19 @@ name: Javascript client CI dev
 on:
   push:
     branches: ["dev"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Enable SSH debugging"
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -12,7 +25,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}     
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v3
