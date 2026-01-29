@@ -848,12 +848,6 @@ class StableBrowser {
       timeout = 30000;
     }
     let element = null;
-    let allStrategyLocators = null;
-    let selectedStrategy = null;
-    if (this.tryAllStrategies) {
-      allStrategyLocators = this.getFullElementLocators(selectors, this.getFilePath());
-      selectedStrategy = allStrategyLocators?.strategy;
-    }
 
     for (let i = 0; i < 3; i++) {
       info.log += "attempt " + i + ": total locators " + selectors.locators.length + "\n";
@@ -862,46 +856,8 @@ class StableBrowser {
         let selector = selectors.locators[j];
         info.log += "searching for locator " + j + ":" + JSON.stringify(selector) + "\n";
       }
-      if (this.tryAllStrategies && selectedStrategy) {
-        const strategyLocators = allStrategyLocators[selectedStrategy];
-        let err;
-        if (strategyLocators && strategyLocators.length) {
-          try {
-            selectors.locators = strategyLocators;
-            element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
-            info.selectedStrategy = selectedStrategy;
-            info.log += "element found using strategy " + selectedStrategy + "\n";
-          } catch (error) {
-            err = error;
-          }
-        }
-        if (!element) {
-          for (const key in allStrategyLocators) {
-            if (key === "strategy" || key === selectedStrategy) {
-              continue;
-            }
-            const strategyLocators = allStrategyLocators[key];
-            if (strategyLocators && strategyLocators.length) {
-              try {
-                info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
-                selectors.locators = strategyLocators;
-                element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
-                err = null;
-                info.selectedStrategy = key;
-                info.log += "element found using strategy " + key + "\n";
-                break;
-              } catch (error) {
-                err = error;
-              }
-            }
-          }
-        }
-        if (err) {
-          throw err;
-        }
-      } else {
-        element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
-      }
+
+      element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
 
       if (!element.rerun) {
         let newElementSelector = "";
