@@ -34,7 +34,7 @@ describe("file protocol blocking", function () {
     await new Promise((resolve) => setTimeout(resolve, 250)); // Wait for any initial navigations to complete
     const navError = await ctx.page.goto(fileUrl).catch((err) => err);
 
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait for any navigation attempts to complete
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait for any navigation attempts to complete
     expect(navError).to.be.instanceOf(Error);
     expect(ctx.page.url()).to.not.match(/^file:\/\//);
   });
