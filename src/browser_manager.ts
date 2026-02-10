@@ -306,15 +306,6 @@ class Browser {
         }
       }
     }
-    // if ((process.env.TRACE === "true" || aiConfig.trace === true) && this.context) {
-    //   this.trace = true;
-    //   const traceFolder = path.join(this.reportFolder!, "trace");
-    //   if (!fs.existsSync(traceFolder)) {
-    //     fs.mkdirSync(traceFolder, { recursive: true });
-    //   }
-    //   this.traceFolder = traceFolder;
-    //   await this.context.tracing.start({ screenshots: true, snapshots: true });
-    // }
 
     function createGuid(): string {
       return crypto.randomBytes(16).toString("hex");
@@ -373,6 +364,29 @@ class Browser {
     } else {
       this.page = await this.context!.newPage();
     }
+
+    const blockFileProtocol = process.env.REMOTE_RECORDER === "true";
+
+    if (blockFileProtocol && this.context) {
+      await this.context.route(/^file:\/\//, (route) => {
+        console.warn(`Blocked file:// request: ${route.request().url()}`);
+        return route.abort();
+      });
+
+      this.context.on("page", (page) => {
+        page.on("framenavigated", async (frame) => {
+          if (frame.url().startsWith("file://")) {
+            console.warn(`Blocked navigation to ${frame.url()}`);
+            try {
+              await page.goto("about:blank");
+            } catch (err) {
+              // ignore navigation errors caused by the interruption
+            }
+          }
+        });
+      });
+    }
+
     if (this.context) {
       this.context.on("close", () => {
         (this.context as any).isClosed = true;
