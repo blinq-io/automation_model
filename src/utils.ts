@@ -345,10 +345,10 @@ async function replaceWithLocalTestData(
       return await resolveDatePlaceholder(key);
     }
 
-    let resolved = replaceTestDataValue(env, key, testData, _decrypt,context);
+    let resolved = replaceTestDataValue(env, key, testData, _decrypt, context);
     if (resolved !== null) return resolved;
 
-    resolved = replaceTestDataValue("*", key, testData, _decrypt,context);
+    resolved = replaceTestDataValue("*", key, testData, _decrypt, context);
     if (resolved !== null) return resolved;
 
     if (throwError) {
@@ -426,23 +426,29 @@ interface TestDataValue {
 
 type TestData = TestDataArray | TestDataValue;
 
-function replaceTestDataValue(env: string, key: string, testData: TestData, decryptValue = true, context: any = null): string | null {
+function replaceTestDataValue(
+  env: string,
+  key: string,
+  testData: TestData,
+  decryptValue = true,
+  context: any = null
+): string | null {
   // const path = key.split(".");
   const path = getObjectDataPathFromKey(key);
   const value = objectPath.get(testData, path);
   let newValue;
   if (value && !Array.isArray(value)) {
-    if(typeof value == "string") {
-    if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
+    if (typeof value == "string") {
+      if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
         newValue = decrypt(value, null);
-    }
-    if (value.startsWith("${") && value.endsWith("}")) {
+      }
+      if (value.startsWith("${") && value.endsWith("}")) {
         newValue = evaluateString(value, context?.examplesRow);
-    }
-    return newValue ? newValue : value;
-  } else {
+      }
+      return newValue ? newValue : value;
+    } else {
       return value;
-    }     
+    }
   }
   const dataArray = (testData as TestDataArray)[env];
 
@@ -503,6 +509,8 @@ function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
     return dateStr;
   }
+
+  // Expect "dd-mm-yyyy"
 
   // Expect "dd-mm-yyyy"
   const [dd, mm, yyyy] = dateStr.split("-");
