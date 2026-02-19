@@ -437,6 +437,7 @@ function replaceTestDataValue(
   const path = getObjectDataPathFromKey(key);
   const value = objectPath.get(testData, path);
   let newValue;
+  let newValue;
   if (value && !Array.isArray(value)) {
     if (typeof value == "string") {
       if ((value.startsWith("secret:") || value.startsWith("totp:") || value.startsWith("mask:")) && decryptValue) {
@@ -505,13 +506,34 @@ const MONTH_NAMES = [
   "December",
 ];
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 function formatDate(dateStr: string, format: string | null): string {
   if (!format) {
     return dateStr;
   }
 
   // Expect "dd-mm-yyyy"
+
+  // Expect "dd-mm-yyyy"
   const [dd, mm, yyyy] = dateStr.split("-");
+
+  const monthIndex = parseInt(mm, 10) - 1;
+  const fullMonth = MONTH_NAMES[monthIndex] ?? "";
+  const shortMonth = fullMonth.slice(0, 3); // "Dec"
 
   const monthIndex = parseInt(mm, 10) - 1;
   const fullMonth = MONTH_NAMES[monthIndex] ?? "";
@@ -523,8 +545,15 @@ function formatDate(dateStr: string, format: string | null): string {
     yyyy,
     MONTH: fullMonth,
     MON: shortMonth,
+    dd,
+    mm,
+    yyyy,
+    MONTH: fullMonth,
+    MON: shortMonth,
   };
 
+  // Support all tokens
+  return format.replace(/dd|mm|yyyy|MONTH|MON/g, (match) => replacements[match]);
   // Support all tokens
   return format.replace(/dd|mm|yyyy|MONTH|MON/g, (match) => replacements[match]);
 }

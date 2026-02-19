@@ -4,6 +4,11 @@
     "baseUrl": "https://shop-blinq.io",
     "name": "shop-blinq"
   },
+  "user": "guy",
+  "env": {
+    "baseUrl": "https://shop-blinq.io",
+    "name": "shop-blinq"
+  },
   "*": [
     {
       "key": "user",
