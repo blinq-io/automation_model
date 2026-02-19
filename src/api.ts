@@ -259,7 +259,7 @@ class Api {
                 try {
                   const pattern = String(test.value);
                   const regex = new RegExp(pattern);
-                  test.fail = !regex.test(String(receivedValue)); 
+                  test.fail = !regex.test(String(receivedValue));
                 } catch (err) {
                   console.error("Invalid regex:", test.value, err);
                   test.fail = true;
@@ -402,7 +402,7 @@ class Api {
 }
 
 const repStrWParamTData = async (str: any, params: Param, testData: any, world: any) => {
-  if(typeof str !== 'string') {
+  if (typeof str !== "string") {
     return str;
   }
   let newStr = str;
