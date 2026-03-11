@@ -511,6 +511,8 @@ function formatDate(dateStr: string, format: string | null): string {
   }
 
   // Expect "dd-mm-yyyy"
+
+  // Expect "dd-mm-yyyy"
   const [dd, mm, yyyy] = dateStr.split("-");
 
   const monthIndex = parseInt(mm, 10) - 1;
