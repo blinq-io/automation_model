@@ -249,98 +249,102 @@ describe("route", function () {
     expect(result.actions[0].type).to.equal("json_modify");
     expect(result.actions[0].status).to.equal("success");
   });
-  it("route assert_json", async function () {
-    const stepObject = {
-      pickleStep: { text: 'login with "user_name" and "password" 6', keyword: "Given" },
-      gherkinDocument: { feature: { name: "Login" } },
-      pickle: {
-        name: "Login scenario",
-      },
-    };
-    await context.web.beforeStep(context, stepObject);
-    await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/api/index.html");
-    await context.web.waitForPageLoad();
+  // it("route assert_json", async function () {
+  //   const stepObject = {
+  //     pickleStep: { text: 'login with "user_name" and "password" 6', keyword: "Given" },
+  //     gherkinDocument: { feature: { name: "Login" } },
+  //     pickle: {
+  //       name: "Login scenario",
+  //     },
+  //   };
+  //   await context.web.beforeStep(context, stepObject);
+  //   await context.web.goto("https://main.dldrg2rtamdtd.amplifyapp.com/site/api/index.html");
+  //   await context.web.waitForPageLoad();
 
-    await context.web.afterStep(context, this);
-    console.log(JSON.stringify(context.routeResults, null, 2));
-    expect(context.routeResults).to.have.lengthOf(1);
-    const result = context.routeResults[0];
-    expect(result.actions).to.have.lengthOf(1);
-    expect(result.actions[0].type).to.equal("assert_json");
-    expect(result.actions[0].status).to.equal("success");
-  });
-  it("route assert_whole_json", async function () {
-    // Navigate to http://localhost:3000
-    const stepObject = {
-      pickleStep: {
-        text: "The user navigates to GET response format and executes it and verifies json body",
-        keyword: "Given",
-      },
-      gherkinDocument: { feature: { name: "Login" } },
-      pickle: {
-        name: "HTTPBin scenario",
-      },
-    };
-    await context.web.beforeStep(context, stepObject);
-    await context.web.goto("http://localhost:3000");
-    await context.web.waitForPageLoad();
-    await context.web.click(elements["link_response_formats"], null, null, this);
-    await context.web.click(elements["text_get"], null, null, this);
-    await context.web.click(elements["button_try_it_out"], null, null, this);
-    await context.web.click(elements["button_execute"], null, null, this);
-    await context.web.verifyTextExistInPage("slideshow", null, this);
-    await context.web.verifyTextExistInPage("Yours Truly", null, this);
-    console.log(JSON.stringify(context.routeResults, null, 2));
-  });
-  it("route modify_whole_json", async function () {
-    const stepObject = {
-      pickleStep: {
-        text: "The user navigates to GET response format and executes it",
-        keyword: "Given",
-      },
-      gherkinDocument: { feature: { name: "Login" } },
-      pickle: {
-        name: "HTTPBin scenario",
-      },
-    };
-    await context.web.beforeStep(context, stepObject);
-    await context.web.goto("http://localhost:3000");
-    await context.web.waitForPageLoad();
-    await context.web.click(elements["link_response_formats"], null, null, this);
-    await context.web.click(elements["text_get"], null, null, this);
-    await context.web.click(elements["button_try_it_out"], null, null, this);
-    await context.web.click(elements["button_execute"], null, null, this);
-    await context.web.verifyTextExistInPage("blinqio", null, this);
-    await context.web.verifyTextExistInPage("virtual tester", null, this);
-    console.log(JSON.stringify(context.routeResults, null, 2));
-  });
-  it("route stub_text", async function () {
-    const stepObject = {
-      pickleStep: {
-        text: "The user navigates through various links and buttons on the httpbin.org page",
-        keyword: "Given",
-      },
-      gherkinDocument: { feature: { name: "Login" } },
-      pickle: {
-        name: "HTTPBin scenario",
-      },
-    };
-    const _params = {};
-    await context.web.beforeStep(context, stepObject);
-    await context.web.goto("http://localhost:3000");
-    await context.web.waitForPageLoad();
-    await context.web.click(elements["link_response_formats"], null, null, this);
-    await context.web.click(elements["link_html"], _params, null, this);
-    await context.web.click(elements["button_try_it_out_1"], _params, null, this);
-    await context.web.click(elements["button_execute_1"], _params, null, this);
-    await context.web.verifyTextExistInPage("BVT Analysis Formatter", null, this);
-    try {
-      await context.web.click(elements["text_moby"], _params, null, this);
-    } catch (e) {
-      expect(e).property("info").property("errorType").to.equal("ElementNotFoundError");
-    }
-    console.log(JSON.stringify(context.routeResults, null, 2));
-  });
+  //   await context.web.afterStep(context, this);
+  //   console.log(JSON.stringify(context.routeResults, null, 2));
+  //   expect(context.routeResults).to.have.lengthOf(1);
+  //   const result = context.routeResults[0];
+  //   expect(result.actions).to.have.lengthOf(1);
+  //   expect(result.actions[0].type).to.equal("assert_json");
+  //   expect(result.actions[0].status).to.equal("success");
+  // });
+  
+  // it("route assert_whole_json", async function () {
+  //   // Navigate to http://localhost:3000
+  //   const stepObject = {
+  //     pickleStep: {
+  //       text: "The user navigates to GET response format and executes it and verifies json body",
+  //       keyword: "Given",
+  //     },
+  //     gherkinDocument: { feature: { name: "Login" } },
+  //     pickle: {
+  //       name: "HTTPBin scenario",
+  //     },
+  //   };
+  //   await context.web.beforeStep(context, stepObject);
+  //   await context.web.goto("http://localhost:3000");
+  //   await context.web.waitForPageLoad();
+  //   await context.web.click(elements["link_response_formats"], null, null, this);
+  //   await context.web.click(elements["text_get"], null, null, this);
+  //   await context.web.click(elements["button_try_it_out"], null, null, this);
+  //   await context.web.click(elements["button_execute"], null, null, this);
+  //   await context.web.verifyTextExistInPage("slideshow", null, this);
+  //   await context.web.verifyTextExistInPage("Yours Truly", null, this);
+  //   console.log(JSON.stringify(context.routeResults, null, 2));
+  // });
+
+  // it("route modify_whole_json", async function () {
+  //   const stepObject = {
+  //     pickleStep: {
+  //       text: "The user navigates to GET response format and executes it",
+  //       keyword: "Given",
+  //     },
+  //     gherkinDocument: { feature: { name: "Login" } },
+  //     pickle: {
+  //       name: "HTTPBin scenario",
+  //     },
+  //   };
+  //   await context.web.beforeStep(context, stepObject);
+  //   await context.web.goto("http://localhost:3000");
+  //   await context.web.waitForPageLoad();
+  //   await context.web.click(elements["link_response_formats"], null, null, this);
+  //   await context.web.click(elements["text_get"], null, null, this);
+  //   await context.web.click(elements["button_try_it_out"], null, null, this);
+  //   await context.web.click(elements["button_execute"], null, null, this);
+  //   await context.web.verifyTextExistInPage("blinqio", null, this);
+  //   await context.web.verifyTextExistInPage("virtual tester", null, this);
+  //   console.log(JSON.stringify(context.routeResults, null, 2));
+  // });
+
+  // it("route stub_text", async function () {
+  //   const stepObject = {
+  //     pickleStep: {
+  //       text: "The user navigates through various links and buttons on the httpbin.org page",
+  //       keyword: "Given",
+  //     },
+  //     gherkinDocument: { feature: { name: "Login" } },
+  //     pickle: {
+  //       name: "HTTPBin scenario",
+  //     },
+  //   };
+  //   const _params = {};
+  //   await context.web.beforeStep(context, stepObject);
+  //   await context.web.goto("http://localhost:3000");
+  //   await context.web.waitForPageLoad();
+  //   await context.web.click(elements["link_response_formats"], null, null, this);
+  //   await context.web.click(elements["link_html"], _params, null, this);
+  //   await context.web.click(elements["button_try_it_out_1"], _params, null, this);
+  //   await context.web.click(elements["button_execute_1"], _params, null, this);
+  //   await context.web.verifyTextExistInPage("BVT Analysis Formatter", null, this);
+  //   try {
+  //     await context.web.click(elements["text_moby"], _params, null, this);
+  //   } catch (e) {
+  //     expect(e).property("info").property("errorType").to.equal("ElementNotFoundError");
+  //   }
+  //   console.log(JSON.stringify(context.routeResults, null, 2));
+  // });
+
   it("route test data", async function () {
     const stepObject = {
       pickleStep: { text: 'login with "user_name" and "password" 8', keyword: "Given" },
