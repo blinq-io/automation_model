@@ -1591,9 +1591,10 @@ class StableBrowser {
   }
 
   async selectOption(selectors, values, _params = null, options = {}, world = null) {
-    if (!values) {
-      throw new Error("values is null");
-    }
+    // commented out this condition as some select elements have NULL values by default.
+    // if (!values) {
+    //   throw new Error("values is null");
+    // }
     const state = {
       selectors,
       _params,
