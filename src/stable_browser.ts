@@ -129,7 +129,7 @@ class StableBrowser {
   constructor(
     public browser: Browser,
     public page: Page,
-    public logger: any = null,
+    public logger: any = console,
     public context: any = null,
     public world?: any = null,
     public fastMode: boolean = false,
