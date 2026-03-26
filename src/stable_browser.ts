@@ -1211,11 +1211,11 @@ class StableBrowser {
         visibleOnly = false;
       }
     }
-    this.logger.debug("unable to locate unique element, total elements found " + locatorsCount);
+    logEvent("unable to locate unique element, total elements found " + locatorsCount);
     // if (info.locatorLog) {
     //   const lines = info.locatorLog.toString().split("\n");
     //   for (let line of lines) {
-    //     this.logger.debug(line);
+    //     logEvent(line);
     //   }
     // }
     //info.log += "failed to locate unique element, total elements found " + locatorsCount + "\n";
@@ -1256,8 +1256,8 @@ class StableBrowser {
         );
       } catch (e) {
         // this call can fail it the browser is navigating
-        // this.logger.debug("unable to use locator " + JSON.stringify(locatorsGroup[i]));
-        // this.logger.debug(e);
+        // logEvent("unable to use locator " + JSON.stringify(locatorsGroup[i]));
+        // logEvent(e);
         foundLocators = [];
         try {
           await this._collectLocatorInformation(
@@ -4243,7 +4243,7 @@ class StableBrowser {
     try {
       return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
     } catch (error) {
-      this.logger.debug(error);
+      logEvent(error);
       throw error;
     }
   }
@@ -4822,22 +4822,22 @@ class StableBrowser {
 
   async afterStep(world, step, result) {
     const afterStepStart = Date.now();
-    this.logger.debug("[afterStep] started");
+    logEvent("[afterStep] started");
 
     this.stepName = null;
 
     if (this.context) {
-      this.logger.debug("[afterStep] branch: context exists — clearing examplesRow");
+      logEvent("[afterStep] branch: context exists — clearing examplesRow");
       this.context.examplesRow = null;
     } else {
-      this.logger.debug("[afterStep] branch: no context — skipping examplesRow clear");
+      logEvent("[afterStep] branch: no context — skipping examplesRow clear");
     }
 
     if (!this.inStepReport) {
-      this.logger.debug("[afterStep] branch: not inStepReport — checking step result");
+      logEvent("[afterStep] branch: not inStepReport — checking step result");
       // check the step result
       if (result && result.status === "FAILED" && world && world.attach) {
-        this.logger.debug("[afterStep] branch: step FAILED — attaching failure report");
+        logEvent("[afterStep] branch: step FAILED — attaching failure report");
         const t0 = Date.now();
         await this.addCommandToReport(
           result.message ? result.message : "Step failed",
@@ -4846,14 +4846,14 @@ class StableBrowser {
           { type: "text", screenshot: true },
           world
         );
-        this.logger.debug(`[afterStep] addCommandToReport (failure report) took ${Date.now() - t0}ms`);
+        logEvent(`[afterStep] addCommandToReport (failure report) took ${Date.now() - t0}ms`);
       } else {
-        this.logger.debug(
+        logEvent(
           `[afterStep] branch: step not FAILED (status=${result?.status}) or world.attach unavailable — skipping failure report`
         );
       }
     } else {
-      this.logger.debug("[afterStep] branch: inStepReport=true — skipping failure report check");
+      logEvent("[afterStep] branch: inStepReport=true — skipping failure report check");
     }
 
     if (
@@ -4863,45 +4863,45 @@ class StableBrowser {
       !this.fastMode &&
       !this.stepTags.includes("fast-mode")
     ) {
-      this.logger.debug("[afterStep] branch: snapshot eligible — fetching aria snapshot");
+      logEvent("[afterStep] branch: snapshot eligible — fetching aria snapshot");
       const t0 = Date.now();
       const snapshot = await this.getAriaSnapshot();
-      this.logger.debug(`[afterStep] getAriaSnapshot took ${Date.now() - t0}ms`);
+      logEvent(`[afterStep] getAriaSnapshot took ${Date.now() - t0}ms`);
       if (snapshot) {
-        this.logger.debug("[afterStep] branch: snapshot returned — attaching to world");
+        logEvent("[afterStep] branch: snapshot returned — attaching to world");
         const obj = {};
         const t1 = Date.now();
         await world.attach(JSON.stringify(snapshot), "application/json+snapshot-after");
-        this.logger.debug(`[afterStep] world.attach (aria snapshot) took ${Date.now() - t1}ms`);
+        logEvent(`[afterStep] world.attach (aria snapshot) took ${Date.now() - t1}ms`);
       } else {
-        this.logger.debug("[afterStep] branch: snapshot was empty/null — skipping attach");
+        logEvent("[afterStep] branch: snapshot was empty/null — skipping attach");
       }
     } else {
-      this.logger.debug(
+      logEvent(
         `[afterStep] branch: snapshot skipped — world=${!!world} world.attach=${!!(world && world.attach)} DISABLE_SNAPSHOT=${!!process.env.DISABLE_SNAPSHOT} fastMode=${this.fastMode} stepTags.fast-mode=${this.stepTags.includes("fast-mode")}`
       );
     }
 
     const t0 = Date.now();
     this.context.routeResults = await registerAfterStepRoutes(this.context, world);
-    this.logger.debug(`[afterStep] registerAfterStepRoutes took ${Date.now() - t0}ms`);
+    logEvent(`[afterStep] registerAfterStepRoutes took ${Date.now() - t0}ms`);
 
     if (this.context.routeResults) {
-      this.logger.debug("[afterStep] branch: routeResults present — checking world.attach");
+      logEvent("[afterStep] branch: routeResults present — checking world.attach");
       if (world && world.attach) {
-        this.logger.debug("[afterStep] branch: world.attach available — attaching intercept results");
+        logEvent("[afterStep] branch: world.attach available — attaching intercept results");
         const t1 = Date.now();
         await world.attach(JSON.stringify(this.context.routeResults), "application/json+intercept-results");
-        this.logger.debug(`[afterStep] world.attach (intercept results) took ${Date.now() - t1}ms`);
+        logEvent(`[afterStep] world.attach (intercept results) took ${Date.now() - t1}ms`);
       } else {
-        this.logger.debug("[afterStep] branch: world.attach unavailable — skipping intercept results attach");
+        logEvent("[afterStep] branch: world.attach unavailable — skipping intercept results attach");
       }
     } else {
-      this.logger.debug("[afterStep] branch: no routeResults — skipping intercept results attach");
+      logEvent("[afterStep] branch: no routeResults — skipping intercept results attach");
     }
 
     if (!process.env.TEMP_RUN) {
-      this.logger.debug("[afterStep] branch: TEMP_RUN not set — running step_complete command");
+      logEvent("[afterStep] branch: TEMP_RUN not set — running step_complete command");
       const state = {
         world,
         locate: false,
@@ -4917,47 +4917,47 @@ class StableBrowser {
       try {
         const t1 = Date.now();
         await _preCommand(state, this);
-        this.logger.debug(`[afterStep] _preCommand (step_complete) took ${Date.now() - t1}ms`);
+        logEvent(`[afterStep] _preCommand (step_complete) took ${Date.now() - t1}ms`);
       } catch (e) {
-        this.logger.debug(`[afterStep] branch: _preCommand threw — running _commandError`);
+        logEvent(`[afterStep] branch: _preCommand threw — running _commandError`);
         const t1 = Date.now();
         await _commandError(state, e, this);
-        this.logger.debug(`[afterStep] _commandError took ${Date.now() - t1}ms`);
+        logEvent(`[afterStep] _commandError took ${Date.now() - t1}ms`);
       } finally {
         const t1 = Date.now();
         await _commandFinally(state, this);
-        this.logger.debug(`[afterStep] _commandFinally took ${Date.now() - t1}ms`);
+        logEvent(`[afterStep] _commandFinally took ${Date.now() - t1}ms`);
       }
     } else {
-      this.logger.debug(`[afterStep] branch: TEMP_RUN=${process.env.TEMP_RUN} — skipping step_complete command`);
+      logEvent(`[afterStep] branch: TEMP_RUN=${process.env.TEMP_RUN} — skipping step_complete command`);
     }
 
     networkAfterStep(this.stepName, this.context);
 
     if (process.env.TEMP_RUN === "true") {
-      this.logger.debug("[afterStep] branch: TEMP_RUN=true — checking fast-mode tag");
+      logEvent("[afterStep] branch: TEMP_RUN=true — checking fast-mode tag");
       if (!this.stepTags.includes("fast-mode")) {
-        this.logger.debug("[afterStep] branch: not fast-mode — sleeping 3000ms");
+        logEvent("[afterStep] branch: not fast-mode — sleeping 3000ms");
         const t1 = Date.now();
         await new Promise((resolve) => setTimeout(resolve, 3000));
-        this.logger.debug(`[afterStep] TEMP_RUN sleep took ${Date.now() - t1}ms`);
+        logEvent(`[afterStep] TEMP_RUN sleep took ${Date.now() - t1}ms`);
       } else {
-        this.logger.debug("[afterStep] branch: fast-mode tag present — skipping TEMP_RUN sleep");
+        logEvent("[afterStep] branch: fast-mode tag present — skipping TEMP_RUN sleep");
       }
     } else {
-      this.logger.debug(`[afterStep] branch: TEMP_RUN !== 'true' (value=${process.env.TEMP_RUN}) — skipping sleep`);
+      logEvent(`[afterStep] branch: TEMP_RUN !== 'true' (value=${process.env.TEMP_RUN}) — skipping sleep`);
     }
 
     if (this.trace) {
-      this.logger.debug("[afterStep] branch: tracing enabled — closing trace group");
+      logEvent("[afterStep] branch: tracing enabled — closing trace group");
       const t1 = Date.now();
       await this.context.playContext.tracing.groupEnd();
-      this.logger.debug(`[afterStep] tracing.groupEnd took ${Date.now() - t1}ms`);
+      logEvent(`[afterStep] tracing.groupEnd took ${Date.now() - t1}ms`);
     } else {
-      this.logger.debug("[afterStep] branch: tracing disabled — skipping groupEnd");
+      logEvent("[afterStep] branch: tracing disabled — skipping groupEnd");
     }
 
-    this.logger.debug(`[afterStep] total duration: ${Date.now() - afterStepStart}ms`);
+    logEvent(`[afterStep] total duration: ${Date.now() - afterStepStart}ms`);
   }
 }
 
@@ -4967,3 +4967,8 @@ function createTimedPromise(promise, label) {
     .catch((error) => Promise.reject({ status: "rejected", label, error }));
 }
 export { StableBrowser };
+
+function logEvent(message) {
+  const humanFriendlyTime = new Date().toLocaleTimeString();
+  console.log(`🟧 [${humanFriendlyTime}] ${message}`);
+}
