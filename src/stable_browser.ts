@@ -194,14 +194,20 @@ class StableBrowser {
       async function (page) {
         if (this.configuration && this.configuration.closePopups === true) {
           console.log("close unexpected popups");
+          const _perf_t0 = Date.now();
+          logEvent("[registerEventListeners] before: page.close");
           await page.close();
+          logEvent(`[registerEventListeners] after: page.close took ${Date.now() - _perf_t0}ms`);
           return;
         }
         context.pageLoading.status = true;
         this.page = page;
         try {
           if (this.configuration && this.configuration.acceptDialog) {
+            const _perf_t1 = Date.now();
+            logEvent("[registerEventListeners] before: page.on");
             await page.on("dialog", (dialog) => dialog.accept());
+            logEvent(`[registerEventListeners] after: page.on took ${Date.now() - _perf_t1}ms`);
           }
         } catch (error) {
           console.error("Error on dialog accept registration", error);
@@ -217,7 +223,10 @@ class StableBrowser {
             this.page = this.context.pages[this.context.pages.length - 1];
             this.context.page = this.page;
             try {
+              const _perf_t2 = Date.now();
+              logEvent("[registerEventListeners] before: page.title");
               let title = await this.page.title();
+              logEvent(`[registerEventListeners] after: page.title took ${Date.now() - _perf_t2}ms`);
               console.log("Switched to page " + title);
             } catch (error) {
               if (error?.message?.includes("Target page, context or browser has been closed")) {
@@ -229,7 +238,10 @@ class StableBrowser {
           }
         });
         try {
+          const _perf_t3 = Date.now();
+          logEvent("[registerEventListeners] before: waitForPageLoad");
           await this.waitForPageLoad();
+          logEvent(`[registerEventListeners] after: waitForPageLoad took ${Date.now() - _perf_t3}ms`);
           console.log("Switch page: " + (await page.title()));
         } catch (e) {
           if (e?.message?.includes("Target page, context or browser has been closed")) {
@@ -250,6 +262,8 @@ class StableBrowser {
     }
     let newContextCreated = false;
     if (!apps[appName]) {
+      const _perf_t4 = Date.now();
+      logEvent("[switchApp] before: getContext");
       let newContext = await getContext(
         null,
         this.context.headless ? this.context.headless : false,
@@ -264,6 +278,7 @@ class StableBrowser {
         null,
         this.tags
       );
+      logEvent(`[switchApp] after: getContext took ${Date.now() - _perf_t4}ms`);
       newContextCreated = true;
       apps[appName] = {
         context: newContext,
@@ -278,9 +293,15 @@ class StableBrowser {
     this.appName = appName;
     if (newContextCreated) {
       this.registerEventListeners(this.context);
+      const _perf_t5 = Date.now();
+      logEvent("[switchApp] before: goto");
       await this.goto(this.context.environment.baseUrl);
+      logEvent(`[switchApp] after: goto took ${Date.now() - _perf_t5}ms`);
       if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
+        const _perf_t6 = Date.now();
+        logEvent("[switchApp] before: waitForPageLoad");
         await this.waitForPageLoad();
+        logEvent(`[switchApp] after: waitForPageLoad took ${Date.now() - _perf_t6}ms`);
       }
     }
   }
@@ -291,18 +312,27 @@ class StableBrowser {
       if (index >= 0 && index < this.context.pages.length) {
         this.page = this.context.pages[index];
         this.context.page = this.page;
+        const _perf_t7 = Date.now();
+        logEvent("[switchTab] before: page.bringToFront");
         await this.page.bringToFront();
+        logEvent(`[switchTab] after: page.bringToFront took ${Date.now() - _perf_t7}ms`);
         return;
       }
     }
     // if the tabNameOrIndex is a string, find the tab by name
     for (let i = 0; i < this.context.pages.length; i++) {
       let page = this.context.pages[i];
+      const _perf_t8 = Date.now();
+      logEvent("[switchTab] before: page.title");
       let title = await page.title();
+      logEvent(`[switchTab] after: page.title took ${Date.now() - _perf_t8}ms`);
       if (title.includes(tabTitleOrIndex)) {
         this.page = page;
         this.context.page = this.page;
+        const _perf_t9 = Date.now();
+        logEvent("[switchTab] before: page.bringToFront");
         await this.page.bringToFront();
+        logEvent(`[switchTab] after: page.bringToFront took ${Date.now() - _perf_t9}ms`);
         return;
       }
     }
@@ -339,13 +369,19 @@ class StableBrowser {
         if (pageUrl.hostname === requestUrl.hostname) {
           const method = data.method();
           if (["POST", "GET", "PUT", "DELETE", "PATCH"].includes(method)) {
+            const _perf_t10 = Date.now();
+            logEvent("[registerRequestListener] before: data.headerValue");
             const token = await data.headerValue("Authorization");
+            logEvent(`[registerRequestListener] after: data.headerValue took ${Date.now() - _perf_t10}ms`);
             if (token) {
               context.authtoken = token;
             }
           }
         }
+        const _perf_t11 = Date.now();
+        logEvent("[registerRequestListener] before: data.response");
         const response = await data.response();
+        logEvent(`[registerRequestListener] after: data.response took ${Date.now() - _perf_t11}ms`);
         const endTime = new Date().getTime();
 
         const obj = {
@@ -378,7 +414,10 @@ class StableBrowser {
     if (!url) {
       throw new Error("url is null, verify that the environment file is correct");
     }
+    const _perf_t12 = Date.now();
+    logEvent("[goto] before: _replaceWithLocalData");
     url = await this._replaceWithLocalData(url, this.world);
+    logEvent(`[goto] after: _replaceWithLocalData took ${Date.now() - _perf_t12}ms`);
     if (!url.startsWith("http")) {
       url = "https://" + url;
     }
@@ -403,16 +442,31 @@ class StableBrowser {
       timeout = options["timeout"];
     }
     try {
+      const _perf_t13 = Date.now();
+      logEvent("[goto] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[goto] after: _preCommand took ${Date.now() - _perf_t13}ms`);
+      const _perf_t14 = Date.now();
+      logEvent("[goto] before: page.goto");
       await this.page.goto(url, {
         timeout: timeout,
       });
+      logEvent(`[goto] after: page.goto took ${Date.now() - _perf_t14}ms`);
+      const _perf_t15 = Date.now();
+      logEvent("[goto] before: _screenshot");
       await _screenshot(state, this);
+      logEvent(`[goto] after: _screenshot took ${Date.now() - _perf_t15}ms`);
     } catch (error) {
       console.error("Error on goto", error);
+      const _perf_t16 = Date.now();
+      logEvent("[goto] before: _commandError");
       await _commandError(state, error, this);
+      logEvent(`[goto] after: _commandError took ${Date.now() - _perf_t16}ms`);
     } finally {
+      const _perf_t17 = Date.now();
+      logEvent("[goto] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[goto] after: _commandFinally took ${Date.now() - _perf_t17}ms`);
     }
   }
 
@@ -431,16 +485,31 @@ class StableBrowser {
       highlight: false,
     };
     try {
+      const _perf_t18 = Date.now();
+      logEvent("[goBack] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[goBack] after: _preCommand took ${Date.now() - _perf_t18}ms`);
+      const _perf_t19 = Date.now();
+      logEvent("[goBack] before: page.goBack");
       await this.page.goBack({
         waitUntil: "load",
       });
+      logEvent(`[goBack] after: page.goBack took ${Date.now() - _perf_t19}ms`);
+      const _perf_t20 = Date.now();
+      logEvent("[goBack] before: _screenshot");
       await _screenshot(state, this);
+      logEvent(`[goBack] after: _screenshot took ${Date.now() - _perf_t20}ms`);
     } catch (error) {
       console.error("Error on goBack", error);
+      const _perf_t21 = Date.now();
+      logEvent("[goBack] before: _commandError");
       await _commandError(state, error, this);
+      logEvent(`[goBack] after: _commandError took ${Date.now() - _perf_t21}ms`);
     } finally {
+      const _perf_t22 = Date.now();
+      logEvent("[goBack] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[goBack] after: _commandFinally took ${Date.now() - _perf_t22}ms`);
     }
   }
 
@@ -459,16 +528,31 @@ class StableBrowser {
       highlight: false,
     };
     try {
+      const _perf_t23 = Date.now();
+      logEvent("[goForward] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[goForward] after: _preCommand took ${Date.now() - _perf_t23}ms`);
+      const _perf_t24 = Date.now();
+      logEvent("[goForward] before: page.goForward");
       await this.page.goForward({
         waitUntil: "load",
       });
+      logEvent(`[goForward] after: page.goForward took ${Date.now() - _perf_t24}ms`);
+      const _perf_t25 = Date.now();
+      logEvent("[goForward] before: _screenshot");
       await _screenshot(state, this);
+      logEvent(`[goForward] after: _screenshot took ${Date.now() - _perf_t25}ms`);
     } catch (error) {
       console.error("Error on goForward", error);
+      const _perf_t26 = Date.now();
+      logEvent("[goForward] before: _commandError");
       await _commandError(state, error, this);
+      logEvent(`[goForward] after: _commandError took ${Date.now() - _perf_t26}ms`);
     } finally {
+      const _perf_t27 = Date.now();
+      logEvent("[goForward] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[goForward] after: _commandFinally took ${Date.now() - _perf_t27}ms`);
     }
   }
 
@@ -478,7 +562,10 @@ class StableBrowser {
     for (let key in locator) {
       if (typeof locator[key] !== "string") continue;
       if (locator[key].includes("{{") && locator[key].includes("}}")) {
+        const _perf_t28 = Date.now();
+        logEvent("[_getLocator] before: _replaceWithLocalData");
         locator[key] = await this._replaceWithLocalData(locator[key], this.world);
+        logEvent(`[_getLocator] after: _replaceWithLocalData took ${Date.now() - _perf_t28}ms`);
       }
     }
     let locatorReturn;
@@ -533,6 +620,8 @@ class StableBrowser {
     if (css && css.locator) {
       css = css.locator;
     }
+    const _perf_t29 = Date.now();
+    logEvent("[_locateElmentByTextClimbCss] before: _locateElementByText");
     let result = await this._locateElementByText(
       scope,
       _fixUsingParams(text, _params),
@@ -542,6 +631,7 @@ class StableBrowser {
       true,
       _params
     );
+    logEvent(`[_locateElmentByTextClimbCss] after: _locateElementByText took ${Date.now() - _perf_t29}ms`);
     if (result.elementCount === 0) {
       return;
     }
@@ -561,7 +651,10 @@ class StableBrowser {
   async _locateElementByText(scope, text1, tag1, regex1 = false, partial1, ignoreCase = true, _params: Params) {
     const query = `${_convertToRegexQuery(text1, regex1, !partial1, ignoreCase)}`;
     const locator = scope.locator(query);
+    const _perf_t30 = Date.now();
+    logEvent("[_locateElementByText] before: locator.count");
     const count = await locator.count();
+    logEvent(`[_locateElementByText] after: locator.count took ${Date.now() - _perf_t30}ms`);
     if (!tag1) {
       tag1 = "*";
     }
@@ -626,7 +719,12 @@ class StableBrowser {
     //info.log += "searching for locator " + JSON.stringify(locatorSearch) + "\n";
     let locator = null;
     if (locatorSearch.climb && locatorSearch.climb >= 0) {
+      const _perf_t31 = Date.now();
+      logEvent("[_collectLocatorInformation] before: _replaceWithLocalData");
       const replacedText = await this._replaceWithLocalData(locatorSearch.text, this.world);
+      logEvent(`[_collectLocatorInformation] after: _replaceWithLocalData took ${Date.now() - _perf_t31}ms`);
+      const _perf_t32 = Date.now();
+      logEvent("[_collectLocatorInformation] before: _locateElmentByTextClimbCss");
       let locatorString = await this._locateElmentByTextClimbCss(
         scope,
         replacedText,
@@ -634,14 +732,20 @@ class StableBrowser {
         locatorSearch.css,
         _params
       );
+      logEvent(`[_collectLocatorInformation] after: _locateElmentByTextClimbCss took ${Date.now() - _perf_t32}ms`);
       if (!locatorString) {
         info.failCause.textNotFound = true;
         info.failCause.lastError = `failed to locate ${formatElementName(element_name)} by text: ${locatorSearch.text}`;
         return;
       }
+      const _perf_t33 = Date.now();
+      logEvent("[_collectLocatorInformation] before: _getLocator");
       locator = await this._getLocator({ css: locatorString }, scope, _params);
+      logEvent(`[_collectLocatorInformation] after: _getLocator took ${Date.now() - _perf_t33}ms`);
     } else if (locatorSearch.text) {
       let text = _fixUsingParams(locatorSearch.text, _params);
+      const _perf_t34 = Date.now();
+      logEvent("[_collectLocatorInformation] before: _locateElementByText");
       let result = await this._locateElementByText(
         scope,
         text,
@@ -651,6 +755,7 @@ class StableBrowser {
         true,
         _params
       );
+      logEvent(`[_collectLocatorInformation] after: _locateElementByText took ${Date.now() - _perf_t34}ms`);
       if (result.elementCount === 0) {
         info.failCause.textNotFound = true;
         info.failCause.lastError = `failed to locate ${formatElementName(element_name)} by text: ${text}`;
@@ -660,16 +765,25 @@ class StableBrowser {
       if (locatorSearch.childCss) {
         locatorSearch.css = locatorSearch.css + " " + locatorSearch.childCss;
       }
+      const _perf_t35 = Date.now();
+      logEvent("[_collectLocatorInformation] before: _getLocator");
       locator = await this._getLocator(locatorSearch, scope, _params);
+      logEvent(`[_collectLocatorInformation] after: _getLocator took ${Date.now() - _perf_t35}ms`);
     } else {
+      const _perf_t36 = Date.now();
+      logEvent("[_collectLocatorInformation] before: _getLocator");
       locator = await this._getLocator(locatorSearch, scope, _params);
+      logEvent(`[_collectLocatorInformation] after: _getLocator took ${Date.now() - _perf_t36}ms`);
     }
     // let cssHref = false;
     // if (locatorSearch.css && locatorSearch.css.includes("href=")) {
     //   cssHref = true;
     // }
 
+    const _perf_t37 = Date.now();
+    logEvent("[_collectLocatorInformation] before: locator.count");
     let count = await locator.count();
+    logEvent(`[_collectLocatorInformation] after: locator.count took ${Date.now() - _perf_t37}ms`);
     if (count > 0 && !info.failCause.count) {
       info.failCause.count = count;
     }
@@ -689,8 +803,14 @@ class StableBrowser {
       info.locatorLog.setLocatorSearchStatus(originalLocatorSearch, "NOT_FOUND");
     }
     for (let j = 0; j < count; j++) {
+      const _perf_t38 = Date.now();
+      logEvent("[_collectLocatorInformation] before: locator.nth");
       let visible = await locator.nth(j).isVisible();
+      logEvent(`[_collectLocatorInformation] after: locator.nth took ${Date.now() - _perf_t38}ms`);
+      const _perf_t39 = Date.now();
+      logEvent("[_collectLocatorInformation] before: locator.nth");
       const enabled = await locator.nth(j).isEnabled();
+      logEvent(`[_collectLocatorInformation] after: locator.nth took ${Date.now() - _perf_t39}ms`);
       if (!visibleOnly) {
         visible = true;
       }
@@ -739,7 +859,10 @@ class StableBrowser {
       let result = null;
       let scope = null;
       for (let i = 0; i < scopes.length; i++) {
+        const _perf_t40 = Date.now();
+        logEvent("[closeUnexpectedPopups] before: _scanLocatorsGroup");
         result = await this._scanLocatorsGroup(handlerGroup, scopes[i], _params, info, true);
+        logEvent(`[closeUnexpectedPopups] after: _scanLocatorsGroup took ${Date.now() - _perf_t40}ms`);
         if (result.foundElements.length > 0) {
           scope = scopes[i];
           break;
@@ -750,7 +873,10 @@ class StableBrowser {
         const closeHandlerGroup = [];
         closeHandlerGroup.push(this.configuration.popupHandlers[result.locatorIndex].close_dialog_locator);
         for (let i = 0; i < scopes.length; i++) {
+          const _perf_t41 = Date.now();
+          logEvent("[closeUnexpectedPopups] before: _scanLocatorsGroup");
           result = await this._scanLocatorsGroup(closeHandlerGroup, scopes[i], _params, info, true);
+          logEvent(`[closeUnexpectedPopups] after: _scanLocatorsGroup took ${Date.now() - _perf_t41}ms`);
           if (result.foundElements.length > 0) {
             break;
           }
@@ -759,17 +885,29 @@ class StableBrowser {
           let dialogCloseLocator = result.foundElements[0].locator;
 
           try {
+            const _perf_t42 = Date.now();
+            logEvent("[closeUnexpectedPopups] before: scope");
             await scope?.evaluate(() => {
               window.__isClosingPopups = true;
             });
+            logEvent(`[closeUnexpectedPopups] after: scope took ${Date.now() - _perf_t42}ms`);
+            const _perf_t43 = Date.now();
+            logEvent("[closeUnexpectedPopups] before: dialogCloseLocator.click");
             await dialogCloseLocator.click();
+            logEvent(`[closeUnexpectedPopups] after: dialogCloseLocator.click took ${Date.now() - _perf_t43}ms`);
             // wait for the dialog to close
+            const _perf_t44 = Date.now();
+            logEvent("[closeUnexpectedPopups] before: dialogCloseLocator.waitFor");
             await dialogCloseLocator.waitFor({ state: "hidden" });
+            logEvent(`[closeUnexpectedPopups] after: dialogCloseLocator.waitFor took ${Date.now() - _perf_t44}ms`);
           } catch (e) {
           } finally {
+            const _perf_t45 = Date.now();
+            logEvent("[closeUnexpectedPopups] before: scope");
             await scope?.evaluate(() => {
               window.__isClosingPopups = false;
             });
+            logEvent(`[closeUnexpectedPopups] after: scope took ${Date.now() - _perf_t45}ms`);
           }
           return { rerun: true };
         }
@@ -868,7 +1006,10 @@ class StableBrowser {
         if (strategyLocators && strategyLocators.length) {
           try {
             selectors.locators = strategyLocators;
+            const _perf_t46 = Date.now();
+            logEvent("[_locate] before: _locate_internal");
             element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+            logEvent(`[_locate] after: _locate_internal took ${Date.now() - _perf_t46}ms`);
             info.selectedStrategy = selectedStrategy;
             info.log += "element found using strategy " + selectedStrategy + "\n";
           } catch (error) {
@@ -885,7 +1026,10 @@ class StableBrowser {
               try {
                 info.log += "using strategy " + key + " with locators " + JSON.stringify(strategyLocators) + "\n";
                 selectors.locators = strategyLocators;
+                const _perf_t47 = Date.now();
+                logEvent("[_locate] before: _locate_internal");
                 element = await this._locate_internal(selectors, info, _params, 10_000, allowDisabled);
+                logEvent(`[_locate] after: _locate_internal took ${Date.now() - _perf_t47}ms`);
                 err = null;
                 info.selectedStrategy = key;
                 info.log += "element found using strategy " + key + "\n";
@@ -900,12 +1044,17 @@ class StableBrowser {
           throw err;
         }
       } else {
+        const _perf_t48 = Date.now();
+        logEvent("[_locate] before: _locate_internal");
         element = await this._locate_internal(selectors, info, _params, timeout, allowDisabled);
+        logEvent(`[_locate] after: _locate_internal took ${Date.now() - _perf_t48}ms`);
       }
 
       if (!element.rerun) {
         let newElementSelector = "";
         if (this.configuration && this.configuration.stableLocatorStrategy === "csschain") {
+          const _perf_t49 = Date.now();
+          logEvent("[_locate] before: element.evaluate");
           const cssSelector = await element.evaluate((el) => {
             function getCssSelector(el) {
               if (!el || el.nodeType !== 1 || el === document.body) return el.tagName.toLowerCase();
@@ -932,18 +1081,22 @@ class StableBrowser {
             const cssSelector = getCssSelector(el);
             return cssSelector;
           });
+          logEvent(`[_locate] after: element.evaluate took ${Date.now() - _perf_t49}ms`);
           newElementSelector = cssSelector;
         } else {
           const randomToken = "blinq_" + Math.random().toString(36).substring(7);
 
           if (this.configuration && this.configuration.stableLocatorStrategy === "data-attribute") {
             const dataAttribute = "data-blinq-id";
+            const _perf_t50 = Date.now();
+            logEvent("[_locate] before: element.evaluate");
             await element.evaluate(
               (el, [dataAttribute, randomToken]) => {
                 el.setAttribute(dataAttribute, randomToken);
               },
               [dataAttribute, randomToken]
             );
+            logEvent(`[_locate] after: element.evaluate took ${Date.now() - _perf_t50}ms`);
             newElementSelector = `[${dataAttribute}="${randomToken}"]`;
           } else {
             // the default case just return the located element
@@ -991,9 +1144,12 @@ class StableBrowser {
               testframescope = framescope.nth(frameLocator.index);
             }
             try {
+              const _perf_t51 = Date.now();
+              logEvent("[_findFrameScope] before: testframescope.owner");
               await testframescope.owner().evaluateHandle(() => true, null, {
                 timeout: 5000,
               });
+              logEvent(`[_findFrameScope] after: testframescope.owner took ${Date.now() - _perf_t51}ms`);
               framescope = testframescope;
               break;
             } catch (error) {
@@ -1002,7 +1158,10 @@ class StableBrowser {
           }
         }
         if (frame.children) {
+          const _perf_t52 = Date.now();
+          logEvent("[_findFrameScope] before: findFrame");
           return await findFrame(frame.children, framescope);
+          logEvent(`[_findFrameScope] after: findFrame took ${Date.now() - _perf_t52}ms`);
         }
         return framescope;
       };
@@ -1011,7 +1170,10 @@ class StableBrowser {
         let frameFound = false;
         if (selectors.nestFrmLoc) {
           fLocator = selectors.nestFrmLoc;
+          const _perf_t53 = Date.now();
+          logEvent("[_findFrameScope] before: findFrame");
           scope = await findFrame(selectors.nestFrmLoc, scope);
+          logEvent(`[_findFrameScope] after: findFrame took ${Date.now() - _perf_t53}ms`);
           frameFound = true;
           break;
         }
@@ -1041,7 +1203,10 @@ class StableBrowser {
             info.failCause.lastError = `unable to locate iframe "${selectors.iframe_src}"`;
             throw new Error("unable to locate iframe " + selectors.iframe_src);
           }
+          const _perf_t54 = Date.now();
+          logEvent("[_findFrameScope] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          logEvent(`[_findFrameScope] after: new Promise took ${Date.now() - _perf_t54}ms`);
         } else {
           if (info && info.locatorLog) {
             info.locatorLog.setLocatorSearchStatus("frame-" + fLocator, "FOUND");
@@ -1056,7 +1221,10 @@ class StableBrowser {
     return scope;
   }
   async _getDocumentBody(selectors, timeout = 30000, info) {
+    const _perf_t55 = Date.now();
+    logEvent("[_getDocumentBody] before: _findFrameScope");
     let scope = await this._findFrameScope(selectors, timeout, info);
+    logEvent(`[_getDocumentBody] after: _findFrameScope took ${Date.now() - _perf_t55}ms`);
 
     return scope.evaluate(() => {
       var bodyContent = document.body.innerHTML;
@@ -1111,15 +1279,23 @@ class StableBrowser {
     let highPriorityOnly = true;
     let visibleOnly = true;
     while (true) {
+      const _perf_t56 = Date.now();
+      logEvent("[_locate_internal] before: _findFrameScope");
       let scope = await this._findFrameScope(selectors, timeout, info);
+      logEvent(`[_locate_internal] after: _findFrameScope took ${Date.now() - _perf_t56}ms`);
       locatorsCount = 0;
       let result = [];
+      const _perf_t57 = Date.now();
+      logEvent("[_locate_internal] before: closeUnexpectedPopups");
       let popupResult = await this.closeUnexpectedPopups(info, _params);
+      logEvent(`[_locate_internal] after: closeUnexpectedPopups took ${Date.now() - _perf_t57}ms`);
       if (popupResult.rerun) {
         return popupResult;
       }
       // info.log += "scanning locators in priority 1" + "\n";
       let onlyPriority3 = selectorsLocators[0].priority === 3;
+      const _perf_t58 = Date.now();
+      logEvent("[_locate_internal] before: _scanLocatorsGroup");
       result = await this._scanLocatorsGroup(
         locatorsByPriority["1"],
         scope,
@@ -1129,8 +1305,11 @@ class StableBrowser {
         allowDisabled,
         selectors?.element_name
       );
+      logEvent(`[_locate_internal] after: _scanLocatorsGroup took ${Date.now() - _perf_t58}ms`);
       if (result.foundElements.length === 0) {
         // info.log += "scanning locators in priority 2" + "\n";
+        const _perf_t59 = Date.now();
+        logEvent("[_locate_internal] before: _scanLocatorsGroup");
         result = await this._scanLocatorsGroup(
           locatorsByPriority["2"],
           scope,
@@ -1140,8 +1319,11 @@ class StableBrowser {
           allowDisabled,
           selectors?.element_name
         );
+        logEvent(`[_locate_internal] after: _scanLocatorsGroup took ${Date.now() - _perf_t59}ms`);
       }
       if (result.foundElements.length === 0 && (onlyPriority3 || !highPriorityOnly)) {
+        const _perf_t60 = Date.now();
+        logEvent("[_locate_internal] before: _scanLocatorsGroup");
         result = await this._scanLocatorsGroup(
           locatorsByPriority["3"],
           scope,
@@ -1151,6 +1333,7 @@ class StableBrowser {
           allowDisabled,
           selectors?.element_name
         );
+        logEvent(`[_locate_internal] after: _scanLocatorsGroup took ${Date.now() - _perf_t60}ms`);
       }
       let foundElements = result.foundElements;
 
@@ -1185,7 +1368,10 @@ class StableBrowser {
         }
         if (maxCountElement) {
           info.log += "unique element was found, locator: " + maxCountElement.locator + "\n";
+          const _perf_t61 = Date.now();
+          logEvent("[_locate_internal] before: maxCountElement.locator.boundingBox");
           info.box = await maxCountElement.locator.boundingBox();
+          logEvent(`[_locate_internal] after: maxCountElement.locator.boundingBox took ${Date.now() - _perf_t61}ms`);
           return maxCountElement.locator;
         }
       }
@@ -1197,14 +1383,20 @@ class StableBrowser {
         highPriorityOnly = false;
         if (this.configuration && this.configuration.load_all_lazy === true && !lazy_scroll) {
           lazy_scroll = true;
+          const _perf_t62 = Date.now();
+          logEvent("[_locate_internal] before: scrollPageToLoadLazyElements");
           await scrollPageToLoadLazyElements(this.page);
+          logEvent(`[_locate_internal] after: scrollPageToLoadLazyElements took ${Date.now() - _perf_t62}ms`);
         }
       }
       if (Date.now() - startTime > visibleOnlyTimeout) {
         //info.log += "visible only timeout, will try all elements" + "\n";
         visibleOnly = false;
       }
+      const _perf_t63 = Date.now();
+      logEvent("[_locate_internal] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      logEvent(`[_locate_internal] after: new Promise took ${Date.now() - _perf_t63}ms`);
       // sheck of more of half of the timeout has passed
       if (Date.now() - startTime > timeout / 2) {
         highPriorityOnly = false;
@@ -1243,6 +1435,8 @@ class StableBrowser {
     for (let i = 0; i < locatorsGroup.length; i++) {
       let foundLocators = [];
       try {
+        const _perf_t64 = Date.now();
+        logEvent("[_scanLocatorsGroup] before: _collectLocatorInformation");
         await this._collectLocatorInformation(
           locatorsGroup,
           i,
@@ -1254,12 +1448,15 @@ class StableBrowser {
           allowDisabled,
           element_name
         );
+        logEvent(`[_scanLocatorsGroup] after: _collectLocatorInformation took ${Date.now() - _perf_t64}ms`);
       } catch (e) {
         // this call can fail it the browser is navigating
         // logEvent("unable to use locator " + JSON.stringify(locatorsGroup[i]));
         // logEvent(e);
         foundLocators = [];
         try {
+          const _perf_t65 = Date.now();
+          logEvent("[_scanLocatorsGroup] before: _collectLocatorInformation");
           await this._collectLocatorInformation(
             locatorsGroup,
             i,
@@ -1271,6 +1468,7 @@ class StableBrowser {
             allowDisabled,
             element_name
           );
+          logEvent(`[_scanLocatorsGroup] after: _collectLocatorInformation took ${Date.now() - _perf_t65}ms`);
         } catch (e) {
           if (logErrors) {
             this.logger.info("unable to use locator (second try) " + JSON.stringify(locatorsGroup[i]));
@@ -1280,7 +1478,10 @@ class StableBrowser {
       if (foundLocators.length === 1) {
         let box = null;
         if (!this.onlyFailuresScreenshot) {
+          const _perf_t66 = Date.now();
+          logEvent("[_scanLocatorsGroup] before: foundLocators[0]");
           box = await foundLocators[0].boundingBox();
+          logEvent(`[_scanLocatorsGroup] after: foundLocators[0] took ${Date.now() - _perf_t66}ms`);
         }
         result.foundElements.push({
           locator: foundLocators[0],
@@ -1343,7 +1544,10 @@ class StableBrowser {
       operation: "simpleClick",
       log: "***** click on " + elementDescription + " *****\n",
     };
+    const _perf_t67 = Date.now();
+    logEvent("[simpleClick] before: _preCommand");
     await _preCommand(state, this);
+    logEvent(`[simpleClick] after: _preCommand took ${Date.now() - _perf_t67}ms`);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1351,7 +1555,10 @@ class StableBrowser {
     }
     while (true) {
       try {
+        const _perf_t68 = Date.now();
+        logEvent("[simpleClick] before: locate_element");
         const result = await locate_element(this.context, elementDescription, "click");
+        logEvent(`[simpleClick] after: locate_element took ${Date.now() - _perf_t68}ms`);
         if (result?.elementNumber >= 0) {
           const selectors = {
             frame: result?.frame,
@@ -1362,20 +1569,32 @@ class StableBrowser {
             ],
           };
 
+          const _perf_t69 = Date.now();
+          logEvent("[simpleClick] before: click");
           await this.click(selectors, _params, options, world);
+          logEvent(`[simpleClick] after: click took ${Date.now() - _perf_t69}ms`);
           return;
         }
       } catch (e) {
         if (performance.now() - startTime > timeout) {
           // throw e;
           try {
+            const _perf_t70 = Date.now();
+            logEvent("[simpleClick] before: _commandError");
             await _commandError(state, "timeout looking for " + elementDescription, this);
+            logEvent(`[simpleClick] after: _commandError took ${Date.now() - _perf_t70}ms`);
           } finally {
+            const _perf_t71 = Date.now();
+            logEvent("[simpleClick] before: _commandFinally");
             await _commandFinally(state, this);
+            logEvent(`[simpleClick] after: _commandFinally took ${Date.now() - _perf_t71}ms`);
           }
         }
       }
+      const _perf_t72 = Date.now();
+      logEvent("[simpleClick] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 3000));
+      logEvent(`[simpleClick] after: new Promise took ${Date.now() - _perf_t72}ms`);
     }
   }
 
@@ -1392,7 +1611,10 @@ class StableBrowser {
       operation: "simpleClickType",
       log: "***** click type on " + elementDescription + " *****\n",
     };
+    const _perf_t73 = Date.now();
+    logEvent("[simpleClickType] before: _preCommand");
     await _preCommand(state, this);
+    logEvent(`[simpleClickType] after: _preCommand took ${Date.now() - _perf_t73}ms`);
     const startTime = Date.now();
     let timeout = 30000;
     if (options && options.timeout) {
@@ -1400,7 +1622,10 @@ class StableBrowser {
     }
     while (true) {
       try {
+        const _perf_t74 = Date.now();
+        logEvent("[simpleClickType] before: locate_element");
         const result = await locate_element(this.context, elementDescription, "fill", value);
+        logEvent(`[simpleClickType] after: locate_element took ${Date.now() - _perf_t74}ms`);
         if (result?.elementNumber >= 0) {
           const selectors = {
             frame: result?.frame,
@@ -1411,20 +1636,32 @@ class StableBrowser {
             ],
           };
 
+          const _perf_t75 = Date.now();
+          logEvent("[simpleClickType] before: clickType");
           await this.clickType(selectors, value, false, _params, options, world);
+          logEvent(`[simpleClickType] after: clickType took ${Date.now() - _perf_t75}ms`);
           return;
         }
       } catch (e) {
         if (performance.now() - startTime > timeout) {
           // throw e;
           try {
+            const _perf_t76 = Date.now();
+            logEvent("[simpleClickType] before: _commandError");
             await _commandError(state, "timeout looking for " + elementDescription, this);
+            logEvent(`[simpleClickType] after: _commandError took ${Date.now() - _perf_t76}ms`);
           } finally {
+            const _perf_t77 = Date.now();
+            logEvent("[simpleClickType] before: _commandFinally");
             await _commandFinally(state, this);
+            logEvent(`[simpleClickType] after: _commandFinally took ${Date.now() - _perf_t77}ms`);
           }
         }
       }
+      const _perf_t78 = Date.now();
+      logEvent("[simpleClickType] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 3000));
+      logEvent(`[simpleClickType] after: new Promise took ${Date.now() - _perf_t78}ms`);
     }
   }
 
@@ -1449,20 +1686,35 @@ class StableBrowser {
     }
     try {
       check_performance("click_preCommand", this.context, true);
+      const _perf_t79 = Date.now();
+      logEvent("[click] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[click] after: _preCommand took ${Date.now() - _perf_t79}ms`);
       check_performance("click_preCommand", this.context, false);
+      const _perf_t80 = Date.now();
+      logEvent("[click] before: performAction");
       await performAction("click", state.element, options, this, state, _params);
+      logEvent(`[click] after: performAction took ${Date.now() - _perf_t80}ms`);
       if (!this.fastMode && !this.stepTags.includes("fast-mode")) {
         check_performance("click_waitForPageLoad", this.context, true);
+        const _perf_t81 = Date.now();
+        logEvent("[click] before: waitForPageLoad");
         await this.waitForPageLoad({ noSleep: true });
+        logEvent(`[click] after: waitForPageLoad took ${Date.now() - _perf_t81}ms`);
         check_performance("click_waitForPageLoad", this.context, false);
       }
       return state.info;
     } catch (e) {
+      const _perf_t82 = Date.now();
+      logEvent("[click] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[click] after: _commandError took ${Date.now() - _perf_t82}ms`);
     } finally {
       check_performance("click_commandFinally", this.context, true);
+      const _perf_t83 = Date.now();
+      logEvent("[click] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[click] after: _commandFinally took ${Date.now() - _perf_t83}ms`);
       check_performance("click_commandFinally", this.context, false);
       check_performance("click_all ***", this.context, false);
       if (this.context.profile) {
@@ -1485,18 +1737,27 @@ class StableBrowser {
     };
     let found = false;
     try {
+      const _perf_t84 = Date.now();
+      logEvent("[waitForElement] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[waitForElement] after: _preCommand took ${Date.now() - _perf_t84}ms`);
       // if (state.options && state.options.context) {
       //   state.selectors.locators[0].text = state.options.context;
       // }
+      const _perf_t85 = Date.now();
+      logEvent("[waitForElement] before: state.element.waitFor");
       await state.element.waitFor({ timeout: timeout });
+      logEvent(`[waitForElement] after: state.element.waitFor took ${Date.now() - _perf_t85}ms`);
       found = true;
       // await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (e) {
       console.error("Error on waitForElement", e);
       // await _commandError(state, e, this);
     } finally {
+      const _perf_t86 = Date.now();
+      logEvent("[waitForElement] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[waitForElement] after: _commandFinally took ${Date.now() - _perf_t86}ms`);
     }
     return found;
   }
@@ -1514,7 +1775,10 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t87 = Date.now();
+      logEvent("[setCheck] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[setCheck] after: _preCommand took ${Date.now() - _perf_t87}ms`);
       state.info.checked = checked;
       // let element = await this._locate(selectors, info, _params);
 
@@ -1522,9 +1786,18 @@ class StableBrowser {
       try {
         // if (world && world.screenshot && !world.screenshotPath) {
         // console.log(`Highlighting while running from recorder`);
+        const _perf_t88 = Date.now();
+        logEvent("[setCheck] before: _highlightElements");
         await this._highlightElements(state.element);
+        logEvent(`[setCheck] after: _highlightElements took ${Date.now() - _perf_t88}ms`);
+        const _perf_t89 = Date.now();
+        logEvent("[setCheck] before: state.element.setChecked");
         await state.element.setChecked(checked, { timeout: 2000 });
+        logEvent(`[setCheck] after: state.element.setChecked took ${Date.now() - _perf_t89}ms`);
+        const _perf_t90 = Date.now();
+        logEvent("[setCheck] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        logEvent(`[setCheck] after: new Promise took ${Date.now() - _perf_t90}ms`);
         // await this._unHighlightElements(element);
         // }
         // await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1533,22 +1806,34 @@ class StableBrowser {
         if (e.message && e.message.includes("did not change its state")) {
           this.logger.info("element did not change its state, ignoring...");
         } else {
+          const _perf_t91 = Date.now();
+          logEvent("[setCheck] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          logEvent(`[setCheck] after: new Promise took ${Date.now() - _perf_t91}ms`);
           //await this.closeUnexpectedPopups();
           state.info.log += "setCheck failed, will try again" + "\n";
           state.element_found = false;
           try {
+            const _perf_t92 = Date.now();
+            logEvent("[setCheck] before: _locate");
             state.element = await this._locate(selectors, state.info, _params, 100);
+            logEvent(`[setCheck] after: _locate took ${Date.now() - _perf_t92}ms`);
             state.element_found = true;
             // check the check state
           } catch (error) {
             // element dismissed
           }
           if (state.element_found) {
+            const _perf_t93 = Date.now();
+            logEvent("[setCheck] before: state.element.isChecked");
             const isChecked = await state.element.isChecked();
+            logEvent(`[setCheck] after: state.element.isChecked took ${Date.now() - _perf_t93}ms`);
             if (isChecked !== checked) {
               // perform click
+              const _perf_t94 = Date.now();
+              logEvent("[setCheck] before: state.element.click");
               await state.element.click({ timeout: 2000, force: true });
+              logEvent(`[setCheck] after: state.element.click took ${Date.now() - _perf_t94}ms`);
             } else {
               this.logger.info(`Element ${selectors.element_name} is already in the desired state (${checked})`);
             }
@@ -1558,9 +1843,15 @@ class StableBrowser {
       //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
+      const _perf_t95 = Date.now();
+      logEvent("[setCheck] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[setCheck] after: _commandError took ${Date.now() - _perf_t95}ms`);
     } finally {
+      const _perf_t96 = Date.now();
+      logEvent("[setCheck] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[setCheck] after: _commandFinally took ${Date.now() - _perf_t96}ms`);
     }
   }
 
@@ -1578,15 +1869,30 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t97 = Date.now();
+      logEvent("[hover] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[hover] after: _preCommand took ${Date.now() - _perf_t97}ms`);
+      const _perf_t98 = Date.now();
+      logEvent("[hover] before: performAction");
       await performAction("hover", state.element, options, this, state, _params);
+      logEvent(`[hover] after: performAction took ${Date.now() - _perf_t98}ms`);
+      const _perf_t99 = Date.now();
+      logEvent("[hover] before: _screenshot");
       await _screenshot(state, this);
+      logEvent(`[hover] after: _screenshot took ${Date.now() - _perf_t99}ms`);
       //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
+      const _perf_t100 = Date.now();
+      logEvent("[hover] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[hover] after: _commandError took ${Date.now() - _perf_t100}ms`);
     } finally {
+      const _perf_t101 = Date.now();
+      logEvent("[hover] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[hover] after: _commandFinally took ${Date.now() - _perf_t101}ms`);
     }
   }
 
@@ -1609,20 +1915,35 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t102 = Date.now();
+      logEvent("[selectOption] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[selectOption] after: _preCommand took ${Date.now() - _perf_t102}ms`);
       try {
+        const _perf_t103 = Date.now();
+        logEvent("[selectOption] before: state.element.selectOption");
         await state.element.selectOption(values);
+        logEvent(`[selectOption] after: state.element.selectOption took ${Date.now() - _perf_t103}ms`);
       } catch (e) {
         //await this.closeUnexpectedPopups();
         state.info.log += "selectOption failed, will try force" + "\n";
+        const _perf_t104 = Date.now();
+        logEvent("[selectOption] before: state.element.selectOption");
         await state.element.selectOption(values, { timeout: 10000, force: true });
+        logEvent(`[selectOption] after: state.element.selectOption took ${Date.now() - _perf_t104}ms`);
       }
       //await this.waitForPageLoad();
       return state.info;
     } catch (e) {
+      const _perf_t105 = Date.now();
+      logEvent("[selectOption] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[selectOption] after: _commandError took ${Date.now() - _perf_t105}ms`);
     } finally {
+      const _perf_t106 = Date.now();
+      logEvent("[selectOption] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[selectOption] after: _commandFinally took ${Date.now() - _perf_t106}ms`);
     }
   }
 
@@ -1642,14 +1963,23 @@ class StableBrowser {
       log: "",
     };
     try {
+      const _perf_t107 = Date.now();
+      logEvent("[type] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[type] after: _preCommand took ${Date.now() - _perf_t107}ms`);
       const valueSegment = state.value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
         if (i > 0) {
+          const _perf_t108 = Date.now();
+          logEvent("[type] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          logEvent(`[type] after: new Promise took ${Date.now() - _perf_t108}ms`);
         }
         let value = valueSegment[i];
+        const _perf_t109 = Date.now();
+        logEvent("[type] before: _replaceWithLocalData");
         value = await this._replaceWithLocalData(value, this);
+        logEvent(`[type] after: _replaceWithLocalData took ${Date.now() - _perf_t109}ms`);
         let keyEvent = false;
         KEYBOARD_EVENTS.forEach((event) => {
           if (value === event || value.startsWith(event + "+")) {
@@ -1657,16 +1987,28 @@ class StableBrowser {
           }
         });
         if (keyEvent) {
+          const _perf_t110 = Date.now();
+          logEvent("[type] before: page.keyboard.press");
           await this.page.keyboard.press(value);
+          logEvent(`[type] after: page.keyboard.press took ${Date.now() - _perf_t110}ms`);
         } else {
+          const _perf_t111 = Date.now();
+          logEvent("[type] before: page.keyboard.type");
           await this.page.keyboard.type(value);
+          logEvent(`[type] after: page.keyboard.type took ${Date.now() - _perf_t111}ms`);
         }
       }
       return state.info;
     } catch (e) {
+      const _perf_t112 = Date.now();
+      logEvent("[type] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[type] after: _commandError took ${Date.now() - _perf_t112}ms`);
     } finally {
+      const _perf_t113 = Date.now();
+      logEvent("[type] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[type] after: _commandFinally took ${Date.now() - _perf_t113}ms`);
     }
   }
   async setInputValue(selectors, value, _params = null, options = {}, world = null) {
@@ -1683,25 +2025,46 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t114 = Date.now();
+      logEvent("[setInputValue] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[setInputValue] after: _preCommand took ${Date.now() - _perf_t114}ms`);
 
+      const _perf_t115 = Date.now();
+      logEvent("[setInputValue] before: _replaceWithLocalData");
       let value = await this._replaceWithLocalData(state.value, this);
+      logEvent(`[setInputValue] after: _replaceWithLocalData took ${Date.now() - _perf_t115}ms`);
       try {
+        const _perf_t116 = Date.now();
+        logEvent("[setInputValue] before: state.element.evaluateHandle");
         await state.element.evaluateHandle((el, value) => {
           el.value = value;
         }, value);
+        logEvent(`[setInputValue] after: state.element.evaluateHandle took ${Date.now() - _perf_t116}ms`);
       } catch (error) {
         this.logger.error("setInputValue failed, will try again");
+        const _perf_t117 = Date.now();
+        logEvent("[setInputValue] before: _screenshot");
         await _screenshot(state, this);
+        logEvent(`[setInputValue] after: _screenshot took ${Date.now() - _perf_t117}ms`);
         Object.assign(error, { info: state.info });
+        const _perf_t118 = Date.now();
+        logEvent("[setInputValue] before: state.element.evaluateHandle");
         await state.element.evaluateHandle((el, value) => {
           el.value = value;
         });
+        logEvent(`[setInputValue] after: state.element.evaluateHandle took ${Date.now() - _perf_t118}ms`);
       }
     } catch (e) {
+      const _perf_t119 = Date.now();
+      logEvent("[setInputValue] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[setInputValue] after: _commandError took ${Date.now() - _perf_t119}ms`);
     } finally {
+      const _perf_t120 = Date.now();
+      logEvent("[setInputValue] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[setInputValue] after: _commandFinally took ${Date.now() - _perf_t120}ms`);
     }
   }
   async setDateTime(selectors, value, format = null, enter = false, _params = null, options = {}, world = null) {
@@ -1719,59 +2082,122 @@ class StableBrowser {
       // throwError: false,
     };
     try {
+      const _perf_t121 = Date.now();
+      logEvent("[setDateTime] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[setDateTime] after: _preCommand took ${Date.now() - _perf_t121}ms`);
       try {
+        const _perf_t122 = Date.now();
+        logEvent("[setDateTime] before: performAction");
         await performAction("click", state.element, options, this, state, _params);
+        logEvent(`[setDateTime] after: performAction took ${Date.now() - _perf_t122}ms`);
+        const _perf_t123 = Date.now();
+        logEvent("[setDateTime] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 500));
+        logEvent(`[setDateTime] after: new Promise took ${Date.now() - _perf_t123}ms`);
         if (format) {
           state.value = dayjs(state.value).format(format);
+          const _perf_t124 = Date.now();
+          logEvent("[setDateTime] before: state.element.fill");
           await state.element.fill(state.value);
+          logEvent(`[setDateTime] after: state.element.fill took ${Date.now() - _perf_t124}ms`);
         } else {
+          const _perf_t125 = Date.now();
+          logEvent("[setDateTime] before: getDateTimeValue");
           const dateTimeValue = await getDateTimeValue({ value: state.value, element: state.element });
+          logEvent(`[setDateTime] after: getDateTimeValue took ${Date.now() - _perf_t125}ms`);
+          const _perf_t126 = Date.now();
+          logEvent("[setDateTime] before: state.element.evaluateHandle");
           await state.element.evaluateHandle((el, dateTimeValue) => {
             el.value = ""; // clear input
             el.value = dateTimeValue;
           }, dateTimeValue);
+          logEvent(`[setDateTime] after: state.element.evaluateHandle took ${Date.now() - _perf_t126}ms`);
         }
         if (enter) {
+          const _perf_t127 = Date.now();
+          logEvent("[setDateTime] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 2000));
+          logEvent(`[setDateTime] after: new Promise took ${Date.now() - _perf_t127}ms`);
+          const _perf_t128 = Date.now();
+          logEvent("[setDateTime] before: page.keyboard.press");
           await this.page.keyboard.press("Enter");
+          logEvent(`[setDateTime] after: page.keyboard.press took ${Date.now() - _perf_t128}ms`);
+          const _perf_t129 = Date.now();
+          logEvent("[setDateTime] before: waitForPageLoad");
           await this.waitForPageLoad();
+          logEvent(`[setDateTime] after: waitForPageLoad took ${Date.now() - _perf_t129}ms`);
         }
       } catch (err) {
         //await this.closeUnexpectedPopups();
         this.logger.error("setting date time input failed " + JSON.stringify(state.info));
         this.logger.info("Trying again");
+        const _perf_t130 = Date.now();
+        logEvent("[setDateTime] before: _screenshot");
         await _screenshot(state, this);
+        logEvent(`[setDateTime] after: _screenshot took ${Date.now() - _perf_t130}ms`);
         Object.assign(err, { info: state.info });
+        const _perf_t131 = Date.now();
+        logEvent("[setDateTime] before: element.click");
         await element.click();
+        logEvent(`[setDateTime] after: element.click took ${Date.now() - _perf_t131}ms`);
+        const _perf_t132 = Date.now();
+        logEvent("[setDateTime] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 500));
+        logEvent(`[setDateTime] after: new Promise took ${Date.now() - _perf_t132}ms`);
         if (format) {
           state.value = dayjs(state.value).format(format);
+          const _perf_t133 = Date.now();
+          logEvent("[setDateTime] before: state.element.fill");
           await state.element.fill(state.value);
+          logEvent(`[setDateTime] after: state.element.fill took ${Date.now() - _perf_t133}ms`);
         } else {
+          const _perf_t134 = Date.now();
+          logEvent("[setDateTime] before: getDateTimeValue");
           const dateTimeValue = await getDateTimeValue({ value: state.value, element: state.element });
+          logEvent(`[setDateTime] after: getDateTimeValue took ${Date.now() - _perf_t134}ms`);
+          const _perf_t135 = Date.now();
+          logEvent("[setDateTime] before: state.element.evaluateHandle");
           await state.element.evaluateHandle((el, dateTimeValue) => {
             el.value = ""; // clear input
             el.value = dateTimeValue;
           }, dateTimeValue);
+          logEvent(`[setDateTime] after: state.element.evaluateHandle took ${Date.now() - _perf_t135}ms`);
         }
         if (enter) {
+          const _perf_t136 = Date.now();
+          logEvent("[setDateTime] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 2000));
+          logEvent(`[setDateTime] after: new Promise took ${Date.now() - _perf_t136}ms`);
+          const _perf_t137 = Date.now();
+          logEvent("[setDateTime] before: page.keyboard.press");
           await this.page.keyboard.press("Enter");
+          logEvent(`[setDateTime] after: page.keyboard.press took ${Date.now() - _perf_t137}ms`);
+          const _perf_t138 = Date.now();
+          logEvent("[setDateTime] before: waitForPageLoad");
           await this.waitForPageLoad();
+          logEvent(`[setDateTime] after: waitForPageLoad took ${Date.now() - _perf_t138}ms`);
         }
       }
     } catch (e) {
+      const _perf_t139 = Date.now();
+      logEvent("[setDateTime] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[setDateTime] after: _commandError took ${Date.now() - _perf_t139}ms`);
     } finally {
+      const _perf_t140 = Date.now();
+      logEvent("[setDateTime] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[setDateTime] after: _commandFinally took ${Date.now() - _perf_t140}ms`);
     }
   }
 
   async clickType(selectors, _value, enter = false, _params = null, options = {}, world = null) {
     _value = unEscapeString(_value);
+    const _perf_t141 = Date.now();
+    logEvent("[clickType] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(_value, world);
+    logEvent(`[clickType] after: _replaceWithLocalData took ${Date.now() - _perf_t141}ms`);
     const state = {
       selectors,
       _params,
@@ -1794,22 +2220,34 @@ class StableBrowser {
       _value = newValue;
     }
     try {
+      const _perf_t142 = Date.now();
+      logEvent("[clickType] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[clickType] after: _preCommand took ${Date.now() - _perf_t142}ms`);
       const randomToken = "blinq_" + Math.random().toString(36).substring(7);
       // tag the element
+      const _perf_t143 = Date.now();
+      logEvent("[clickType] before: state.element.evaluate");
       let newElementSelector = await state.element.evaluate((el: HTMLElement, token: string) => {
         // use attribute and not id
         const attrName = `data-blinq-id-${token}`;
         el.setAttribute(attrName, "");
         return `[${attrName}]`;
       }, randomToken);
+      logEvent(`[clickType] after: state.element.evaluate took ${Date.now() - _perf_t143}ms`);
 
       state.info.value = _value;
       if (!options.press) {
         try {
+          const _perf_t144 = Date.now();
+          logEvent("[clickType] before: state.element.inputValue");
           let currentValue = await state.element.inputValue();
+          logEvent(`[clickType] after: state.element.inputValue took ${Date.now() - _perf_t144}ms`);
           if (currentValue) {
+            const _perf_t145 = Date.now();
+            logEvent("[clickType] before: state.element.fill");
             await state.element.fill("");
+            logEvent(`[clickType] after: state.element.fill took ${Date.now() - _perf_t145}ms`);
           }
         } catch (e) {
           this.logger.info("unable to clear input value");
@@ -1819,17 +2257,32 @@ class StableBrowser {
       if (options.press) {
         options.timeout = 5000;
 
+        const _perf_t146 = Date.now();
+        logEvent("[clickType] before: performAction");
         await performAction("click", state.element, options, this, state, _params);
+        logEvent(`[clickType] after: performAction took ${Date.now() - _perf_t146}ms`);
       } else {
         try {
+          const _perf_t147 = Date.now();
+          logEvent("[clickType] before: state.element.focus");
           await state.element.focus();
+          logEvent(`[clickType] after: state.element.focus took ${Date.now() - _perf_t147}ms`);
         } catch (e) {
+          const _perf_t148 = Date.now();
+          logEvent("[clickType] before: state.element.dispatchEvent");
           await state.element.dispatchEvent("focus");
+          logEvent(`[clickType] after: state.element.dispatchEvent took ${Date.now() - _perf_t148}ms`);
         }
       }
+      const _perf_t149 = Date.now();
+      logEvent("[clickType] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 500));
+      logEvent(`[clickType] after: new Promise took ${Date.now() - _perf_t149}ms`);
       // check if the element exist after the click (no wait)
+      const _perf_t150 = Date.now();
+      logEvent("[clickType] before: state.element.count");
       const count = await state.element.count({ timeout: 0 });
+      logEvent(`[clickType] after: state.element.count took ${Date.now() - _perf_t150}ms`);
       if (count === 0) {
         // the locator changed after the click (placeholder) we need to locate the element using the data-blinq-id
         const scope = state.element._frame ?? element.page();
@@ -1852,7 +2305,10 @@ class StableBrowser {
       const valueSegment = state.value.split("&&");
       for (let i = 0; i < valueSegment.length; i++) {
         if (i > 0) {
+          const _perf_t151 = Date.now();
+          logEvent("[clickType] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          logEvent(`[clickType] after: new Promise took ${Date.now() - _perf_t151}ms`);
         }
         let value = valueSegment[i];
         let keyEvent = false;
@@ -1862,37 +2318,73 @@ class StableBrowser {
           }
         });
         if (keyEvent) {
+          const _perf_t152 = Date.now();
+          logEvent("[clickType] before: page.keyboard.press");
           await this.page.keyboard.press(value);
+          logEvent(`[clickType] after: page.keyboard.press took ${Date.now() - _perf_t152}ms`);
         } else {
+          const _perf_t153 = Date.now();
+          logEvent("[clickType] before: page.keyboard.type");
           await this.page.keyboard.type(value);
+          logEvent(`[clickType] after: page.keyboard.type took ${Date.now() - _perf_t153}ms`);
+          const _perf_t154 = Date.now();
+          logEvent("[clickType] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 500));
+          logEvent(`[clickType] after: new Promise took ${Date.now() - _perf_t154}ms`);
         }
       }
       //if (!this.fastMode) {
+      const _perf_t155 = Date.now();
+      logEvent("[clickType] before: _screenshot");
       await _screenshot(state, this);
+      logEvent(`[clickType] after: _screenshot took ${Date.now() - _perf_t155}ms`);
       //}
       if (enter === true) {
+        const _perf_t156 = Date.now();
+        logEvent("[clickType] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 2000));
+        logEvent(`[clickType] after: new Promise took ${Date.now() - _perf_t156}ms`);
+        const _perf_t157 = Date.now();
+        logEvent("[clickType] before: page.keyboard.press");
         await this.page.keyboard.press("Enter");
+        logEvent(`[clickType] after: page.keyboard.press took ${Date.now() - _perf_t157}ms`);
+        const _perf_t158 = Date.now();
+        logEvent("[clickType] before: waitForPageLoad");
         await this.waitForPageLoad();
+        logEvent(`[clickType] after: waitForPageLoad took ${Date.now() - _perf_t158}ms`);
       } else if (enter === false) {
         try {
+          const _perf_t159 = Date.now();
+          logEvent("[clickType] before: state.element.dispatchEvent");
           await state.element.dispatchEvent("change", null, { timeout: 5000 });
+          logEvent(`[clickType] after: state.element.dispatchEvent took ${Date.now() - _perf_t159}ms`);
         } catch (e) {
           // ignore
         }
         //await this.page.keyboard.press("Tab");
       } else {
         if (enter !== "" && enter !== null && enter !== undefined) {
+          const _perf_t160 = Date.now();
+          logEvent("[clickType] before: page.keyboard.press");
           await this.page.keyboard.press(enter);
+          logEvent(`[clickType] after: page.keyboard.press took ${Date.now() - _perf_t160}ms`);
+          const _perf_t161 = Date.now();
+          logEvent("[clickType] before: waitForPageLoad");
           await this.waitForPageLoad();
+          logEvent(`[clickType] after: waitForPageLoad took ${Date.now() - _perf_t161}ms`);
         }
       }
       return state.info;
     } catch (e) {
+      const _perf_t162 = Date.now();
+      logEvent("[clickType] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[clickType] after: _commandError took ${Date.now() - _perf_t162}ms`);
     } finally {
+      const _perf_t163 = Date.now();
+      logEvent("[clickType] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[clickType] after: _commandFinally took ${Date.now() - _perf_t163}ms`);
     }
   }
   async fill(selectors, value, enter = false, _params = null, options = {}, world = null) {
@@ -1908,19 +2400,43 @@ class StableBrowser {
       log: "***** fill on " + selectors.element_name + " with value " + value + "*****\n",
     };
     try {
+      const _perf_t164 = Date.now();
+      logEvent("[fill] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[fill] after: _preCommand took ${Date.now() - _perf_t164}ms`);
+      const _perf_t165 = Date.now();
+      logEvent("[fill] before: state.element.fill");
       await state.element.fill(value);
+      logEvent(`[fill] after: state.element.fill took ${Date.now() - _perf_t165}ms`);
+      const _perf_t166 = Date.now();
+      logEvent("[fill] before: state.element.dispatchEvent");
       await state.element.dispatchEvent("change");
+      logEvent(`[fill] after: state.element.dispatchEvent took ${Date.now() - _perf_t166}ms`);
       if (enter) {
+        const _perf_t167 = Date.now();
+        logEvent("[fill] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 2000));
+        logEvent(`[fill] after: new Promise took ${Date.now() - _perf_t167}ms`);
+        const _perf_t168 = Date.now();
+        logEvent("[fill] before: page.keyboard.press");
         await this.page.keyboard.press("Enter");
+        logEvent(`[fill] after: page.keyboard.press took ${Date.now() - _perf_t168}ms`);
+        const _perf_t169 = Date.now();
+        logEvent("[fill] before: waitForPageLoad");
         await this.waitForPageLoad();
+        logEvent(`[fill] after: waitForPageLoad took ${Date.now() - _perf_t169}ms`);
       }
       return state.info;
     } catch (e) {
+      const _perf_t170 = Date.now();
+      logEvent("[fill] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[fill] after: _commandError took ${Date.now() - _perf_t170}ms`);
     } finally {
+      const _perf_t171 = Date.now();
+      logEvent("[fill] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[fill] after: _commandFinally took ${Date.now() - _perf_t171}ms`);
     }
   }
 
@@ -1941,7 +2457,10 @@ class StableBrowser {
     const uploadsFolder = this.configuration.uploadsFolder ?? "data/uploads";
 
     try {
+      const _perf_t172 = Date.now();
+      logEvent("[setInputFiles] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[setInputFiles] after: _preCommand took ${Date.now() - _perf_t172}ms`);
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const filePath = path.join(uploadsFolder, file);
@@ -1950,16 +2469,28 @@ class StableBrowser {
         }
         state.files[i] = filePath;
       }
+      const _perf_t173 = Date.now();
+      logEvent("[setInputFiles] before: state.element.setInputFiles");
       await state.element.setInputFiles(files);
+      logEvent(`[setInputFiles] after: state.element.setInputFiles took ${Date.now() - _perf_t173}ms`);
       return state.info;
     } catch (e) {
+      const _perf_t174 = Date.now();
+      logEvent("[setInputFiles] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[setInputFiles] after: _commandError took ${Date.now() - _perf_t174}ms`);
     } finally {
+      const _perf_t175 = Date.now();
+      logEvent("[setInputFiles] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[setInputFiles] after: _commandFinally took ${Date.now() - _perf_t175}ms`);
     }
   }
   async getText(selectors, _params = null, options = {}, info = {}, world = null) {
+    const _perf_t176 = Date.now();
+    logEvent("[getText] before: _getText");
     return await this._getText(selectors, 0, _params, options, info, world);
+    logEvent(`[getText] after: _getText took ${Date.now() - _perf_t176}ms`);
   }
   async _getText(selectors, climb, _params = null, options = {}, info = {}, world = null) {
     const timeout = this._getFindElementTimeout(options);
@@ -1972,7 +2503,10 @@ class StableBrowser {
     }
     info.operation = "getText";
     info.selectors = selectors;
+    const _perf_t177 = Date.now();
+    logEvent("[_getText] before: _locate");
     let element = await this._locate(selectors, info, _params, timeout);
+    logEvent(`[_getText] after: _locate took ${Date.now() - _perf_t177}ms`);
     if (climb > 0) {
       const climbArray = [];
       for (let i = 0; i < climb; i++) {
@@ -1983,13 +2517,19 @@ class StableBrowser {
     }
     let value = null;
     try {
+      const _perf_t178 = Date.now();
+      logEvent("[_getText] before: element.inputValue");
       value = await element.inputValue();
+      logEvent(`[_getText] after: element.inputValue took ${Date.now() - _perf_t178}ms`);
     } catch (e) {
       //ignore
     }
     ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
     try {
+      const _perf_t179 = Date.now();
+      logEvent("[_getText] before: _highlightElements");
       await this._highlightElements(element);
+      logEvent(`[_getText] after: _highlightElements took ${Date.now() - _perf_t179}ms`);
       // if (world && world.screenshot && !world.screenshotPath) {
       //   // console.log(`Highlighting for get text while running from recorder`);
       //   this._highlightElements(element)
@@ -2002,7 +2542,10 @@ class StableBrowser {
       //     })
       //     .catch(e);
       // }
+      const _perf_t180 = Date.now();
+      logEvent("[_getText] before: element.innerText");
       const elementText = await element.innerText();
+      logEvent(`[_getText] after: element.innerText took ${Date.now() - _perf_t180}ms`);
       return {
         text: elementText,
         screenshotId,
@@ -2013,7 +2556,10 @@ class StableBrowser {
     } catch (e) {
       //await this.closeUnexpectedPopups();
       this.logger.info("no innerText, will use textContent");
+      const _perf_t181 = Date.now();
+      logEvent("[_getText] before: element.textContent");
       const elementText = await element.textContent();
+      logEvent(`[_getText] after: element.textContent took ${Date.now() - _perf_t181}ms`);
       return { text: elementText, screenshotId, screenshotPath, value: value };
     }
   }
@@ -2043,7 +2589,10 @@ class StableBrowser {
       log: "***** verify element " + selectors.element_name + " contains pattern " + pattern + " *****\n",
     };
 
+    const _perf_t182 = Date.now();
+    logEvent("[containsPattern] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(text, world);
+    logEvent(`[containsPattern] after: _replaceWithLocalData took ${Date.now() - _perf_t182}ms`);
     if (newValue !== text) {
       this.logger.info(text + "=" + newValue);
       text = newValue;
@@ -2051,13 +2600,25 @@ class StableBrowser {
 
     let foundObj = null;
     try {
+      const _perf_t183 = Date.now();
+      logEvent("[containsPattern] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[containsPattern] after: _preCommand took ${Date.now() - _perf_t183}ms`);
       state.info.pattern = pattern;
+      const _perf_t184 = Date.now();
+      logEvent("[containsPattern] before: _getText");
       foundObj = await this._getText(selectors, 0, _params, options, state.info, world);
+      logEvent(`[containsPattern] after: _getText took ${Date.now() - _perf_t184}ms`);
       if (foundObj && foundObj.element) {
+        const _perf_t185 = Date.now();
+        logEvent("[containsPattern] before: scrollIfNeeded");
         await this.scrollIfNeeded(foundObj.element, state.info);
+        logEvent(`[containsPattern] after: scrollIfNeeded took ${Date.now() - _perf_t185}ms`);
       }
+      const _perf_t186 = Date.now();
+      logEvent("[containsPattern] before: _screenshot");
       await _screenshot(state, this);
+      logEvent(`[containsPattern] after: _screenshot took ${Date.now() - _perf_t186}ms`);
       let escapedText = text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       pattern = pattern.replace("{text}", escapedText);
       let regex = new RegExp(pattern, "im");
@@ -2068,9 +2629,15 @@ class StableBrowser {
       return state.info;
     } catch (e) {
       this.logger.error("found text " + foundObj?.text + " pattern " + pattern);
+      const _perf_t187 = Date.now();
+      logEvent("[containsPattern] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[containsPattern] after: _commandError took ${Date.now() - _perf_t187}ms`);
     } finally {
+      const _perf_t188 = Date.now();
+      logEvent("[containsPattern] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[containsPattern] after: _commandFinally took ${Date.now() - _perf_t188}ms`);
     }
   }
 
@@ -2099,7 +2666,10 @@ class StableBrowser {
     }
     text = unEscapeString(text);
 
+    const _perf_t189 = Date.now();
+    logEvent("[containsText] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(text, world);
+    logEvent(`[containsText] after: _replaceWithLocalData took ${Date.now() - _perf_t189}ms`);
     if (newValue !== text) {
       this.logger.info(text + "=" + newValue);
       text = newValue;
@@ -2109,14 +2679,26 @@ class StableBrowser {
     try {
       while (Date.now() - startTime < timeout) {
         try {
+          const _perf_t190 = Date.now();
+          logEvent("[containsText] before: _preCommand");
           await _preCommand(state, this);
+          logEvent(`[containsText] after: _preCommand took ${Date.now() - _perf_t190}ms`);
+          const _perf_t191 = Date.now();
+          logEvent("[containsText] before: _getText");
           foundObj = await this._getText(selectors, climb, _params, { timeout: 3000 }, state.info, world);
+          logEvent(`[containsText] after: _getText took ${Date.now() - _perf_t191}ms`);
 
           if (foundObj && foundObj.element) {
+            const _perf_t192 = Date.now();
+            logEvent("[containsText] before: scrollIfNeeded");
             await this.scrollIfNeeded(foundObj.element, state.info);
+            logEvent(`[containsText] after: scrollIfNeeded took ${Date.now() - _perf_t192}ms`);
           }
 
+          const _perf_t193 = Date.now();
+          logEvent("[containsText] before: _screenshot");
           await _screenshot(state, this);
+          logEvent(`[containsText] after: _screenshot took ${Date.now() - _perf_t193}ms`);
           const dateAlternatives = findDateAlternatives(text);
           const numberAlternatives = findNumberAlternatives(text);
 
@@ -2145,17 +2727,26 @@ class StableBrowser {
           // Log error but continue retrying until timeout is reached
           this.logger.warn("Retrying containsText due to: " + e.message);
         }
+        const _perf_t194 = Date.now();
+        logEvent("[containsText] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
       }
 
       state.info.foundText = foundObj?.text;
+      logEvent(`[containsText] after: new Promise took ${Date.now() - _perf_t194}ms`);
       state.info.value = foundObj?.value;
       throw new Error("element doesn't contain text " + text);
     } catch (e) {
+      const _perf_t195 = Date.now();
+      logEvent("[containsText] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[containsText] after: _commandError took ${Date.now() - _perf_t195}ms`);
       throw e;
     } finally {
+      const _perf_t196 = Date.now();
+      logEvent("[containsText] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[containsText] after: _commandFinally took ${Date.now() - _perf_t196}ms`);
     }
   }
   async snapshotValidation(frameSelectors, referanceSnapshot, _params = null, options = {}, world = null) {
@@ -2193,9 +2784,15 @@ class StableBrowser {
     }
     state.text = text;
 
+    const _perf_t197 = Date.now();
+    logEvent("[snapshotValidation] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(text, world);
+    logEvent(`[snapshotValidation] after: _replaceWithLocalData took ${Date.now() - _perf_t197}ms`);
 
+    const _perf_t198 = Date.now();
+    logEvent("[snapshotValidation] before: _preCommand");
     await _preCommand(state, this);
+    logEvent(`[snapshotValidation] after: _preCommand took ${Date.now() - _perf_t198}ms`);
 
     let foundObj = null;
     try {
@@ -2206,9 +2803,15 @@ class StableBrowser {
           if (!frameSelectors) {
             scope = this.page;
           } else {
+            const _perf_t199 = Date.now();
+            logEvent("[snapshotValidation] before: _findFrameScope");
             scope = await this._findFrameScope(frameSelectors, timeout, state.info);
+            logEvent(`[snapshotValidation] after: _findFrameScope took ${Date.now() - _perf_t199}ms`);
           }
+          const _perf_t200 = Date.now();
+          logEvent("[snapshotValidation] before: scope.locator");
           const snapshot = await scope.locator("body").ariaSnapshot({ timeout });
+          logEvent(`[snapshotValidation] after: scope.locator took ${Date.now() - _perf_t200}ms`);
 
           if (snapshot && snapshot.length <= 10) {
             console.log("Page snapshot length is suspiciously small:", snapshot);
@@ -2224,23 +2827,38 @@ class StableBrowser {
           }
           // highlight and screenshot
           try {
+            const _perf_t201 = Date.now();
+            logEvent("[snapshotValidation] before: await");
             await await highlightSnapshot(newValue, scope);
+            logEvent(`[snapshotValidation] after: await took ${Date.now() - _perf_t201}ms`);
+            const _perf_t202 = Date.now();
+            logEvent("[snapshotValidation] before: _screenshot");
             await _screenshot(state, this);
+            logEvent(`[snapshotValidation] after: _screenshot took ${Date.now() - _perf_t202}ms`);
           } catch (e) {}
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
           //this.logger.warn("Retrying snapshot validation due to: " + e.message);
         }
+        const _perf_t203 = Date.now();
+        logEvent("[snapshotValidation] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 1 second before retrying
       }
 
       throw new Error("No snapshot match " + matchResult?.errorLineText);
+      logEvent(`[snapshotValidation] after: new Promise took ${Date.now() - _perf_t203}ms`);
     } catch (e) {
+      const _perf_t204 = Date.now();
+      logEvent("[snapshotValidation] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[snapshotValidation] after: _commandError took ${Date.now() - _perf_t204}ms`);
       throw e;
     } finally {
+      const _perf_t205 = Date.now();
+      logEvent("[snapshotValidation] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[snapshotValidation] after: _commandFinally took ${Date.now() - _perf_t205}ms`);
     }
   }
 
@@ -2251,6 +2869,8 @@ class StableBrowser {
       message = "# Wait for user input. " + message;
     }
     message += "\n";
+    const _perf_t206 = Date.now();
+    logEvent("[waitForUserInput] before: new Promise");
     const value = await new Promise((resolve) => {
       const rl = readline.createInterface({
         input: process.stdin,
@@ -2261,6 +2881,7 @@ class StableBrowser {
         resolve(answer);
       });
     });
+    logEvent(`[waitForUserInput] after: new Promise took ${Date.now() - _perf_t206}ms`);
     if (value) {
       this.logger.info(`{{userInput}} was set to: ${value}`);
     }
@@ -2366,7 +2987,10 @@ class StableBrowser {
           rowNumber = parseInt(parts[1]);
         }
         let dataFile = this._getDataFilePath(parts[0]);
+        const _perf_t207 = Date.now();
+        logEvent("[loadTestDataAsync] before: _parseCSVSync");
         const results = await this._parseCSVSync(dataFile);
+        logEvent(`[loadTestDataAsync] after: _parseCSVSync took ${Date.now() - _perf_t207}ms`);
         // result stracture:
         // [
         //   { NAME: 'Daffy Duck', AGE: '24' },
@@ -2397,7 +3021,10 @@ class StableBrowser {
     if (info) {
       if (!info.title) {
         try {
+          const _perf_t208 = Date.now();
+          logEvent("[_screenShot] before: page.title");
           info.title = await this.page.title();
+          logEvent(`[_screenShot] after: page.title took ${Date.now() - _perf_t208}ms`);
         } catch (e) {
           // ignore
         }
@@ -2419,7 +3046,10 @@ class StableBrowser {
       const uuidStr = "id_" + randomUUID();
       const screenshotPath = path.join(world.screenshotPath, uuidStr + ".png");
       try {
+        const _perf_t209 = Date.now();
+        logEvent("[_screenShot] before: takeScreenshot");
         await this.takeScreenshot(screenshotPath, options.fullPage === true);
+        logEvent(`[_screenShot] after: takeScreenshot took ${Date.now() - _perf_t209}ms`);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(screenshotPath, buffer, (err) => {
@@ -2430,7 +3060,10 @@ class StableBrowser {
         result.screenshotId = uuidStr;
         result.screenshotPath = screenshotPath;
         if (info && info.box) {
+          const _perf_t210 = Date.now();
+          logEvent("[_screenShot] before: drawRectangle");
           await drawRectangle(screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
+          logEvent(`[_screenShot] after: drawRectangle took ${Date.now() - _perf_t210}ms`);
         }
       } catch (e) {
         this.logger.info("unable to take screenshot, ignored");
@@ -2438,7 +3071,10 @@ class StableBrowser {
     } else if (options && options.screenshot) {
       result.screenshotPath = options.screenshotPath;
       try {
+        const _perf_t211 = Date.now();
+        logEvent("[_screenShot] before: takeScreenshot");
         await this.takeScreenshot(options.screenshotPath, options.fullPage === true);
+        logEvent(`[_screenShot] after: takeScreenshot took ${Date.now() - _perf_t211}ms`);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
         // fs.writeFile(options.screenshotPath, buffer, (err) => {
@@ -2450,7 +3086,10 @@ class StableBrowser {
         this.logger.info("unable to take screenshot, ignored");
       }
       if (info && info.box) {
+        const _perf_t212 = Date.now();
+        logEvent("[_screenShot] before: drawRectangle");
         await drawRectangle(options.screenshotPath, info.box.x, info.box.y, info.box.width, info.box.height);
+        logEvent(`[_screenShot] after: drawRectangle took ${Date.now() - _perf_t212}ms`);
       }
     }
 
@@ -2484,18 +3123,30 @@ class StableBrowser {
     // }
 
     if (this.context.browserName === "chromium") {
+      const _perf_t213 = Date.now();
+      logEvent("[takeScreenshot] before: playContext.newCDPSession");
       const client = await playContext.newCDPSession(this.page);
+      logEvent(`[takeScreenshot] after: playContext.newCDPSession took ${Date.now() - _perf_t213}ms`);
+      const _perf_t214 = Date.now();
+      logEvent("[takeScreenshot] before: client.send");
       const { data } = await client.send("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: fullPage,
       });
+      logEvent(`[takeScreenshot] after: client.send took ${Date.now() - _perf_t214}ms`);
+      const _perf_t215 = Date.now();
+      logEvent("[takeScreenshot] before: client.detach");
       await client.detach();
+      logEvent(`[takeScreenshot] after: client.detach took ${Date.now() - _perf_t215}ms`);
       if (!screenshotPath) {
         return data;
       }
       screenshotBuffer = Buffer.from(data, "base64");
     } else {
+      const _perf_t216 = Date.now();
+      logEvent("[takeScreenshot] before: page.screenshot");
       screenshotBuffer = await this.page.screenshot({ fullPage: fullPage });
+      logEvent(`[takeScreenshot] after: page.screenshot took ${Date.now() - _perf_t216}ms`);
     }
 
     // if (focusedElement) {
@@ -2503,7 +3154,10 @@ class StableBrowser {
     //   await this._unhighlightElements(focusedElement);
     // }
 
+    const _perf_t217 = Date.now();
+    logEvent("[takeScreenshot] before: Jimp.read");
     let image = await Jimp.read(screenshotBuffer);
+    logEvent(`[takeScreenshot] after: Jimp.read took ${Date.now() - _perf_t217}ms`);
 
     // Get the image dimensions
 
@@ -2512,7 +3166,10 @@ class StableBrowser {
     // Resize the image to fit within the viewport dimensions without enlarging
     if (width > viewportWidth) {
       image = image.resize({ w: viewportWidth, h: height * resizeRatio }); // Resize the image while maintaining aspect ratio
+      const _perf_t218 = Date.now();
+      logEvent("[takeScreenshot] before: image.write");
       await image.write(screenshotPath);
+      logEvent(`[takeScreenshot] after: image.write took ${Date.now() - _perf_t218}ms`);
     } else {
       fs.writeFileSync(screenshotPath, screenshotBuffer);
     }
@@ -2530,15 +3187,30 @@ class StableBrowser {
       log: "***** verify element " + selectors.element_name + " exists in page *****\n",
     };
 
+    const _perf_t219 = Date.now();
+    logEvent("[verifyElementExistInPage] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[verifyElementExistInPage] after: new Promise took ${Date.now() - _perf_t219}ms`);
     try {
+      const _perf_t220 = Date.now();
+      logEvent("[verifyElementExistInPage] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyElementExistInPage] after: _preCommand took ${Date.now() - _perf_t220}ms`);
+      const _perf_t221 = Date.now();
+      logEvent("[verifyElementExistInPage] before: expect");
       await expect(state.element).toHaveCount(1, { timeout: 10000 });
+      logEvent(`[verifyElementExistInPage] after: expect took ${Date.now() - _perf_t221}ms`);
       return state.info;
     } catch (e) {
+      const _perf_t222 = Date.now();
+      logEvent("[verifyElementExistInPage] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyElementExistInPage] after: _commandError took ${Date.now() - _perf_t222}ms`);
     } finally {
+      const _perf_t223 = Date.now();
+      logEvent("[verifyElementExistInPage] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyElementExistInPage] after: _commandFinally took ${Date.now() - _perf_t223}ms`);
     }
   }
   async extractAttribute(selectors, attribute, variable, _params = null, options = {}, world = null) {
@@ -2556,24 +3228,45 @@ class StableBrowser {
       log: "***** extract attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
     };
+    const _perf_t224 = Date.now();
+    logEvent("[extractAttribute] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[extractAttribute] after: new Promise took ${Date.now() - _perf_t224}ms`);
     try {
+      const _perf_t225 = Date.now();
+      logEvent("[extractAttribute] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[extractAttribute] after: _preCommand took ${Date.now() - _perf_t225}ms`);
       switch (attribute) {
         case "inner_text":
+          const _perf_t226 = Date.now();
+          logEvent("[extractAttribute] before: state.element.innerText");
           state.value = await state.element.innerText();
+          logEvent(`[extractAttribute] after: state.element.innerText took ${Date.now() - _perf_t226}ms`);
           break;
         case "href":
+          const _perf_t227 = Date.now();
+          logEvent("[extractAttribute] before: state.element.getAttribute");
           state.value = await state.element.getAttribute("href");
+          logEvent(`[extractAttribute] after: state.element.getAttribute took ${Date.now() - _perf_t227}ms`);
           break;
         case "value":
+          const _perf_t228 = Date.now();
+          logEvent("[extractAttribute] before: state.element.inputValue");
           state.value = await state.element.inputValue();
+          logEvent(`[extractAttribute] after: state.element.inputValue took ${Date.now() - _perf_t228}ms`);
           break;
         case "text":
+          const _perf_t229 = Date.now();
+          logEvent("[extractAttribute] before: state.element.textContent");
           state.value = await state.element.textContent();
+          logEvent(`[extractAttribute] after: state.element.textContent took ${Date.now() - _perf_t229}ms`);
           break;
         default:
+          const _perf_t230 = Date.now();
+          logEvent("[extractAttribute] before: state.element.getAttribute");
           state.value = await state.element.getAttribute(attribute);
+          logEvent(`[extractAttribute] after: state.element.getAttribute took ${Date.now() - _perf_t230}ms`);
           break;
       }
 
@@ -2610,9 +3303,15 @@ class StableBrowser {
       // await new Promise((resolve) => setTimeout(resolve, 500));
       return state.info;
     } catch (e) {
+      const _perf_t231 = Date.now();
+      logEvent("[extractAttribute] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[extractAttribute] after: _commandError took ${Date.now() - _perf_t231}ms`);
     } finally {
+      const _perf_t232 = Date.now();
+      logEvent("[extractAttribute] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[extractAttribute] after: _commandFinally took ${Date.now() - _perf_t232}ms`);
     }
   }
   async extractProperty(selectors, property, variable, _params = null, options = {}, world = null) {
@@ -2630,21 +3329,39 @@ class StableBrowser {
       log: "***** extract property " + property + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
     };
+    const _perf_t233 = Date.now();
+    logEvent("[extractProperty] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[extractProperty] after: new Promise took ${Date.now() - _perf_t233}ms`);
     try {
+      const _perf_t234 = Date.now();
+      logEvent("[extractProperty] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[extractProperty] after: _preCommand took ${Date.now() - _perf_t234}ms`);
       switch (property) {
         case "inner_text":
+          const _perf_t235 = Date.now();
+          logEvent("[extractProperty] before: state.element.innerText");
           state.value = await state.element.innerText();
+          logEvent(`[extractProperty] after: state.element.innerText took ${Date.now() - _perf_t235}ms`);
           break;
         case "href":
+          const _perf_t236 = Date.now();
+          logEvent("[extractProperty] before: state.element.getAttribute");
           state.value = await state.element.getAttribute("href");
+          logEvent(`[extractProperty] after: state.element.getAttribute took ${Date.now() - _perf_t236}ms`);
           break;
         case "value":
+          const _perf_t237 = Date.now();
+          logEvent("[extractProperty] before: state.element.inputValue");
           state.value = await state.element.inputValue();
+          logEvent(`[extractProperty] after: state.element.inputValue took ${Date.now() - _perf_t237}ms`);
           break;
         case "text":
+          const _perf_t238 = Date.now();
+          logEvent("[extractProperty] before: state.element.textContent");
           state.value = await state.element.textContent();
+          logEvent(`[extractProperty] after: state.element.textContent took ${Date.now() - _perf_t238}ms`);
           break;
         default:
           if (property.startsWith("dataset.")) {
@@ -2689,9 +3406,15 @@ class StableBrowser {
       // await new Promise((resolve) => setTimeout(resolve, 500));
       return state.info;
     } catch (e) {
+      const _perf_t239 = Date.now();
+      logEvent("[extractProperty] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[extractProperty] after: _commandError took ${Date.now() - _perf_t239}ms`);
     } finally {
+      const _perf_t240 = Date.now();
+      logEvent("[extractProperty] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[extractProperty] after: _commandFinally took ${Date.now() - _perf_t240}ms`);
     }
   }
   async verifyAttribute(selectors, attribute, value, _params = null, options = {}, world = null) {
@@ -2711,12 +3434,21 @@ class StableBrowser {
       log: "***** verify attribute " + attribute + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
     };
+    const _perf_t241 = Date.now();
+    logEvent("[verifyAttribute] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[verifyAttribute] after: new Promise took ${Date.now() - _perf_t241}ms`);
     let val;
     let expectedValue;
     try {
+      const _perf_t242 = Date.now();
+      logEvent("[verifyAttribute] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyAttribute] after: _preCommand took ${Date.now() - _perf_t242}ms`);
+      const _perf_t243 = Date.now();
+      logEvent("[verifyAttribute] before: replaceWithLocalTestData");
       expectedValue = await replaceWithLocalTestData(state.value, world);
+      logEvent(`[verifyAttribute] after: replaceWithLocalTestData took ${Date.now() - _perf_t243}ms`);
       state.info.expectedValue = expectedValue;
       switch (attribute) {
         case "innerText":
@@ -2735,7 +3467,10 @@ class StableBrowser {
           val = String(await state.element.isDisabled());
           break;
         case "readOnly":
+          const _perf_t244 = Date.now();
+          logEvent("[verifyAttribute] before: state.element.isEditable");
           const isEditable = await state.element.isEditable();
+          logEvent(`[verifyAttribute] after: state.element.isEditable took ${Date.now() - _perf_t244}ms`);
           val = String(!isEditable);
           break;
         default:
@@ -2783,9 +3518,15 @@ class StableBrowser {
       }
       return state.info;
     } catch (e) {
+      const _perf_t245 = Date.now();
+      logEvent("[verifyAttribute] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyAttribute] after: _commandError took ${Date.now() - _perf_t245}ms`);
     } finally {
+      const _perf_t246 = Date.now();
+      logEvent("[verifyAttribute] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyAttribute] after: _commandFinally took ${Date.now() - _perf_t246}ms`);
     }
   }
   async verifyProperty(selectors, property, value, _params = null, options = {}, world = null) {
@@ -2805,12 +3546,21 @@ class StableBrowser {
       log: "***** verify property " + property + " from " + selectors.element_name + " *****\n",
       allowDisabled: true,
     };
+    const _perf_t247 = Date.now();
+    logEvent("[verifyProperty] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[verifyProperty] after: new Promise took ${Date.now() - _perf_t247}ms`);
     let val;
     let expectedValue;
     try {
+      const _perf_t248 = Date.now();
+      logEvent("[verifyProperty] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyProperty] after: _preCommand took ${Date.now() - _perf_t248}ms`);
+      const _perf_t249 = Date.now();
+      logEvent("[verifyProperty] before: _replaceWithLocalData");
       expectedValue = await this._replaceWithLocalData(value, world);
+      logEvent(`[verifyProperty] after: _replaceWithLocalData took ${Date.now() - _perf_t249}ms`);
       state.info.expectedValue = expectedValue;
       switch (property) {
         case "innerText":
@@ -2829,7 +3579,10 @@ class StableBrowser {
           val = String(await state.element.isDisabled());
           break;
         case "readOnly":
+          const _perf_t250 = Date.now();
+          logEvent("[verifyProperty] before: state.element.isEditable");
           const isEditable = await state.element.isEditable();
+          logEvent(`[verifyProperty] after: state.element.isEditable took ${Date.now() - _perf_t250}ms`);
           val = String(!isEditable);
           break;
         case "innerHTML":
@@ -2911,9 +3664,15 @@ class StableBrowser {
       }
       return state.info;
     } catch (e) {
+      const _perf_t251 = Date.now();
+      logEvent("[verifyProperty] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyProperty] after: _commandError took ${Date.now() - _perf_t251}ms`);
     } finally {
+      const _perf_t252 = Date.now();
+      logEvent("[verifyProperty] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyProperty] after: _commandFinally took ${Date.now() - _perf_t252}ms`);
     }
   }
   async conditionalWait(selectors, condition, timeout = 1000, _params = null, options = {}, world = null) {
@@ -2952,33 +3711,57 @@ class StableBrowser {
 
       try {
         // Try to execute _preCommand (element location)
+        const _perf_t253 = Date.now();
+        logEvent("[conditionalWait] before: _preCommand");
         await _preCommand(state, this);
+        logEvent(`[conditionalWait] after: _preCommand took ${Date.now() - _perf_t253}ms`);
 
         // If _preCommand succeeds, start condition checking
         const checkCondition = async () => {
           try {
             switch (condition.toLowerCase()) {
               case "checked":
+                const _perf_t254 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isChecked");
                 currentValue = await state.element.isChecked();
+                logEvent(`[conditionalWait] after: state.element.isChecked took ${Date.now() - _perf_t254}ms`);
                 return currentValue === true;
               case "unchecked":
+                const _perf_t255 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isChecked");
                 currentValue = await state.element.isChecked();
+                logEvent(`[conditionalWait] after: state.element.isChecked took ${Date.now() - _perf_t255}ms`);
                 return currentValue === false;
               case "visible":
+                const _perf_t256 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isVisible");
                 currentValue = await state.element.isVisible();
+                logEvent(`[conditionalWait] after: state.element.isVisible took ${Date.now() - _perf_t256}ms`);
                 return currentValue === true;
               case "hidden":
+                const _perf_t257 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isVisible");
                 currentValue = await state.element.isVisible();
+                logEvent(`[conditionalWait] after: state.element.isVisible took ${Date.now() - _perf_t257}ms`);
                 return currentValue === false;
               case "enabled":
+                const _perf_t258 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isDisabled");
                 currentValue = await state.element.isDisabled();
+                logEvent(`[conditionalWait] after: state.element.isDisabled took ${Date.now() - _perf_t258}ms`);
                 return currentValue === false;
               case "disabled":
+                const _perf_t259 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isDisabled");
                 currentValue = await state.element.isDisabled();
+                logEvent(`[conditionalWait] after: state.element.isDisabled took ${Date.now() - _perf_t259}ms`);
                 return currentValue === true;
               case "editable":
                 // currentValue = await String(await state.element.evaluate((element, prop) => element[prop], "isContentEditable"));
+                const _perf_t260 = Date.now();
+                logEvent("[conditionalWait] before: state.element.isContentEditable");
                 currentValue = await state.element.isContentEditable();
+                logEvent(`[conditionalWait] after: state.element.isContentEditable took ${Date.now() - _perf_t260}ms`);
                 return currentValue === true;
               default:
                 state.info.message = `Unsupported condition: '${condition}'. Supported conditions are: checked, unchecked, visible, hidden, enabled, disabled, editable.`;
@@ -2995,7 +3778,10 @@ class StableBrowser {
         while (Date.now() - startTime < timeoutMs) {
           const currentElapsedTime = Date.now() - startTime;
 
+          const _perf_t261 = Date.now();
+          logEvent("[conditionalWait] before: checkCondition");
           conditionMet = await checkCondition();
+          logEvent(`[conditionalWait] after: checkCondition took ${Date.now() - _perf_t261}ms`);
 
           if (conditionMet) {
             break;
@@ -3003,7 +3789,10 @@ class StableBrowser {
 
           // Check if we still have time for another attempt
           if (Date.now() - startTime + 50 < timeoutMs) {
+            const _perf_t262 = Date.now();
+            logEvent("[conditionalWait] before: new Promise");
             await new Promise((res) => setTimeout(res, 50));
+            logEvent(`[conditionalWait] after: new Promise took ${Date.now() - _perf_t262}ms`);
           } else {
             break;
           }
@@ -3023,7 +3812,10 @@ class StableBrowser {
 
         // Check if we have enough time left to retry
         if (timeLeft > 100) {
+          const _perf_t263 = Date.now();
+          logEvent("[conditionalWait] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 50));
+          logEvent(`[conditionalWait] after: new Promise took ${Date.now() - _perf_t263}ms`);
         } else {
           break;
         }
@@ -3048,7 +3840,10 @@ class StableBrowser {
     }
 
     try {
+      const _perf_t264 = Date.now();
+      logEvent("[conditionalWait] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[conditionalWait] after: _commandFinally took ${Date.now() - _perf_t264}ms`);
     } catch (finallyError) {
       state.log += `Error in _commandFinally: ${finallyError.message}\n`;
     }
@@ -3089,7 +3884,10 @@ class StableBrowser {
     let errorCount = 0;
     while (true) {
       try {
+        const _perf_t265 = Date.now();
+        logEvent("[extractEmailData] before: context.api.request");
         let result = await this.context.api.request(request);
+        logEvent(`[extractEmailData] after: context.api.request took ${Date.now() - _perf_t265}ms`);
 
         // the response body expected to be the following:
         // {
@@ -3137,11 +3935,14 @@ class StableBrowser {
         errorCount++;
         if (errorCount > 3) {
           // throw e;
+          const _perf_t266 = Date.now();
+          logEvent("[extractEmailData] before: _commandError");
           await _commandError(
             { text: "extractEmailData", operation: "extractEmailData", emailAddress, info: {} },
             e,
             this
           );
+          logEvent(`[extractEmailData] after: _commandError took ${Date.now() - _perf_t266}ms`);
         }
         // ignore
       }
@@ -3150,7 +3951,10 @@ class StableBrowser {
         throw new Error("timeout reached");
       }
 
+      const _perf_t267 = Date.now();
+      logEvent("[extractEmailData] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 5000));
+      logEvent(`[extractEmailData] after: new Promise took ${Date.now() - _perf_t267}ms`);
     }
   }
 
@@ -3278,12 +4082,18 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
+    const _perf_t268 = Date.now();
+    logEvent("[verifyPagePath] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t268}ms`);
     const info = {};
     info.log = "***** verify page path " + pathPart + " *****\n";
     info.operation = "verifyPagePath";
 
+    const _perf_t269 = Date.now();
+    logEvent("[verifyPagePath] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(pathPart, world);
+    logEvent(`[verifyPagePath] after: _replaceWithLocalData took ${Date.now() - _perf_t269}ms`);
     if (newValue !== pathPart) {
       this.logger.info(pathPart + "=" + newValue);
       pathPart = newValue;
@@ -3307,17 +4117,26 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t270 = Date.now();
+      logEvent("[verifyPagePath] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyPagePath] after: _preCommand took ${Date.now() - _perf_t270}ms`);
       state.info.text = queryText;
       for (let i = 0; i < 30; i++) {
+        const _perf_t271 = Date.now();
+        logEvent("[verifyPagePath] before: page.url");
         const url = await this.page.url();
+        logEvent(`[verifyPagePath] after: page.url took ${Date.now() - _perf_t271}ms`);
         switch (matcher) {
           case "exact":
             if (url !== queryText) {
               if (i === 29) {
                 throw new Error(`Page URL ${url} is not equal to ${queryText}`);
               }
+              const _perf_t272 = Date.now();
+              logEvent("[verifyPagePath] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t272}ms`);
               continue;
             }
             break;
@@ -3326,7 +4145,10 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page URL ${url} doesn't contain ${queryText}`);
               }
+              const _perf_t273 = Date.now();
+              logEvent("[verifyPagePath] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t273}ms`);
               continue;
             }
             break;
@@ -3337,7 +4159,10 @@ class StableBrowser {
                 if (i === 29) {
                   throw new Error(`Page URL ${url} doesn't start with ${queryText}`);
                 }
+                const _perf_t274 = Date.now();
+                logEvent("[verifyPagePath] before: new Promise");
                 await new Promise((resolve) => setTimeout(resolve, 1000));
+                logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t274}ms`);
                 continue;
               }
             }
@@ -3355,7 +4180,10 @@ class StableBrowser {
                 if (i === 29) {
                   throw new Error(`Page URL ${url} doesn't end with ${queryText}`);
                 }
+                const _perf_t275 = Date.now();
+                logEvent("[verifyPagePath] before: new Promise");
                 await new Promise((resolve) => setTimeout(resolve, 1000));
+                logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t275}ms`);
                 continue;
               }
             }
@@ -3366,7 +4194,10 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page URL ${url} doesn't match regex ${queryText}`);
               }
+              const _perf_t276 = Date.now();
+              logEvent("[verifyPagePath] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t276}ms`);
               continue;
             }
             break;
@@ -3376,19 +4207,31 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page URL ${url} does not contain ${pathPart}`);
               }
+              const _perf_t277 = Date.now();
+              logEvent("[verifyPagePath] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPagePath] after: new Promise took ${Date.now() - _perf_t277}ms`);
               continue;
             }
         }
+        const _perf_t278 = Date.now();
+        logEvent("[verifyPagePath] before: _screenshot");
         await _screenshot(state, this);
+        logEvent(`[verifyPagePath] after: _screenshot took ${Date.now() - _perf_t278}ms`);
         return state.info;
       }
     } catch (e) {
       state.info.failCause.lastError = e.message;
       state.info.failCause.assertionFailed = true;
+      const _perf_t279 = Date.now();
+      logEvent("[verifyPagePath] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyPagePath] after: _commandError took ${Date.now() - _perf_t279}ms`);
     } finally {
+      const _perf_t280 = Date.now();
+      logEvent("[verifyPagePath] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyPagePath] after: _commandFinally took ${Date.now() - _perf_t280}ms`);
     }
   }
 
@@ -3404,9 +4247,15 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
+    const _perf_t281 = Date.now();
+    logEvent("[verifyPageTitle] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t281}ms`);
 
+    const _perf_t282 = Date.now();
+    logEvent("[verifyPageTitle] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(title, world);
+    logEvent(`[verifyPageTitle] after: _replaceWithLocalData took ${Date.now() - _perf_t282}ms`);
     if (newValue !== title) {
       this.logger.info(title + "=" + newValue);
       title = newValue;
@@ -3429,17 +4278,26 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t283 = Date.now();
+      logEvent("[verifyPageTitle] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyPageTitle] after: _preCommand took ${Date.now() - _perf_t283}ms`);
       state.info.text = queryText;
       for (let i = 0; i < 30; i++) {
+        const _perf_t284 = Date.now();
+        logEvent("[verifyPageTitle] before: page.title");
         const foundTitle = await this.page.title();
+        logEvent(`[verifyPageTitle] after: page.title took ${Date.now() - _perf_t284}ms`);
         switch (matcher) {
           case "exact":
             if (foundTitle !== queryText) {
               if (i === 29) {
                 throw new Error(`Page Title ${foundTitle} is not equal to ${queryText}`);
               }
+              const _perf_t285 = Date.now();
+              logEvent("[verifyPageTitle] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t285}ms`);
               continue;
             }
             break;
@@ -3448,7 +4306,10 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page Title ${foundTitle} doesn't contain ${queryText}`);
               }
+              const _perf_t286 = Date.now();
+              logEvent("[verifyPageTitle] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t286}ms`);
               continue;
             }
             break;
@@ -3457,7 +4318,10 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page title ${foundTitle} doesn't start with ${queryText}`);
               }
+              const _perf_t287 = Date.now();
+              logEvent("[verifyPageTitle] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t287}ms`);
               continue;
             }
             break;
@@ -3466,7 +4330,10 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page Title ${foundTitle} doesn't end with ${queryText}`);
               }
+              const _perf_t288 = Date.now();
+              logEvent("[verifyPageTitle] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t288}ms`);
               continue;
             }
             break;
@@ -3476,7 +4343,10 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page Title ${foundTitle} doesn't match regex ${queryText}`);
               }
+              const _perf_t289 = Date.now();
+              logEvent("[verifyPageTitle] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t289}ms`);
               continue;
             }
             break;
@@ -3486,19 +4356,31 @@ class StableBrowser {
               if (i === 29) {
                 throw new Error(`Page Title ${foundTitle} does not contain ${title}`);
               }
+              const _perf_t290 = Date.now();
+              logEvent("[verifyPageTitle] before: new Promise");
               await new Promise((resolve) => setTimeout(resolve, 1000));
+              logEvent(`[verifyPageTitle] after: new Promise took ${Date.now() - _perf_t290}ms`);
               continue;
             }
         }
+        const _perf_t291 = Date.now();
+        logEvent("[verifyPageTitle] before: _screenshot");
         await _screenshot(state, this);
+        logEvent(`[verifyPageTitle] after: _screenshot took ${Date.now() - _perf_t291}ms`);
         return state.info;
       }
     } catch (e) {
       state.info.failCause.lastError = e.message;
       state.info.failCause.assertionFailed = true;
+      const _perf_t292 = Date.now();
+      logEvent("[verifyPageTitle] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyPageTitle] after: _commandError took ${Date.now() - _perf_t292}ms`);
     } finally {
+      const _perf_t293 = Date.now();
+      logEvent("[verifyPageTitle] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyPageTitle] after: _commandFinally took ${Date.now() - _perf_t293}ms`);
     }
   }
 
@@ -3509,6 +4391,8 @@ class StableBrowser {
     for (let i = 0; i < frames.length; i++) {
       if (dateAlternatives.date) {
         for (let j = 0; j < dateAlternatives.dates.length; j++) {
+          const _perf_t294 = Date.now();
+          logEvent("[findTextInAllFrames] before: _locateElementByText");
           const result = await this._locateElementByText(
             frames[i],
             dateAlternatives.dates[j],
@@ -3518,11 +4402,14 @@ class StableBrowser {
             ignoreCase,
             {}
           );
+          logEvent(`[findTextInAllFrames] after: _locateElementByText took ${Date.now() - _perf_t294}ms`);
           result.frame = frames[i];
           results.push(result);
         }
       } else if (numberAlternatives.number) {
         for (let j = 0; j < numberAlternatives.numbers.length; j++) {
+          const _perf_t295 = Date.now();
+          logEvent("[findTextInAllFrames] before: _locateElementByText");
           const result = await this._locateElementByText(
             frames[i],
             numberAlternatives.numbers[j],
@@ -3532,10 +4419,13 @@ class StableBrowser {
             ignoreCase,
             {}
           );
+          logEvent(`[findTextInAllFrames] after: _locateElementByText took ${Date.now() - _perf_t295}ms`);
           result.frame = frames[i];
           results.push(result);
         }
       } else {
+        const _perf_t296 = Date.now();
+        logEvent("[findTextInAllFrames] before: _locateElementByText");
         const result = await this._locateElementByText(
           frames[i],
           text,
@@ -3545,6 +4435,7 @@ class StableBrowser {
           ignoreCase,
           {}
         );
+        logEvent(`[findTextInAllFrames] after: _locateElementByText took ${Date.now() - _perf_t296}ms`);
         result.frame = frames[i];
         results.push(result);
       }
@@ -3578,13 +4469,22 @@ class StableBrowser {
     let stepFastMode = this.stepTags.includes("fast-mode");
     if (!stepFastMode) {
       if (!this.fastMode) {
+        const _perf_t297 = Date.now();
+        logEvent("[verifyTextExistInPage] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 2000));
+        logEvent(`[verifyTextExistInPage] after: new Promise took ${Date.now() - _perf_t297}ms`);
       } else {
+        const _perf_t298 = Date.now();
+        logEvent("[verifyTextExistInPage] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 500));
+        logEvent(`[verifyTextExistInPage] after: new Promise took ${Date.now() - _perf_t298}ms`);
       }
     }
 
+    const _perf_t299 = Date.now();
+    logEvent("[verifyTextExistInPage] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(text, world);
+    logEvent(`[verifyTextExistInPage] after: _replaceWithLocalData took ${Date.now() - _perf_t299}ms`);
     if (newValue !== text) {
       this.logger.info(text + "=" + newValue);
       text = newValue;
@@ -3599,14 +4499,20 @@ class StableBrowser {
       state.highlight = false;
     }
     try {
+      const _perf_t300 = Date.now();
+      logEvent("[verifyTextExistInPage] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyTextExistInPage] after: _preCommand took ${Date.now() - _perf_t300}ms`);
       state.info.text = text;
       while (true) {
         let resultWithElementsFound = {
           length: 0,
         };
         try {
+          const _perf_t301 = Date.now();
+          logEvent("[verifyTextExistInPage] before: findTextInAllFrames");
           resultWithElementsFound = await this.findTextInAllFrames(dateAlternatives, numberAlternatives, text, state);
+          logEvent(`[verifyTextExistInPage] after: findTextInAllFrames took ${Date.now() - _perf_t301}ms`);
         } catch (error) {
           // ignore
         }
@@ -3614,7 +4520,10 @@ class StableBrowser {
           if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${text} not found in page`);
           }
+          const _perf_t302 = Date.now();
+          logEvent("[verifyTextExistInPage] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          logEvent(`[verifyTextExistInPage] after: new Promise took ${Date.now() - _perf_t302}ms`);
           continue;
         }
         try {
@@ -3622,25 +4531,42 @@ class StableBrowser {
             const frame = resultWithElementsFound[0].frame;
             const dataAttribute = `[data-blinq-id-${resultWithElementsFound[0].randomToken}]`;
 
+            const _perf_t303 = Date.now();
+            logEvent("[verifyTextExistInPage] before: _highlightElements");
             await this._highlightElements(frame, dataAttribute);
+            logEvent(`[verifyTextExistInPage] after: _highlightElements took ${Date.now() - _perf_t303}ms`);
 
+            const _perf_t304 = Date.now();
+            logEvent("[verifyTextExistInPage] before: frame.locator");
             const element = await frame.locator(dataAttribute).first();
+            logEvent(`[verifyTextExistInPage] after: frame.locator took ${Date.now() - _perf_t304}ms`);
 
             if (element) {
+              const _perf_t305 = Date.now();
+              logEvent("[verifyTextExistInPage] before: scrollIfNeeded");
               await this.scrollIfNeeded(element, state.info);
               // await element.dispatchEvent("bvt_verify_page_contains_text");
             }
           }
+          const _perf_t307 = Date.now();
+          logEvent("[verifyTextExistInPage] before: _screenshot");
           await _screenshot(state, this);
+          logEvent(`[verifyTextExistInPage] after: _screenshot took ${Date.now() - _perf_t307}ms`);
           return state.info;
         } catch (error) {
           console.error(error);
         }
       }
     } catch (e) {
+      const _perf_t308 = Date.now();
+      logEvent("[verifyTextExistInPage] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyTextExistInPage] after: _commandError took ${Date.now() - _perf_t308}ms`);
     } finally {
+      const _perf_t309 = Date.now();
+      logEvent("[verifyTextExistInPage] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyTextExistInPage] after: _commandFinally took ${Date.now() - _perf_t309}ms`);
     }
   }
 
@@ -3665,9 +4591,15 @@ class StableBrowser {
     }
 
     const timeout = this._getFindElementTimeout(options);
+    const _perf_t310 = Date.now();
+    logEvent("[waitForTextToDisappear] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[waitForTextToDisappear] after: new Promise took ${Date.now() - _perf_t310}ms`);
 
+    const _perf_t311 = Date.now();
+    logEvent("[waitForTextToDisappear] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(text, world);
+    logEvent(`[waitForTextToDisappear] after: _replaceWithLocalData took ${Date.now() - _perf_t311}ms`);
     if (newValue !== text) {
       this.logger.info(text + "=" + newValue);
       text = newValue;
@@ -3676,30 +4608,48 @@ class StableBrowser {
     let dateAlternatives = findDateAlternatives(text);
     let numberAlternatives = findNumberAlternatives(text);
     try {
+      const _perf_t312 = Date.now();
+      logEvent("[waitForTextToDisappear] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[waitForTextToDisappear] after: _preCommand took ${Date.now() - _perf_t312}ms`);
       state.info.text = text;
       let resultWithElementsFound = {
         length: null, // initial cannot be 0
       };
       while (true) {
         try {
+          const _perf_t313 = Date.now();
+          logEvent("[waitForTextToDisappear] before: findTextInAllFrames");
           resultWithElementsFound = await this.findTextInAllFrames(dateAlternatives, numberAlternatives, text, state);
+          logEvent(`[waitForTextToDisappear] after: findTextInAllFrames took ${Date.now() - _perf_t313}ms`);
         } catch (error) {
           // ignore
         }
         if (resultWithElementsFound.length === 0) {
+          const _perf_t314 = Date.now();
+          logEvent("[waitForTextToDisappear] before: _screenshot");
           await _screenshot(state, this);
+          logEvent(`[waitForTextToDisappear] after: _screenshot took ${Date.now() - _perf_t314}ms`);
           return state.info;
         }
         if (Date.now() - state.startTime > timeout) {
           throw new Error(`Text ${text} found in page`);
         }
+        const _perf_t315 = Date.now();
+        logEvent("[waitForTextToDisappear] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        logEvent(`[waitForTextToDisappear] after: new Promise took ${Date.now() - _perf_t315}ms`);
       }
     } catch (e) {
+      const _perf_t316 = Date.now();
+      logEvent("[waitForTextToDisappear] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[waitForTextToDisappear] after: _commandError took ${Date.now() - _perf_t316}ms`);
     } finally {
+      const _perf_t317 = Date.now();
+      logEvent("[waitForTextToDisappear] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[waitForTextToDisappear] after: _commandFinally took ${Date.now() - _perf_t317}ms`);
     }
   }
   async verifyTextRelatedToText(
@@ -3729,14 +4679,23 @@ class StableBrowser {
     let cmdEndTime = null;
 
     const timeout = this._getFindElementTimeout(options);
+    const _perf_t318 = Date.now();
+    logEvent("[verifyTextRelatedToText] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[verifyTextRelatedToText] after: new Promise took ${Date.now() - _perf_t318}ms`);
 
+    const _perf_t319 = Date.now();
+    logEvent("[verifyTextRelatedToText] before: _replaceWithLocalData");
     let newValue = await this._replaceWithLocalData(textAnchor, world);
+    logEvent(`[verifyTextRelatedToText] after: _replaceWithLocalData took ${Date.now() - _perf_t319}ms`);
     if (newValue !== textAnchor) {
       this.logger.info(textAnchor + "=" + newValue);
       textAnchor = newValue;
     }
+    const _perf_t320 = Date.now();
+    logEvent("[verifyTextRelatedToText] before: _replaceWithLocalData");
     newValue = await this._replaceWithLocalData(textToVerify, world);
+    logEvent(`[verifyTextRelatedToText] after: _replaceWithLocalData took ${Date.now() - _perf_t320}ms`);
     if (newValue !== textToVerify) {
       this.logger.info(textToVerify + "=" + newValue);
       textToVerify = newValue;
@@ -3745,13 +4704,18 @@ class StableBrowser {
     let numberAlternatives = findNumberAlternatives(textToVerify);
     let foundAncore = false;
     try {
+      const _perf_t321 = Date.now();
+      logEvent("[verifyTextRelatedToText] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[verifyTextRelatedToText] after: _preCommand took ${Date.now() - _perf_t321}ms`);
       state.info.text = textToVerify;
       let resultWithElementsFound = {
         length: 0,
       };
       while (true) {
         try {
+          const _perf_t322 = Date.now();
+          logEvent("[verifyTextRelatedToText] before: findTextInAllFrames");
           resultWithElementsFound = await this.findTextInAllFrames(
             findDateAlternatives(textAnchor),
             findNumberAlternatives(textAnchor),
@@ -3759,6 +4723,7 @@ class StableBrowser {
             state,
             false
           );
+          logEvent(`[verifyTextRelatedToText] after: findTextInAllFrames took ${Date.now() - _perf_t322}ms`);
         } catch (error) {
           // ignore
         }
@@ -3766,7 +4731,10 @@ class StableBrowser {
           if (Date.now() - state.startTime > timeout) {
             throw new Error(`Text ${foundAncore ? textToVerify : textAnchor} not found in page`);
           }
+          const _perf_t323 = Date.now();
+          logEvent("[verifyTextRelatedToText] before: new Promise");
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          logEvent(`[verifyTextRelatedToText] after: new Promise took ${Date.now() - _perf_t323}ms`);
           continue;
         } else {
           cmdEndTime = Date.now();
@@ -3793,9 +4761,17 @@ class StableBrowser {
             if (Number(climb) > 0) {
               css = css + " >> " + climbXpath;
             }
+            const _perf_t324 = Date.now();
+            logEvent("[verifyTextRelatedToText] before: frame.locator");
             const count = await frame.locator(css).count();
+            logEvent(`[verifyTextRelatedToText] after: frame.locator took ${Date.now() - _perf_t324}ms`);
             for (let j = 0; j < count; j++) {
+              const _perf_t325 = Date.now();
+              logEvent("[verifyTextRelatedToText] before: frame.locator");
               const continer = await frame.locator(css).nth(j);
+              logEvent(`[verifyTextRelatedToText] after: frame.locator took ${Date.now() - _perf_t325}ms`);
+              const _perf_t326 = Date.now();
+              logEvent("[verifyTextRelatedToText] before: _locateElementByText");
               const result = await this._locateElementByText(
                 continer,
                 textToVerify,
@@ -3805,9 +4781,13 @@ class StableBrowser {
                 true,
                 {}
               );
+              logEvent(`[verifyTextRelatedToText] after: _locateElementByText took ${Date.now() - _perf_t326}ms`);
               if (result.elementCount > 0) {
                 const dataAttribute = "[data-blinq-id-" + result.randomToken + "]";
+                const _perf_t327 = Date.now();
+                logEvent("[verifyTextRelatedToText] before: _highlightElements");
                 await this._highlightElements(frame, dataAttribute);
+                logEvent(`[verifyTextRelatedToText] after: _highlightElements took ${Date.now() - _perf_t327}ms`);
                 //const cssAnchor = `[data-blinq-id="blinq-id-${token}-anchor"]`;
                 // if (world && world.screenshot && !world.screenshotPath) {
                 // console.log(`Highlighting for vtrt while running from recorder`);
@@ -3822,14 +4802,26 @@ class StableBrowser {
                 // .catch(e);
                 // }
                 //await this._highlightElements(frame, cssAnchor);
+                const _perf_t328 = Date.now();
+                logEvent("[verifyTextRelatedToText] before: frame.locator");
                 const element = await frame.locator(dataAttribute).first();
+                logEvent(`[verifyTextRelatedToText] after: frame.locator took ${Date.now() - _perf_t328}ms`);
                 // await new Promise((resolve) => setTimeout(resolve, 100));
                 // await this._unhighlightElements(frame, dataAttribute);
                 if (element) {
+                  const _perf_t329 = Date.now();
+                  logEvent("[verifyTextRelatedToText] before: scrollIfNeeded");
                   await this.scrollIfNeeded(element, state.info);
+                  logEvent(`[verifyTextRelatedToText] after: scrollIfNeeded took ${Date.now() - _perf_t329}ms`);
+                  const _perf_t330 = Date.now();
+                  logEvent("[verifyTextRelatedToText] before: element.dispatchEvent");
                   await element.dispatchEvent("bvt_verify_page_contains_text");
+                  logEvent(`[verifyTextRelatedToText] after: element.dispatchEvent took ${Date.now() - _perf_t330}ms`);
                 }
+                const _perf_t331 = Date.now();
+                logEvent("[verifyTextRelatedToText] before: _screenshot");
                 await _screenshot(state, this);
+                logEvent(`[verifyTextRelatedToText] after: _screenshot took ${Date.now() - _perf_t331}ms`);
                 return state.info;
               }
             }
@@ -3840,9 +4832,15 @@ class StableBrowser {
       }
       // await expect(element).toHaveCount(1, { timeout: 10000 });
     } catch (e) {
+      const _perf_t332 = Date.now();
+      logEvent("[verifyTextRelatedToText] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[verifyTextRelatedToText] after: _commandError took ${Date.now() - _perf_t332}ms`);
     } finally {
+      const _perf_t333 = Date.now();
+      logEvent("[verifyTextRelatedToText] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[verifyTextRelatedToText] after: _commandFinally took ${Date.now() - _perf_t333}ms`);
     }
   }
 
@@ -3858,6 +4856,8 @@ class StableBrowser {
     let results = [];
     let ignoreCase = false;
     for (let i = 0; i < frames.length; i++) {
+      const _perf_t334 = Date.now();
+      logEvent("[findRelatedTextInAllFrames] before: _locateElementByText");
       const result = await this._locateElementByText(
         frames[i],
         textAnchor,
@@ -3867,6 +4867,7 @@ class StableBrowser {
         ignoreCase,
         {}
       );
+      logEvent(`[findRelatedTextInAllFrames] after: _locateElementByText took ${Date.now() - _perf_t334}ms`);
       result.frame = frames[i];
 
       const climbArray = [];
@@ -3877,7 +4878,10 @@ class StableBrowser {
 
       const newLocator = `[data-blinq-id-${result.randomToken}] ${climb > 0 ? ">> " + climbXpath : ""} >> internal:text=${testForRegex(textToVerify) ? textToVerify : unEscapeString(textToVerify)}`;
 
+      const _perf_t335 = Date.now();
+      logEvent("[findRelatedTextInAllFrames] before: frames[i]");
       const count = await frames[i].locator(newLocator).count();
+      logEvent(`[findRelatedTextInAllFrames] after: frames[i] took ${Date.now() - _perf_t335}ms`);
       if (count > 0) {
         result.elementCount = count;
         result.locator = newLocator;
@@ -3895,7 +4899,10 @@ class StableBrowser {
     let error = null;
     let screenshotId = null;
     let screenshotPath = null;
+    const _perf_t336 = Date.now();
+    logEvent("[visualVerification] before: new Promise");
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    logEvent(`[visualVerification] after: new Promise took ${Date.now() - _perf_t336}ms`);
     const info = {};
     info.log = "";
     info.operation = "visualVerification";
@@ -3907,7 +4914,10 @@ class StableBrowser {
       let serviceUrl = _getServerUrl();
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       info.screenshotPath = screenshotPath;
+      const _perf_t337 = Date.now();
+      logEvent("[visualVerification] before: takeScreenshot");
       const screenshot = await this.takeScreenshot();
+      logEvent(`[visualVerification] after: takeScreenshot took ${Date.now() - _perf_t337}ms`);
       let request = {
         method: "post",
         maxBodyLength: Infinity,
@@ -3923,7 +4933,10 @@ class StableBrowser {
           screenshot: screenshot,
         }),
       };
+      const _perf_t338 = Date.now();
+      logEvent("[visualVerification] before: axios.request");
       const result = await axios.request(request);
+      logEvent(`[visualVerification] after: axios.request took ${Date.now() - _perf_t338}ms`);
       if (result.data.status !== true) {
         throw new Error("Visual validation failed");
       }
@@ -3942,7 +4955,10 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
+      const _perf_t339 = Date.now();
+      logEvent("[visualVerification] before: _commandError");
       await _commandError({ text: "visualVerification", operation: "visualVerification", info }, e, this);
+      logEvent(`[visualVerification] after: _commandError took ${Date.now() - _perf_t339}ms`);
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -3967,7 +4983,10 @@ class StableBrowser {
     }
   }
   async verifyTableData(selectors, data, _params = null, options = {}, world = null) {
+    const _perf_t340 = Date.now();
+    logEvent("[verifyTableData] before: getTableData");
     const tableData = await this.getTableData(selectors, _params, options, world);
+    logEvent(`[verifyTableData] after: getTableData took ${Date.now() - _perf_t340}ms`);
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -4000,9 +5019,15 @@ class StableBrowser {
     info.operation = "getTableData";
     info.selectors = selectors;
     try {
+      const _perf_t341 = Date.now();
+      logEvent("[getTableData] before: _locate");
       let table = await this._locate(selectors, info, _params);
+      logEvent(`[getTableData] after: _locate took ${Date.now() - _perf_t341}ms`);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      const _perf_t342 = Date.now();
+      logEvent("[getTableData] before: getTableData");
       const tableData = await getTableData(this.page, table);
+      logEvent(`[getTableData] after: getTableData took ${Date.now() - _perf_t342}ms`);
       return tableData;
     } catch (e) {
       this.logger.error("getTableData failed " + info.log);
@@ -4012,7 +5037,10 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
+      const _perf_t343 = Date.now();
+      logEvent("[getTableData] before: _commandError");
       await _commandError({ text: "getTableData", operation: "getTableData", selectors, info }, e, this);
+      logEvent(`[getTableData] after: _commandError took ${Date.now() - _perf_t343}ms`);
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -4048,7 +5076,10 @@ class StableBrowser {
     if (!value) {
       throw new Error("value is null");
     }
+    const _perf_t344 = Date.now();
+    logEvent("[analyzeTable] before: _replaceWithLocalData");
     const newValue = await this._replaceWithLocalData(value, world);
+    logEvent(`[analyzeTable] after: _replaceWithLocalData took ${Date.now() - _perf_t344}ms`);
     if (newValue !== value) {
       this.logger.info(value + "=" + newValue);
       value = newValue;
@@ -4076,9 +5107,15 @@ class StableBrowser {
     info.operator = operator;
     info.value = value;
     try {
+      const _perf_t345 = Date.now();
+      logEvent("[analyzeTable] before: _locate");
       let table = await this._locate(selectors, info, _params);
+      logEvent(`[analyzeTable] after: _locate took ${Date.now() - _perf_t345}ms`);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
+      const _perf_t346 = Date.now();
+      logEvent("[analyzeTable] before: getTableCells");
       const cells = await getTableCells(this.page, table, query, info);
+      logEvent(`[analyzeTable] after: getTableCells took ${Date.now() - _perf_t346}ms`);
 
       if (cells && cells.error) {
         throw new Error(cells.error);
@@ -4172,11 +5209,14 @@ class StableBrowser {
       Object.assign(e, { info: info });
       error = e;
       // throw e;
+      const _perf_t347 = Date.now();
+      logEvent("[analyzeTable] before: _commandError");
       await _commandError(
         { text: "analyzeTable", operation: "analyzeTable", selectors, query, operator, value },
         e,
         this
       );
+      logEvent(`[analyzeTable] after: _commandError took ${Date.now() - _perf_t347}ms`);
     } finally {
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -4224,24 +5264,39 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t348 = Date.now();
+      logEvent("[sleep] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[sleep] after: _preCommand took ${Date.now() - _perf_t348}ms`);
 
       if (duration < 0) {
         throw new Error("Sleep duration cannot be negative");
       }
 
+      const _perf_t349 = Date.now();
+      logEvent("[sleep] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, duration));
+      logEvent(`[sleep] after: new Promise took ${Date.now() - _perf_t349}ms`);
 
       return state.info;
     } catch (e) {
+      const _perf_t350 = Date.now();
+      logEvent("[sleep] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[sleep] after: _commandError took ${Date.now() - _perf_t350}ms`);
     } finally {
+      const _perf_t351 = Date.now();
+      logEvent("[sleep] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[sleep] after: _commandFinally took ${Date.now() - _perf_t351}ms`);
     }
   }
   async _replaceWithLocalData(value, world, _decrypt = true, totpWait = true) {
     try {
+      const _perf_t352 = Date.now();
+      logEvent("[_replaceWithLocalData] before: replaceWithLocalTestData");
       return await replaceWithLocalTestData(value, world, _decrypt, totpWait, this.context, this);
+      logEvent(`[_replaceWithLocalData] after: replaceWithLocalTestData took ${Date.now() - _perf_t352}ms`);
     } catch (error) {
       logEvent(error);
       throw error;
@@ -4267,24 +5322,42 @@ class StableBrowser {
     return 30000;
   }
   async saveStoreState(path: string | null = null, world: any = null) {
+    const _perf_t353 = Date.now();
+    logEvent("[saveStoreState] before: page.context");
     const storageState = await this.page.context().storageState();
+    logEvent(`[saveStoreState] after: page.context took ${Date.now() - _perf_t353}ms`);
+    const _perf_t354 = Date.now();
+    logEvent("[saveStoreState] before: _replaceWithLocalData");
     path = await this._replaceWithLocalData(path, this.world);
+    logEvent(`[saveStoreState] after: _replaceWithLocalData took ${Date.now() - _perf_t354}ms`);
     //const testDataFile = _getDataFile(world, this.context, this);
     if (path) {
       // save { storageState: storageState } into the path
       fs.writeFileSync(path, JSON.stringify({ storageState: storageState }, null, 2));
     } else {
+      const _perf_t355 = Date.now();
+      logEvent("[saveStoreState] before: setTestData");
       await this.setTestData({ storageState: storageState }, world);
+      logEvent(`[saveStoreState] after: setTestData took ${Date.now() - _perf_t355}ms`);
     }
   }
   async restoreSaveState(path: string | null = null, world: any = null) {
+    const _perf_t356 = Date.now();
+    logEvent("[restoreSaveState] before: _replaceWithLocalData");
     path = await this._replaceWithLocalData(path, this.world);
+    logEvent(`[restoreSaveState] after: _replaceWithLocalData took ${Date.now() - _perf_t356}ms`);
+    const _perf_t357 = Date.now();
+    logEvent("[restoreSaveState] before: refreshBrowser");
     await refreshBrowser(this, path, world);
+    logEvent(`[restoreSaveState] after: refreshBrowser took ${Date.now() - _perf_t357}ms`);
     this.registerEventListeners(this.context);
     registerNetworkEvents(this.world, this, this.context, this.page);
     registerDownloadEvent(this.page, this.world, this.context);
     if (this.onRestoreSaveState) {
+      const _perf_t358 = Date.now();
+      logEvent("[restoreSaveState] before: onRestoreSaveState");
       await this.onRestoreSaveState(path);
+      logEvent(`[restoreSaveState] after: onRestoreSaveState took ${Date.now() - _perf_t358}ms`);
     }
   }
 
@@ -4333,7 +5406,10 @@ class StableBrowser {
     let screenshotPath = null;
 
     try {
+      const _perf_t359 = Date.now();
+      logEvent("[waitForPageLoad] before: Promise.all");
       await Promise.all(promiseArray);
+      logEvent(`[waitForPageLoad] after: Promise.all took ${Date.now() - _perf_t359}ms`);
     } catch (e) {
       if (e.label === "networkidle") {
         console.log("waited for the network to be idle timeout");
@@ -4343,9 +5419,15 @@ class StableBrowser {
         console.log("waited for the domcontent loaded timeout");
       }
     } finally {
+      const _perf_t360 = Date.now();
+      logEvent("[waitForPageLoad] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 500));
+      logEvent(`[waitForPageLoad] after: new Promise took ${Date.now() - _perf_t360}ms`);
       if (options && !options.noSleep) {
+        const _perf_t361 = Date.now();
+        logEvent("[waitForPageLoad] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 1500));
+        logEvent(`[waitForPageLoad] after: new Promise took ${Date.now() - _perf_t361}ms`);
       }
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
@@ -4384,12 +5466,24 @@ class StableBrowser {
     };
 
     try {
+      const _perf_t362 = Date.now();
+      logEvent("[closePage] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[closePage] after: _preCommand took ${Date.now() - _perf_t362}ms`);
+      const _perf_t363 = Date.now();
+      logEvent("[closePage] before: page.close");
       await this.page.close();
+      logEvent(`[closePage] after: page.close took ${Date.now() - _perf_t363}ms`);
     } catch (e) {
+      const _perf_t364 = Date.now();
+      logEvent("[closePage] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[closePage] after: _commandError took ${Date.now() - _perf_t364}ms`);
     } finally {
+      const _perf_t365 = Date.now();
+      logEvent("[closePage] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[closePage] after: _commandFinally took ${Date.now() - _perf_t365}ms`);
     }
   }
   async tableCellOperation(headerText: string, rowText: string, options: any, _params: Params, world = null) {
@@ -4416,12 +5510,18 @@ class StableBrowser {
     };
     const timeout = this._getFindElementTimeout(options);
     try {
+      const _perf_t366 = Date.now();
+      logEvent("[tableCellOperation] before: _preCommand");
       await _preCommand(state, this);
+      logEvent(`[tableCellOperation] after: _preCommand took ${Date.now() - _perf_t366}ms`);
       const start = Date.now();
       let cellArea = null;
       while (true) {
         try {
+          const _perf_t367 = Date.now();
+          logEvent("[tableCellOperation] before: _findCellArea");
           cellArea = await _findCellArea(headerText, rowText, this, state);
+          logEvent(`[tableCellOperation] after: _findCellArea took ${Date.now() - _perf_t367}ms`);
           if (cellArea) {
             break;
           }
@@ -4431,7 +5531,10 @@ class StableBrowser {
         if (Date.now() - start > timeout) {
           throw new Error(`Cell not found in table`);
         }
+        const _perf_t368 = Date.now();
+        logEvent("[tableCellOperation] before: new Promise");
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        logEvent(`[tableCellOperation] after: new Promise took ${Date.now() - _perf_t368}ms`);
       }
 
       switch (operation) {
@@ -4446,48 +5549,75 @@ class StableBrowser {
             if (options.yOffset) {
               yOffset = options.yOffset;
             }
+            const _perf_t369 = Date.now();
+            logEvent("[tableCellOperation] before: page.mouse.click");
             await this.page.mouse.click(
               cellArea.x + cellArea.width / 2 + xOffset,
               cellArea.y + cellArea.height / 2 + yOffset
             );
+            logEvent(`[tableCellOperation] after: page.mouse.click took ${Date.now() - _perf_t369}ms`);
           } else {
+            const _perf_t370 = Date.now();
+            logEvent("[tableCellOperation] before: findElementsInArea");
             const results = await findElementsInArea(options.css, cellArea, this, options);
+            logEvent(`[tableCellOperation] after: findElementsInArea took ${Date.now() - _perf_t370}ms`);
             if (results.length === 0) {
               throw new Error(`Element not found in cell area`);
             }
             state.element = results[0];
+            const _perf_t371 = Date.now();
+            logEvent("[tableCellOperation] before: performAction");
             await performAction("click", state.element, options, this, state, _params);
+            logEvent(`[tableCellOperation] after: performAction took ${Date.now() - _perf_t371}ms`);
           }
           break;
         case "hover+click":
           if (!options.css) {
             throw new Error("css is not defined");
           }
+          const _perf_t372 = Date.now();
+          logEvent("[tableCellOperation] before: findElementsInArea");
           const results = await findElementsInArea(options.css, cellArea, this, options);
+          logEvent(`[tableCellOperation] after: findElementsInArea took ${Date.now() - _perf_t372}ms`);
           if (results.length === 0) {
             throw new Error(`Element not found in cell area`);
           }
           state.element = results[0];
+          const _perf_t373 = Date.now();
+          logEvent("[tableCellOperation] before: performAction");
           await performAction("hover+click", state.element, options, this, state, _params);
+          logEvent(`[tableCellOperation] after: performAction took ${Date.now() - _perf_t373}ms`);
           break;
         case "hover":
           if (!options.css) {
             throw new Error("css is not defined");
           }
+          const _perf_t374 = Date.now();
+          logEvent("[tableCellOperation] before: findElementsInArea");
           const result1 = await findElementsInArea(options.css, cellArea, this, options);
+          logEvent(`[tableCellOperation] after: findElementsInArea took ${Date.now() - _perf_t374}ms`);
           if (result1.length === 0) {
             throw new Error(`Element not found in cell area`);
           }
           state.element = result1[0];
+          const _perf_t375 = Date.now();
+          logEvent("[tableCellOperation] before: performAction");
           await performAction("hover", state.element, options, this, state, _params);
+          logEvent(`[tableCellOperation] after: performAction took ${Date.now() - _perf_t375}ms`);
           break;
         default:
           throw new Error("operation is not supported");
       }
     } catch (e) {
+      const _perf_t376 = Date.now();
+      logEvent("[tableCellOperation] before: _commandError");
       await _commandError(state, e, this);
+      logEvent(`[tableCellOperation] after: _commandError took ${Date.now() - _perf_t376}ms`);
     } finally {
+      const _perf_t377 = Date.now();
+      logEvent("[tableCellOperation] before: _commandFinally");
       await _commandFinally(state, this);
+      logEvent(`[tableCellOperation] after: _commandFinally took ${Date.now() - _perf_t377}ms`);
     }
   }
 
@@ -4522,11 +5652,20 @@ class StableBrowser {
       if (hight <= 0) {
         hight = 1080;
       }
+      const _perf_t378 = Date.now();
+      logEvent("[setViewportSize] before: page.setViewportSize");
       await this.page.setViewportSize({ width: width, height: hight });
+      logEvent(`[setViewportSize] after: page.setViewportSize took ${Date.now() - _perf_t378}ms`);
     } catch (e) {
+      const _perf_t379 = Date.now();
+      logEvent("[setViewportSize] before: _commandError");
       await _commandError({ text: "setViewportSize", operation: "setViewportSize", width, hight, info }, e, this);
+      logEvent(`[setViewportSize] after: _commandError took ${Date.now() - _perf_t379}ms`);
     } finally {
+      const _perf_t380 = Date.now();
+      logEvent("[setViewportSize] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 2000));
+      logEvent(`[setViewportSize] after: new Promise took ${Date.now() - _perf_t380}ms`);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world));
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -4558,11 +5697,20 @@ class StableBrowser {
     const info = {};
 
     try {
+      const _perf_t381 = Date.now();
+      logEvent("[reloadPage] before: page.reload");
       await this.page.reload();
+      logEvent(`[reloadPage] after: page.reload took ${Date.now() - _perf_t381}ms`);
     } catch (e) {
+      const _perf_t382 = Date.now();
+      logEvent("[reloadPage] before: _commandError");
       await _commandError({ text: "reloadPage", operation: "reloadPage", info }, e, this);
+      logEvent(`[reloadPage] after: _commandError took ${Date.now() - _perf_t382}ms`);
     } finally {
+      const _perf_t383 = Date.now();
+      logEvent("[reloadPage] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 2000));
+      logEvent(`[reloadPage] after: new Promise took ${Date.now() - _perf_t383}ms`);
       ({ screenshotId, screenshotPath } = await this._screenShot(options, world, info));
       const endTime = Date.now();
       _reportToWorld(world, {
@@ -4587,14 +5735,23 @@ class StableBrowser {
   }
   async scrollIfNeeded(element, info) {
     try {
+      const _perf_t384 = Date.now();
+      logEvent("[scrollIfNeeded] before: element.scrollIntoViewIfNeeded");
       await element.scrollIntoViewIfNeeded({
         timeout: 2000,
       });
+      logEvent(`[scrollIfNeeded] after: element.scrollIntoViewIfNeeded took ${Date.now() - _perf_t384}ms`);
+      const _perf_t385 = Date.now();
+      logEvent("[scrollIfNeeded] before: new Promise");
       await new Promise((resolve) => setTimeout(resolve, 500));
+      logEvent(`[scrollIfNeeded] after: new Promise took ${Date.now() - _perf_t385}ms`);
       if (info) {
+        const _perf_t386 = Date.now();
+        logEvent("[scrollIfNeeded] before: element.boundingBox");
         info.box = await element.boundingBox({
           timeout: 1000,
         });
+        logEvent(`[scrollIfNeeded] after: element.boundingBox took ${Date.now() - _perf_t386}ms`);
       }
     } catch (e) {
       console.log("#-#");
@@ -4631,9 +5788,15 @@ class StableBrowser {
       envName = this.context.environment.name;
     }
     if (!process.env.TEMP_RUN) {
+      const _perf_t387 = Date.now();
+      logEvent("[beforeScenario] before: getTestData");
       await getTestData(envName, world, undefined, this.featureName, this.scenarioName, this.context);
+      logEvent(`[beforeScenario] after: getTestData took ${Date.now() - _perf_t387}ms`);
     }
+    const _perf_t388 = Date.now();
+    logEvent("[beforeScenario] before: loadBrunoParams");
     await loadBrunoParams(this.context, this.context.environment.name);
+    logEvent(`[beforeScenario] after: loadBrunoParams took ${Date.now() - _perf_t388}ms`);
 
     if ((process.env.TRACE === "true" || this.configuration.trace === true) && this.context) {
       this.trace = true;
@@ -4642,15 +5805,21 @@ class StableBrowser {
         fs.mkdirSync(traceFolder, { recursive: true });
       }
       this.traceFolder = traceFolder;
+      const _perf_t389 = Date.now();
+      logEvent("[beforeScenario] before: context.playContext.tracing.start");
       await this.context.playContext.tracing.start({ screenshots: true, snapshots: true });
+      logEvent(`[beforeScenario] after: context.playContext.tracing.start took ${Date.now() - _perf_t389}ms`);
     }
   }
   async afterScenario(world, scenario) {
     const id = scenario.testCaseStartedId;
     if (this.trace) {
+      const _perf_t390 = Date.now();
+      logEvent("[afterScenario] before: context.playContext.tracing.stop");
       await this.context.playContext.tracing.stop({
         path: path.join(this.traceFolder!, `trace-${id}.zip`),
       });
+      logEvent(`[afterScenario] after: context.playContext.tracing.stop took ${Date.now() - _perf_t390}ms`);
     }
   }
   getGherkinKeyword(step) {
@@ -4674,7 +5843,10 @@ class StableBrowser {
     if (step?.pickleStep && this.trace) {
       const keyword = this.getGherkinKeyword(step.pickleStep);
       this.traceGroupName = `${keyword} ${step.pickleStep.text}`;
+      const _perf_t391 = Date.now();
+      logEvent("[beforeStep] before: context.playContext.tracing.group");
       await this.context.playContext.tracing.group(this.traceGroupName);
+      logEvent(`[beforeStep] after: context.playContext.tracing.group took ${Date.now() - _perf_t391}ms`);
     }
     this.stepTags = [];
     if (!this.beforeScenarioCalled) {
@@ -4703,7 +5875,12 @@ class StableBrowser {
     }
     if (this.context && this.context.browserObject && this.context.browserObject.trace === true) {
       if (this.context.browserObject.context) {
+        const _perf_t392 = Date.now();
+        logEvent("[beforeStep] before: context.browserObject.context.tracing.startChunk");
         await this.context.browserObject.context.tracing.startChunk({ title: this.stepName });
+        logEvent(
+          `[beforeStep] after: context.browserObject.context.tracing.startChunk took ${Date.now() - _perf_t392}ms`
+        );
       }
     }
 
@@ -4715,15 +5892,24 @@ class StableBrowser {
         !process.env.DISABLE_SNAPSHOT &&
         (!this.fastMode || this.stepTags.includes("fast-mode"))
       ) {
+        const _perf_t393 = Date.now();
+        logEvent("[beforeStep] before: getAriaSnapshot");
         const snapshot = await this.getAriaSnapshot();
+        logEvent(`[beforeStep] after: getAriaSnapshot took ${Date.now() - _perf_t393}ms`);
         if (snapshot) {
+          const _perf_t394 = Date.now();
+          logEvent("[beforeStep] before: world.attach");
           await world.attach(JSON.stringify(snapshot), "application/json+snapshot-before");
+          logEvent(`[beforeStep] after: world.attach took ${Date.now() - _perf_t394}ms`);
         }
       }
     }
     this.context.routeResults = null;
     this.context.loadedRoutes = null;
+    const _perf_t395 = Date.now();
+    logEvent("[beforeStep] before: registerBeforeStepRoutes");
     await registerBeforeStepRoutes(this.context, this.stepName, world);
+    logEvent(`[beforeStep] after: registerBeforeStepRoutes took ${Date.now() - _perf_t395}ms`);
     networkBeforeStep(this.stepName, this.context);
     this.inStepReport = false;
   }
