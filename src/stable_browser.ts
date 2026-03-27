@@ -3628,7 +3628,7 @@ class StableBrowser {
 
             if (element) {
               await this.scrollIfNeeded(element, state.info);
-              await element.dispatchEvent("bvt_verify_page_contains_text");
+              // await element.dispatchEvent("bvt_verify_page_contains_text");
             }
           }
           await _screenshot(state, this);
