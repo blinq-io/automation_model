@@ -3,6 +3,11 @@ import { getHumanReadableErrorMessage } from "./error-messages.js";
 import { LocatorLog } from "./locator_log.js";
 import { _fixUsingParams, maskValue, replaceWithLocalTestData } from "./utils.js";
 
+function logEvent(message: string) {
+  const humanFriendlyTime = new Date().toLocaleTimeString();
+  console.log(`🟧 [${humanFriendlyTime}] ${message}`);
+}
+
 type JsonTimestamp = number;
 type JsonResultPassed = {
   status: "PASSED";
@@ -29,7 +34,10 @@ type JsonCommandReport = {
 
 export async function _preCommand(state: any, web: any) {
   if (web.trace) {
+    const _perf_t0 = Date.now();
+    logEvent("[_preCommand] before: web.context.playContext.tracing.group");
     await web.context.playContext.tracing.group(state.text);
+    logEvent(`[_preCommand] after: web.context.playContext.tracing.group took ${Date.now() - _perf_t0}ms`);
   }
 
   if (web && web.getCmdId) {
@@ -101,31 +109,46 @@ export async function _preCommand(state: any, web: any) {
     if (state.options && state.options.timeout) {
       timeout = state.options.timeout;
     }
+    const _perf_t1 = Date.now();
+    logEvent("[_preCommand] before: web._locate");
     state.element = await web._locate(state.selectors, state.info, state._params, timeout, allowDisabled);
+    logEvent(`[_preCommand] after: web._locate took ${Date.now() - _perf_t1}ms`);
   }
   if (state.scroll === true) {
+    const _perf_t2 = Date.now();
+    logEvent("[_preCommand] before: web.scrollIfNeeded");
     await web.scrollIfNeeded(state.element, state.info);
+    logEvent(`[_preCommand] after: web.scrollIfNeeded took ${Date.now() - _perf_t2}ms`);
   }
   if (state.screenshot === true /*&& !web.fastMode*/) {
     if (!state.onlyFailuresScreenshot) {
       check_performance("screenshot", web.context, true);
+      const _perf_t3 = Date.now();
+      logEvent("[_preCommand] before: _screenshot");
       await _screenshot(state, web);
+      logEvent(`[_preCommand] after: _screenshot took ${Date.now() - _perf_t3}ms`);
       check_performance("screenshot", web.context, false);
     }
   }
   if (state.highlight === true) {
     try {
+      const _perf_t4 = Date.now();
+      logEvent("[_preCommand] before: web._highlightElements");
       await web._highlightElements(state.element);
+      logEvent(`[_preCommand] after: web._highlightElements took ${Date.now() - _perf_t4}ms`);
     } catch (e) {
       // ignore
     }
   }
   state.info.failCause.operationFailed = true;
   if (web.pausedCmd && web.pausedCmd.id === state.cmdId) {
+    const _perf_t5 = Date.now();
+    logEvent("[_preCommand] before: new Promise (pausedCmd)");
     await new Promise((resolve, reject) => {
       web.pausedCmd.resolve = resolve;
       web.pausedCmd.reject = reject;
     });
+    logEvent(`[_preCommand] after: new Promise (pausedCmd) took ${Date.now() - _perf_t5}ms`);
   }
 }
 export async function _commandError(state: any, error: any, web: any) {
@@ -155,11 +178,14 @@ export async function _commandError(state: any, error: any, web: any) {
   if (web && web.configuration && web.configuration.fullPageScreenshotOnFailure === true) {
     fullPage = true;
   }
+  const _perf_t6 = Date.now();
+  logEvent("[_commandError] before: web._screenShot");
   const { screenshotId, screenshotPath } = await web._screenShot(
     { ...state.options, fullPage },
     state.world,
     state.info
   );
+  logEvent(`[_commandError] after: web._screenShot took ${Date.now() - _perf_t6}ms`);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
   state.info.screenshotPath = screenshotPath;
@@ -182,14 +208,20 @@ export async function _commandError(state: any, error: any, web: any) {
 }
 
 export async function _screenshot(state: any, web: any) {
+  const _perf_t7 = Date.now();
+  logEvent("[_screenshot] before: web._screenShot");
   const { screenshotId, screenshotPath } = await web._screenShot(state.options, state.world, state.info);
+  logEvent(`[_screenshot] after: web._screenShot took ${Date.now() - _perf_t7}ms`);
   state.screenshotId = screenshotId;
   state.screenshotPath = screenshotPath;
 }
 
 export async function _commandFinally(state: any, web: any) {
   if (web.trace) {
+    const _perf_t8 = Date.now();
+    logEvent("[_commandFinally] before: web.context.playContext.tracing.groupEnd");
     await web.context.playContext.tracing.groupEnd();
+    logEvent(`[_commandFinally] after: web.context.playContext.tracing.groupEnd took ${Date.now() - _perf_t8}ms`);
   }
   web.inStepReport = true;
   if (state && !state.commandError === true) {
@@ -200,6 +232,8 @@ export async function _commandFinally(state: any, web: any) {
   if (state.originalValue) {
     try {
       if (state.originalValue.startsWith("{{") && state.originalValue.endsWith("}}")) {
+        const _perf_t9 = Date.now();
+        logEvent("[_commandFinally] before: replaceWithLocalTestData");
         _value = (await replaceWithLocalTestData(
           state.originalValue,
           state.world,
@@ -208,6 +242,7 @@ export async function _commandFinally(state: any, web: any) {
           web.context,
           web
         )) as string;
+        logEvent(`[_commandFinally] after: replaceWithLocalTestData took ${Date.now() - _perf_t9}ms`);
       } else {
         _value = state.originalValue;
       }
