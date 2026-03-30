@@ -664,8 +664,8 @@ class StableBrowser {
     for (let i = 0; i < count; i++) {
       const element = locator.nth(i);
       // check if the tag matches
-      logEvent('[_locateElementByText] ❓ before: element.evaluate');
-      const condition = (await element.evaluate(
+      logEvent("[_locateElementByText] ❓ before: element.evaluate");
+      const condition = await element.evaluate(
         (el, [tagToIgnore, randomToken]) => {
           if (!tagToIgnore.startsWith("*")) {
             if (el.tagName.toLowerCase() !== tagToIgnore) {
@@ -680,8 +680,10 @@ class StableBrowser {
           return true;
         },
         [tag1, randomToken]
-      ));
-      logEvent(`[_locateElementByText] ❓ CONDITION VALUE: ${condition} after: element.evaluate took ${Date.now() - _perf_t30}ms`);
+      );
+      logEvent(
+        `[_locateElementByText] ❓ CONDITION VALUE: ${condition} after: element.evaluate took ${Date.now() - _perf_t30}ms`
+      );
       if (!condition) {
         continue;
       }
@@ -699,9 +701,9 @@ class StableBrowser {
     _params: Params,
     info,
     visibleOnly = true,
-    allowDisabled?= false,
+    allowDisabled? = false,
     element_name = null,
-    logErrors?= false
+    logErrors? = false
   ) {
     if (!info) {
       info = {};
@@ -985,7 +987,7 @@ class StableBrowser {
     }
     return null;
   }
-  async _locate(selectors, info, _params?: Params, timeout, allowDisabled?= false) {
+  async _locate(selectors, info, _params?: Params, timeout, allowDisabled? = false) {
     if (!timeout) {
       timeout = 30000;
     }
@@ -1235,7 +1237,7 @@ class StableBrowser {
       return bodyContent;
     });
   }
-  async _locate_internal(selectors, info, _params?: Params, timeout = 30000, allowDisabled?= false) {
+  async _locate_internal(selectors, info, _params?: Params, timeout = 30000, allowDisabled? = false) {
     if (selectors.locators && Array.isArray(selectors.locators)) {
       selectors.locators.forEach((locator) => {
         locator.index = locator.index ?? 0;
@@ -1428,9 +1430,9 @@ class StableBrowser {
     _params,
     info,
     visibleOnly,
-    allowDisabled?= false,
+    allowDisabled? = false,
     element_name,
-    logErrors?= false
+    logErrors? = false
   ) {
     let foundElements = [];
     const result = {
@@ -2839,7 +2841,7 @@ class StableBrowser {
             logEvent("[snapshotValidation] before: _screenshot");
             await _screenshot(state, this);
             logEvent(`[snapshotValidation] after: _screenshot took ${Date.now() - _perf_t202}ms`);
-          } catch (e) { }
+          } catch (e) {}
           return state.info;
         } catch (e) {
           // Log error but continue retrying until timeout is reached
@@ -2929,7 +2931,7 @@ class StableBrowser {
 
     return new Promise((resolve, reject) => {
       const readableStream = new Readable();
-      readableStream._read = () => { }; // _read is required but you can noop it
+      readableStream._read = () => {}; // _read is required but you can noop it
       readableStream.push(data);
       readableStream.push(null);
 
@@ -3989,7 +3991,7 @@ class StableBrowser {
               }, 2000);
             }
           })
-          .then(() => { })
+          .then(() => {})
           .catch((e) => {
             // ignore
             // console.error(`Could not highlight node : ${e}`);
@@ -4026,7 +4028,7 @@ class StableBrowser {
             },
             [css]
           )
-          .then(() => { })
+          .then(() => {})
           .catch((e) => {
             // ignore
             // console.error(`Could not highlight css: ${e}`);
@@ -4973,16 +4975,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-            status: "FAILED",
-            startTime,
-            endTime,
-            message: error?.message,
-          }
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
           : {
-            status: "PASSED",
-            startTime,
-            endTime,
-          },
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
         info: info,
       });
     }
@@ -5055,16 +5057,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-            status: "FAILED",
-            startTime,
-            endTime,
-            message: error?.message,
-          }
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
           : {
-            status: "PASSED",
-            startTime,
-            endTime,
-          },
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
         info: info,
       });
     }
@@ -5231,16 +5233,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-            status: "FAILED",
-            startTime,
-            endTime,
-            message: error?.message,
-          }
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
           : {
-            status: "PASSED",
-            startTime,
-            endTime,
-          },
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
         info: info,
       });
     }
@@ -5442,16 +5444,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-            status: "FAILED",
-            startTime,
-            endTime,
-            message: error?.message,
-          }
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
           : {
-            status: "PASSED",
-            startTime,
-            endTime,
-          },
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
       });
     }
   }
@@ -5680,16 +5682,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-            status: "FAILED",
-            startTime,
-            endTime,
-            message: error?.message,
-          }
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
           : {
-            status: "PASSED",
-            startTime,
-            endTime,
-          },
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
         info: info,
       });
     }
@@ -5724,16 +5726,16 @@ class StableBrowser {
         screenshotId,
         result: error
           ? {
-            status: "FAILED",
-            startTime,
-            endTime,
-            message: error?.message,
-          }
+              status: "FAILED",
+              startTime,
+              endTime,
+              message: error?.message,
+            }
           : {
-            status: "PASSED",
-            startTime,
-            endTime,
-          },
+              status: "PASSED",
+              startTime,
+              endTime,
+            },
         info: info,
       });
     }
@@ -5922,43 +5924,44 @@ class StableBrowser {
     this.stepTags = tags;
   }
   async getAriaSnapshot() {
-    try {
-      // find the page url
-      const url = await this.page.url();
+    return;
+    // try {
+    //   // find the page url
+    //   const url = await this.page.url();
 
-      // extract the path from the url
-      const path = new URL(url).pathname;
-      // get the page title
-      const title = await this.page.title();
-      // go over other frams
-      const frames = this.page.frames();
-      const snapshots = [];
-      const content = [`- path: ${path}`, `- title: ${title}`];
-      const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
-      for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i];
-        try {
-          // Ensure frame is attached and has body
-          const body = frame.locator("body");
-          //await body.waitFor({ timeout: 2000 }); // wait explicitly
-          const snapshot = await body.ariaSnapshot({ timeout });
-          if (!snapshot) {
-            continue;
-          }
-          content.push(`- frame: ${i}`);
-          content.push(snapshot);
-        } catch (innerErr) {
-          console.warn(`Frame ${i} snapshot failed:`, innerErr);
-          content.push(`- frame: ${i} - error: ${innerErr.message}`);
-        }
-      }
+    //   // extract the path from the url
+    //   const path = new URL(url).pathname;
+    //   // get the page title
+    //   const title = await this.page.title();
+    //   // go over other frams
+    //   const frames = this.page.frames();
+    //   const snapshots = [];
+    //   const content = [`- path: ${path}`, `- title: ${title}`];
+    //   const timeout = this.configuration.ariaSnapshotTimeout ? this.configuration.ariaSnapshotTimeout : 3000;
+    //   for (let i = 0; i < frames.length; i++) {
+    //     const frame = frames[i];
+    //     try {
+    //       // Ensure frame is attached and has body
+    //       const body = frame.locator("body");
+    //       //await body.waitFor({ timeout: 2000 }); // wait explicitly
+    //       const snapshot = await body.ariaSnapshot({ timeout });
+    //       if (!snapshot) {
+    //         continue;
+    //       }
+    //       content.push(`- frame: ${i}`);
+    //       content.push(snapshot);
+    //     } catch (innerErr) {
+    //       console.warn(`Frame ${i} snapshot failed:`, innerErr);
+    //       content.push(`- frame: ${i} - error: ${innerErr.message}`);
+    //     }
+    //   }
 
-      return content.join("\n");
-    } catch (e) {
-      console.log("Error in getAriaSnapshot");
-      //console.debug(e);
-    }
-    return null;
+    //   return content.join("\n");
+    // } catch (e) {
+    //   console.log("Error in getAriaSnapshot");
+    //   //console.debug(e);
+    // }
+    // return null;
   }
 
   /**
