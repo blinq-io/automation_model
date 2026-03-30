@@ -19,7 +19,7 @@
   ],
   "bruno": {
     "test": {
-      "filename": "/Users/codio/Desktop/BLINQ/automation_model/Create Object.bru"
+      "filename": "/Users/madhavp/Documents/GitHub/automation_model/Create Object.bru"
     },
     "request": {
       "method": "POST",
@@ -33,7 +33,7 @@
       "status": 200,
       "statusText": "OK",
       "headers": {
-        "date": "Wed, 11 Mar 2026 06:08:38 GMT",
+        "date": "Mon, 30 Mar 2026 12:16:19 GMT",
         "content-type": "application/json",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
@@ -47,25 +47,25 @@
         "expires": "0",
         "x-frame-options": "DENY",
         "cf-cache-status": "DYNAMIC",
-        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=JN4ExT3Nsd179uLx6%2Fi8pGZh9FT%2FYah5Zyg2Rb%2Fss%2FORBGGadf1EYZmklSnki8h%2F1CPJ%2FiZn3Gapi7xBQzKYQua0gW1ccNGi%2BE%2BIdHaudqJBbag%3D\"}]}",
-        "cf-ray": "9da862c1bff5f88a-SIN",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=fIr9XL4GFb%2FcvQ4gw%2Bib2tdUnf0KwNiyJUcVoTdM3TGKTf1%2BHJkyKJ0HwsVKrIoDxSKNzJvCn3KSZVaaGtsOpUTeTBAfIqrMSd4l3yZqbaYNnsurUd9r1WRHD1kY2NSwEjaUfeGU\"}]}",
+        "cf-ray": "9e470b766a601ed5-MRS",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "data": {
-        "id": "ff8081819cd4022c019cdb82f5410dab",
+        "id": "ff8081819d150699019d3eac666e4a09",
         "name": "{{ObjectName}}",
-        "createdAt": 1773209318721,
+        "createdAt": 1774872979054,
         "data": {
           "secret": "{{SecretValue}}",
           "guid": "1234"
         }
       },
-      "responseTime": 387
+      "responseTime": 686
     },
     "error": null,
     "assertionResults": [
       {
-        "uid": "JigI1hxXYOwt0aUP7_LHH",
+        "uid": "QwyfRgHT9_kmFh1ijP54M",
         "lhsExpr": "res.body.data.secret",
         "rhsExpr": "eq {{SecretValue}}",
         "rhsOperand": "{{SecretValue}}",
@@ -73,7 +73,7 @@
         "status": "pass"
       },
       {
-        "uid": "RUMyouaP6mdymnuIzVVwC",
+        "uid": "iq7YyZA6i1xuSjQnBMa9w",
         "lhsExpr": "res.body.data.guid",
         "rhsExpr": "eq \"{{Guid}}\"",
         "rhsOperand": "\"{{Guid}}\"",
@@ -83,8 +83,8 @@
     ],
     "testResults": [],
     "shouldStopRunnerExecution": false,
-    "runtime": 0.416330292,
-    "suitename": "/Users/codio/Desktop/BLINQ/automation_model/Create Object",
+    "runtime": 0.725678458,
+    "suitename": "/Users/madhavp/Documents/GitHub/automation_model/Create Object",
     "iterationIndex": 0
   },
   "ddd": "liad123121",
