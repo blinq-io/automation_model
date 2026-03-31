@@ -114,6 +114,29 @@ export const apps = {};
 const formatElementName = (elementName) => {
   return elementName ? JSON.stringify(elementName) : "element";
 };
+
+const withTimeout = (promise, timeout, defaultValue = null) => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (defaultValue !== null) {
+        resolve(defaultValue);
+      } else {
+        reject(new Error("Operation timed out"));
+      }
+    }, timeout);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+};
+
 class StableBrowser {
   project_path = null;
   webLogFile = null;
@@ -225,7 +248,7 @@ class StableBrowser {
             try {
               const _perf_t2 = Date.now();
               logEvent("[registerEventListeners] before: page.title");
-              let title = await this.page.title();
+              let title = await withTimeout(this.page.title(), 2000, "[Unknown Title]");
               logEvent(`[registerEventListeners] after: page.title took ${Date.now() - _perf_t2}ms`);
               console.log("Switched to page " + title);
             } catch (error) {
@@ -242,7 +265,7 @@ class StableBrowser {
           logEvent("[registerEventListeners] before: waitForPageLoad");
           await this.waitForPageLoad();
           logEvent(`[registerEventListeners] after: waitForPageLoad took ${Date.now() - _perf_t3}ms`);
-          console.log("Switch page: " + (await page.title()));
+          console.log("Switch page: " + (await withTimeout(page.title(), 2000, "[Unknown Title]")));
         } catch (e) {
           if (e?.message?.includes("Target page, context or browser has been closed")) {
             // Ignore this error
@@ -324,7 +347,7 @@ class StableBrowser {
       let page = this.context.pages[i];
       const _perf_t8 = Date.now();
       logEvent("[switchTab] before: page.title");
-      let title = await page.title();
+      let title = await withTimeout(page.title(), 2000, "[Unknown Title]");
       logEvent(`[switchTab] after: page.title took ${Date.now() - _perf_t8}ms`);
       if (title.includes(tabTitleOrIndex)) {
         this.page = page;
@@ -3029,7 +3052,7 @@ class StableBrowser {
         try {
           const _perf_t208 = Date.now();
           logEvent("[_screenShot] before: page.title");
-          info.title = await this.page.title();
+          info.title = await withTimeout(this.page.title(), 2000, "[Unknown title]");
           logEvent(`[_screenShot] after: page.title took ${Date.now() - _perf_t208}ms`);
         } catch (e) {
           // ignore
@@ -4293,7 +4316,7 @@ class StableBrowser {
       for (let i = 0; i < 30; i++) {
         const _perf_t284 = Date.now();
         logEvent("[verifyPageTitle] before: page.title");
-        const foundTitle = await this.page.title();
+        const foundTitle = await withTimeout(this.page.title(), 2000, "[Unknown Title]");
         logEvent(`[verifyPageTitle] after: page.title took ${Date.now() - _perf_t284}ms`);
         switch (matcher) {
           case "exact":
