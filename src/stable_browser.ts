@@ -3077,7 +3077,11 @@ class StableBrowser {
       try {
         const _perf_t209 = Date.now();
         logEvent("[_screenShot] before: takeScreenshot");
-        await this.takeScreenshot(screenshotPath, options.fullPage === true);
+        await withTimeout(
+          this.takeScreenshot(screenshotPath, options.fullPage === true),
+          2000,
+          "takeScreenshot timeout"
+        );
         logEvent(`[_screenShot] after: takeScreenshot took ${Date.now() - _perf_t209}ms`);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
@@ -3102,7 +3106,11 @@ class StableBrowser {
       try {
         const _perf_t211 = Date.now();
         logEvent("[_screenShot] before: takeScreenshot");
-        await this.takeScreenshot(options.screenshotPath, options.fullPage === true);
+        await withTimeout(
+          this.takeScreenshot(options.screenshotPath, options.fullPage === true),
+          2000,
+          "takeScreenshot timeout"
+        );
         logEvent(`[_screenShot] after: takeScreenshot took ${Date.now() - _perf_t211}ms`);
         // let buffer = await this.page.screenshot({ timeout: 4000 });
         // // save the buffer to the screenshot path asynchrously
