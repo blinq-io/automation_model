@@ -6194,6 +6194,6 @@ function createTimedPromise(promise, label) {
 export { StableBrowser };
 
 function logEvent(message) {
-  const humanFriendlyTime = new Date().toLocaleTimeString();
+  const humanFriendlyTime = new Date().toISOString();
   console.log(`🟧 [${humanFriendlyTime}] ${message}`);
 }
