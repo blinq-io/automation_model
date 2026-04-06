@@ -3,7 +3,6 @@ import { check_performance } from "./check_performance.js";
 import { expect } from "@playwright/test";
 import dayjs from "dayjs";
 import fs from "fs";
-import { Jimp } from "jimp";
 import path from "path";
 import type { Browser, Page } from "playwright";
 import reg_parser from "regex-parser";
@@ -3160,6 +3159,7 @@ class StableBrowser {
 
     const _perf_t217 = Date.now();
     logEvent("[takeScreenshot] before: Jimp.read");
+    const { Jimp } = await import("jimp");
     let image = await Jimp.read(screenshotBuffer);
     logEvent(`[takeScreenshot] after: Jimp.read took ${Date.now() - _perf_t217}ms`);
 
